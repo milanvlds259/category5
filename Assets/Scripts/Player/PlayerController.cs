@@ -19,6 +19,11 @@ namespace Category5.Player
         [SerializeField] private Vector3 groundCheckOffset = new Vector3(0, 0.1f, 0);
         [SerializeField] private LayerMask groundLayers = 1; // Default layer
 
+        [Header("Dodge Settings")]
+        [SerializeField] private float dodgeDuration = 0.5f;
+        [SerializeField] private float dodgeDistance = 8f;
+        [SerializeField] private float dodgeCooldown = 2f;
+
         private CharacterController _controller;
         private InputSystem_Actions _inputActions;
         private Vector2 _moveInput;
@@ -29,6 +34,12 @@ namespace Category5.Player
         // Jump Buffering
         private float _jumpBufferTime = 0.2f;
         private float _jumpBufferCounter;
+
+        // Dodge State
+        private bool _isDodging;
+        private float _dodgeTimer;
+        private float _lastDodgeTime = -10f;
+        private Vector3 _dodgeDirection;
 
         private void Awake()
         {
@@ -75,6 +86,7 @@ namespace Category5.Player
             {
                 _inputActions.Player.Enable();
                 _inputActions.Player.Jump.performed += OnJump;
+                _inputActions.Player.Dodge.performed += OnDodge;
             }
         }
 
@@ -83,6 +95,7 @@ namespace Category5.Player
             if (_inputActions != null)
             {
                 _inputActions.Player.Jump.performed -= OnJump;
+                _inputActions.Player.Dodge.performed -= OnDodge;
                 _inputActions.Player.Disable();
             }
         }
@@ -91,16 +104,24 @@ namespace Category5.Player
         {
             if (!IsOwner && !_isOffline) return;
 
-            HandleMovement();
-            HandleGravity();
+            if (_isDodging)
+            {
+                HandleDodge();
+            }
+            else
+            {
+                HandleMovement();
+                HandleGravity();
+            }
         }
 
         private void HandleMovement()
         {
             _moveInput = _inputActions.Player.Move.ReadValue<Vector2>();
             
-            // Camera-relative movement
             Vector3 move = Vector3.zero;
+            Vector3 lookDirection = transform.forward;
+
             if (Camera.main != null)
             {
                 Vector3 cameraForward = Camera.main.transform.forward;
@@ -111,22 +132,30 @@ namespace Category5.Player
                 cameraForward.Normalize();
                 cameraRight.Normalize();
 
+                // Move relative to camera
                 move = (cameraForward * _moveInput.y + cameraRight * _moveInput.x);
+                
+                // Look direction is camera forward
+                lookDirection = cameraForward;
             }
             else
             {
-                // fallback to world space if no camera found
+                // Fallback to world space
                 move = new Vector3(_moveInput.x, 0, _moveInput.y);
+                if (move != Vector3.zero) lookDirection = move;
             }
             
             if (move.magnitude > 1f) move.Normalize();
 
+            // Always rotate to look direction (which is camera forward if camera exists)
+            if (lookDirection != Vector3.zero)
+            {
+                Quaternion targetRotation = Quaternion.LookRotation(lookDirection);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+            }
+
             if (move != Vector3.zero)
             {
-                // rotate towards move direction
-                Quaternion targetRotation = Quaternion.LookRotation(move);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
-                
                 _controller.Move(move * moveSpeed * Time.deltaTime);
             }
         }
@@ -162,6 +191,63 @@ namespace Category5.Player
         {
             // Instead of jumping immediately, we buffer the input
             _jumpBufferCounter = _jumpBufferTime;
+        }
+
+        private void OnDodge(InputAction.CallbackContext context)
+        {
+            if (_isDodging || !_isGrounded) return;
+            if (Time.time < _lastDodgeTime + dodgeCooldown) return;
+
+            StartDodge();
+        }
+
+        private void StartDodge()
+        {
+            _isDodging = true;
+            _dodgeTimer = dodgeDuration;
+            _lastDodgeTime = Time.time;
+
+            // Determine dodge direction
+            Vector2 input = _inputActions.Player.Move.ReadValue<Vector2>();
+            Vector3 moveDir = new Vector3(input.x, 0, input.y);
+
+            if (Camera.main != null)
+            {
+                Vector3 cameraForward = Camera.main.transform.forward;
+                Vector3 cameraRight = Camera.main.transform.right;
+                cameraForward.y = 0;
+                cameraRight.y = 0;
+                cameraForward.Normalize();
+                cameraRight.Normalize();
+                
+                moveDir = (cameraForward * input.y + cameraRight * input.x).normalized;
+            }
+
+            // If no input, dodge forward
+            if (moveDir == Vector3.zero)
+            {
+                moveDir = transform.forward;
+            }
+
+            _dodgeDirection = moveDir;
+            
+            // Rotate to face dodge direction immediately
+            transform.rotation = Quaternion.LookRotation(_dodgeDirection);
+        }
+
+        private void HandleDodge()
+        {
+            _dodgeTimer -= Time.deltaTime;
+
+            if (_dodgeTimer <= 0)
+            {
+                _isDodging = false;
+                _velocity = Vector3.zero; // Reset velocity after dodge
+                return;
+            }
+
+            float speed = dodgeDistance / dodgeDuration;
+            _controller.Move(_dodgeDirection * speed * Time.deltaTime);
         }
 
         private void OnDrawGizmosSelected()
