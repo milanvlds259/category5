@@ -2,6 +2,7 @@ using UnityEngine;
 using Unity.Netcode;
 using UnityEngine.InputSystem;
 using Category5;
+using Category5.Core;
 
 namespace Category5.Player
 {
@@ -31,6 +32,9 @@ namespace Category5.Player
         private bool _isGrounded;
         private bool _isOffline = false;
         
+        [Header("Debug")]
+        [SerializeField] private bool invertMovement = false;
+
         // Jump Buffering
         private float _jumpBufferTime = 0.2f;
         private float _jumpBufferCounter;
@@ -40,6 +44,7 @@ namespace Category5.Player
         private float _dodgeTimer;
         private float _lastDodgeTime = -10f;
         private Vector3 _dodgeDirection;
+        private Transform _cameraTransform;
 
         private void Awake()
         {
@@ -49,7 +54,7 @@ namespace Category5.Player
 
         private void Start()
         {
-            // If NetworkManager is missing or not running, we are in offline mode
+            // if NetworkManager is missing or not running we are in offline mode
             if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsListening)
             {
                 _isOffline = true;
@@ -59,6 +64,7 @@ namespace Category5.Player
                 if (camera != null)
                 {
                     camera.SetTarget(transform);
+                    _cameraTransform = camera.transform;
                 }
             }
         }
@@ -66,6 +72,21 @@ namespace Category5.Player
         public override void OnNetworkSpawn()
         {
             _isOffline = false; // We are definitely networked now
+
+            // Server handles spawning position
+            if (IsServer)
+            {
+                var spawnPoint = FindFirstObjectByType<Category5.Core.PlayerSpawnPoint>();
+                if (spawnPoint != null)
+                {
+                    // CharacterController overrides transform.position, so we must disable it briefly
+                    _controller.enabled = false;
+                    transform.position = spawnPoint.transform.position;
+                    transform.rotation = spawnPoint.transform.rotation;
+                    _controller.enabled = true;
+                }
+            }
+
             if (!IsOwner)
             {
                 enabled = false;
@@ -77,6 +98,7 @@ namespace Category5.Player
             if (camera != null)
             {
                 camera.SetTarget(transform);
+                _cameraTransform = camera.transform;
             }
         }
 
@@ -104,6 +126,23 @@ namespace Category5.Player
         {
             if (!IsOwner && !_isOffline) return;
 
+            // ensure we have a camera reference
+            if (_cameraTransform == null)
+            {
+                // try to find the ThirdPersonCamera component
+                var tpCamera = FindFirstObjectByType<Category5.ThirdPersonCamera>();
+                if (tpCamera != null)
+                {
+                    _cameraTransform = tpCamera.transform;
+                    tpCamera.SetTarget(transform);
+                }
+                // fallback to Main Camera
+                else if (Camera.main != null)
+                {
+                    _cameraTransform = Camera.main.transform;
+                }
+            }
+
             if (_isDodging)
             {
                 HandleDodge();
@@ -122,32 +161,32 @@ namespace Category5.Player
             Vector3 move = Vector3.zero;
             Vector3 lookDirection = transform.forward;
 
-            if (Camera.main != null)
+            // if we still don't have a camera we can't move relative to it
+            if (_cameraTransform != null)
             {
-                Vector3 cameraForward = Camera.main.transform.forward;
-                Vector3 cameraRight = Camera.main.transform.right;
-
-                cameraForward.y = 0;
-                cameraRight.y = 0;
-                cameraForward.Normalize();
-                cameraRight.Normalize();
-
-                // Move relative to camera
-                move = (cameraForward * _moveInput.y + cameraRight * _moveInput.x);
+                // get camera rotation flattened to XZ plane
+                Vector3 cameraEuler = _cameraTransform.eulerAngles;
+                Quaternion flatCameraRotation = Quaternion.Euler(0, cameraEuler.y, 0);
                 
-                // Look direction is camera forward
-                lookDirection = cameraForward;
+                // rotate input vector by camera rotation
+                Vector3 input3D = new Vector3(_moveInput.x, 0, _moveInput.y);
+                move = flatCameraRotation * input3D;
+                
+                // look direction is camera forward
+                lookDirection = flatCameraRotation * Vector3.forward;
             }
             else
             {
-                // Fallback to world space
+                // fallback to world space
                 move = new Vector3(_moveInput.x, 0, _moveInput.y);
                 if (move != Vector3.zero) lookDirection = move;
             }
             
+            if (invertMovement) move = -move;
+
             if (move.magnitude > 1f) move.Normalize();
 
-            // Always rotate to look direction (which is camera forward if camera exists)
+            // always rotate to look direction (which is camera forward if camera exists)
             if (lookDirection != Vector3.zero)
             {
                 Quaternion targetRotation = Quaternion.LookRotation(lookDirection);
@@ -162,15 +201,15 @@ namespace Category5.Player
 
         private void HandleGravity()
         {
-            // Custom ground check is more reliable than CharacterController.isGrounded
+            // custom ground check is more reliable than CharacterController.isGrounded
             _isGrounded = Physics.CheckSphere(transform.position + groundCheckOffset, groundCheckRadius, groundLayers, QueryTriggerInteraction.Ignore);
 
             if (_isGrounded && _velocity.y < 0)
             {
-                _velocity.y = -2f; // Small downward force to keep grounded
+                _velocity.y = -2f; // small downward force to keep grounded
             }
 
-            // Process Jump Buffer
+            // process jump buffer
             if (_jumpBufferCounter > 0)
             {
                 _jumpBufferCounter -= Time.deltaTime;
@@ -189,7 +228,7 @@ namespace Category5.Player
 
         private void OnJump(InputAction.CallbackContext context)
         {
-            // Instead of jumping immediately, we buffer the input
+            // instead of jumping immediately we buffer the input
             _jumpBufferCounter = _jumpBufferTime;
         }
 
@@ -207,14 +246,18 @@ namespace Category5.Player
             _dodgeTimer = dodgeDuration;
             _lastDodgeTime = Time.time;
 
-            // Determine dodge direction
+            // determine dodge direction
             Vector2 input = _inputActions.Player.Move.ReadValue<Vector2>();
             Vector3 moveDir = new Vector3(input.x, 0, input.y);
 
-            if (Camera.main != null)
+            // use cached camera transform if available, otherwise try Camera.main
+            Transform camTransform = _cameraTransform;
+            if (camTransform == null && Camera.main != null) camTransform = Camera.main.transform;
+
+            if (camTransform != null)
             {
-                Vector3 cameraForward = Camera.main.transform.forward;
-                Vector3 cameraRight = Camera.main.transform.right;
+                Vector3 cameraForward = camTransform.forward;
+                Vector3 cameraRight = camTransform.right;
                 cameraForward.y = 0;
                 cameraRight.y = 0;
                 cameraForward.Normalize();
@@ -223,7 +266,7 @@ namespace Category5.Player
                 moveDir = (cameraForward * input.y + cameraRight * input.x).normalized;
             }
 
-            // If no input, dodge forward
+            // if no input, dodge forward
             if (moveDir == Vector3.zero)
             {
                 moveDir = transform.forward;
@@ -231,7 +274,7 @@ namespace Category5.Player
 
             _dodgeDirection = moveDir;
             
-            // Rotate to face dodge direction immediately
+            // rotate to face dodge direction immediately
             transform.rotation = Quaternion.LookRotation(_dodgeDirection);
         }
 
@@ -242,7 +285,7 @@ namespace Category5.Player
             if (_dodgeTimer <= 0)
             {
                 _isDodging = false;
-                _velocity = Vector3.zero; // Reset velocity after dodge
+                _velocity = Vector3.zero; // reset velocity after dodge
                 return;
             }
 

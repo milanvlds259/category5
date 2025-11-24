@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 211218845112556929}
   - component: {fileID: 5956856847253499699}
   - component: {fileID: 1713919456950515335}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Capsule
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -127,7 +127,8 @@ GameObject:
   - component: {fileID: 5284951434624021081}
   - component: {fileID: 972890572938957449}
   - component: {fileID: 4296747668078663274}
-  m_Layer: 0
+  - component: {fileID: 27346507340196499}
+  m_Layer: 3
   m_Name: Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -187,7 +188,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 2536928491
+  GlobalObjectIdHash: 1432883955
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -217,6 +218,15 @@ MonoBehaviour:
   jumpHeight: 3
   gravity: -20
   rotationSpeed: 15
+  groundCheckRadius: 0.2
+  groundCheckOffset: {x: 0, y: -0.95, z: 0}
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 1
+  dodgeDuration: 0.2
+  dodgeDistance: 10
+  dodgeCooldown: 2
+  invertMovement: 0
 --- !u!114 &4296747668078663274
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -263,6 +273,29 @@ MonoBehaviour:
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
   SlerpPosition: 0
+--- !u!114 &27346507340196499
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7487642310209406333}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f07767ca53ccdec42af3f8f0f667ef2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.PlayerCombat
+  ShowTopMostFoldoutHeaderGroup: 1
+  lightDamage: 10
+  heavyDamage: 25
+  attackRange: 2
+  enemyLayers:
+    serializedVersion: 2
+    m_Bits: 64
+  comboResetTime: 1
+  attack1Duration: 0.3
+  attack2Duration: 0.4
+  attack3Duration: 0.6
 --- !u!1 &8905102911348418761
 GameObject:
   m_ObjectHideFlags: 0
@@ -275,7 +308,7 @@ GameObject:
   - component: {fileID: 3890027535096098680}
   - component: {fileID: 5166823920784576256}
   - component: {fileID: 5460786977058448700}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -291,7 +324,7 @@ Transform:
   m_GameObject: {fileID: 8905102911348418761}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.485, z: 0.361}
+  m_LocalPosition: {x: 0, y: 0.485, z: 0.432}
   m_LocalScale: {x: 0.67458916, y: 0.28306997, z: 0.27485}
   m_ConstrainProportionsScale: 0
   m_Children: []
