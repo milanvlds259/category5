@@ -31,6 +31,9 @@
     - Use `TryGetComponent` for collision handling.
     - Avoid `FindObjectOfType` in `Update` loops.
 
+### Coding Style
+- **Comments:** ALL comments in the code must be fully written in lowercase and no punctuation unless extremely necessary for internal readability purposes.
+
 ## Implementation Specifics
 
 ### Player Controller

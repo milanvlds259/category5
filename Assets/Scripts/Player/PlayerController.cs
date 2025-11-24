@@ -7,8 +7,12 @@ using Category5.Core;
 namespace Category5.Player
 {
     [RequireComponent(typeof(CharacterController))]
-    public class PlayerController : NetworkBehaviour
+    public class PlayerController : NetworkBehaviour, IDamageable
     {
+        [Header("Health")]
+        [SerializeField] private int maxHealth = 100;
+        public NetworkVariable<int> CurrentHealth = new NetworkVariable<int>(100);
+
         [Header("Movement Settings")]
         [SerializeField] private float moveSpeed = 7f;
         [SerializeField] private float jumpHeight = 3f;
@@ -71,15 +75,21 @@ namespace Category5.Player
 
         public override void OnNetworkSpawn()
         {
-            _isOffline = false; // We are definitely networked now
+            _isOffline = false; // we are definitely networked now
 
-            // Server handles spawning position
+            if (IsServer)
+            {
+                CurrentHealth.Value = maxHealth;
+            }
+            CurrentHealth.OnValueChanged += OnHealthChanged;
+
+            // server handles spawning position
             if (IsServer)
             {
                 var spawnPoint = FindFirstObjectByType<Category5.Core.PlayerSpawnPoint>();
                 if (spawnPoint != null)
                 {
-                    // CharacterController overrides transform.position, so we must disable it briefly
+                    // CharacterController overrides transform.position so we must disable it briefly
                     _controller.enabled = false;
                     transform.position = spawnPoint.transform.position;
                     transform.rotation = spawnPoint.transform.rotation;
@@ -100,6 +110,11 @@ namespace Category5.Player
                 camera.SetTarget(transform);
                 _cameraTransform = camera.transform;
             }
+        }
+
+        public override void OnNetworkDespawn()
+        {
+            CurrentHealth.OnValueChanged -= OnHealthChanged;
         }
 
         private void OnEnable()
@@ -291,6 +306,36 @@ namespace Category5.Player
 
             float speed = dodgeDistance / dodgeDuration;
             _controller.Move(_dodgeDirection * speed * Time.deltaTime);
+        }
+
+        public void TakeDamage(int damage)
+        {
+            if (!IsServer) return;
+            
+            // i-frame check
+            if (_isDodging) 
+            {
+                Debug.Log("Player dodged damage!");
+                return;
+            }
+
+            CurrentHealth.Value -= damage;
+            Debug.Log($"Player took {damage} damage. Health: {CurrentHealth.Value}");
+            
+            if (CurrentHealth.Value <= 0)
+            {
+                Debug.Log("Player Died!");
+                // TODO: Handle death (respawn or game over)
+            }
+        }
+
+        private void OnHealthChanged(int oldHealth, int newHealth)
+        {
+            if (newHealth < oldHealth)
+            {
+                // simple visual feedback for now
+                Debug.Log($"Ouch! Health: {newHealth}");
+            }
         }
 
         private void OnDrawGizmosSelected()

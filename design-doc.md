@@ -81,7 +81,7 @@
 
 ---
 
-### Boss Design: "Tempest Titan" (Lightning Elemental)
+### Boss Design: Test Boss
 
 - **Visual Identity:** Large humanoid made of storm clouds with electric arcs.
     - Placeholder: Gray capsule 3× player size with sphere "hands" and particle effects.
