@@ -16,7 +16,9 @@ namespace Category5.Boss
     {
         [Header("stats")]
         [SerializeField] protected int maxHealth = 500;
-        [SerializeField] protected NetworkVariable<int> currentHealth = new NetworkVariable<int>();
+        public NetworkVariable<int> CurrentHealth = new NetworkVariable<int>();
+
+        public int MaxHealth => maxHealth;
 
         [Header("state timings")]
         [SerializeField] protected float idleDuration = 2f;
@@ -30,17 +32,23 @@ namespace Category5.Boss
         {
             if (IsServer)
             {
-                currentHealth.Value = maxHealth;
+                CurrentHealth.Value = maxHealth;
                 currentState.Value = BossState.Idle;
                 stateTimer = idleDuration;
             }
 
-            currentHealth.OnValueChanged += OnHealthChanged;
+            CurrentHealth.OnValueChanged += OnHealthChanged;
+            
+            // register with ui
+            if (Category5.UI.UIManager.Instance != null)
+            {
+                Category5.UI.UIManager.Instance.RegisterBoss(this);
+            }
         }
 
         public override void OnNetworkDespawn()
         {
-            currentHealth.OnValueChanged -= OnHealthChanged;
+            CurrentHealth.OnValueChanged -= OnHealthChanged;
         }
 
         protected virtual void Update()
@@ -141,10 +149,10 @@ namespace Category5.Boss
         {
             if (!IsServer) return;
 
-            currentHealth.Value -= damage;
-            Debug.Log($"boss took {damage} damage. health: {currentHealth.Value}");
+            CurrentHealth.Value -= damage;
+            Debug.Log($"boss took {damage} damage. health: {CurrentHealth.Value}");
 
-            if (currentHealth.Value <= 0)
+            if (CurrentHealth.Value <= 0)
             {
                 Die();
             }

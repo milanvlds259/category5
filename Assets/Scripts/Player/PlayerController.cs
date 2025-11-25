@@ -83,7 +83,13 @@ namespace Category5.Player
             }
             CurrentHealth.OnValueChanged += OnHealthChanged;
 
-            // server handles spawning position
+            // Register with UI
+            if (IsOwner && Category5.UI.UIManager.Instance != null)
+            {
+                Category5.UI.UIManager.Instance.RegisterPlayer(this);
+            }
+
+            // Server handles spawning position
             if (IsServer)
             {
                 var spawnPoint = FindFirstObjectByType<Category5.Core.PlayerSpawnPoint>();
@@ -334,7 +340,7 @@ namespace Category5.Player
             if (newHealth < oldHealth)
             {
                 // simple visual feedback for now
-                Debug.Log($"Ouch! Health: {newHealth}");
+                // Debug.Log($"Ouch! Health: {newHealth}");
             }
         }
 

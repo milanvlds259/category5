@@ -123,7 +123,6 @@ namespace Category5.Player
                 if (enemy.TryGetComponent<IDamageable>(out var damageable))
                 {
                     damageable.TakeDamage(damage);
-                    Debug.Log($"Hit {enemy.name} for {damage} damage!");
                 }
             }
 
