@@ -89,19 +89,7 @@ namespace Category5.Player
                 Category5.UI.UIManager.Instance.RegisterPlayer(this);
             }
 
-            // Server handles spawning position
-            if (IsServer)
-            {
-                var spawnPoint = FindFirstObjectByType<Category5.Core.PlayerSpawnPoint>();
-                if (spawnPoint != null)
-                {
-                    // CharacterController overrides transform.position so we must disable it briefly
-                    _controller.enabled = false;
-                    transform.position = spawnPoint.transform.position;
-                    transform.rotation = spawnPoint.transform.rotation;
-                    _controller.enabled = true;
-                }
-            }
+            // spawn position is handled by NetworkManagerBootstrap before spawning
 
             if (!IsOwner)
             {

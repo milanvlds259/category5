@@ -27,6 +27,20 @@ namespace Category5.UI
         private void Start()
         {
             if (bossHealthContainer != null) bossHealthContainer.SetActive(false);
+            
+            // find and register any bosses that spawned before UIManager was ready
+            FindAndRegisterBoss();
+        }
+        
+        private void FindAndRegisterBoss()
+        {
+            // look for any boss in the scene that needs to be registered
+            BossBase boss = FindFirstObjectByType<BossBase>();
+            if (boss != null && boss.IsSpawned)
+            {
+                Debug.Log("UIManager: Found existing boss, registering");
+                RegisterBoss(boss);
+            }
         }
 
         public void RegisterPlayer(PlayerController player)

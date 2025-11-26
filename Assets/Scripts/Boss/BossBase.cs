@@ -39,10 +39,20 @@ namespace Category5.Boss
 
             CurrentHealth.OnValueChanged += OnHealthChanged;
             
-            // register with ui
+            // try to register with ui, it may not be ready yet on scene load
+            TryRegisterWithUI();
+        }
+        
+        private void TryRegisterWithUI()
+        {
             if (Category5.UI.UIManager.Instance != null)
             {
                 Category5.UI.UIManager.Instance.RegisterBoss(this);
+            }
+            else
+            {
+                // UIManager not ready yet, it will find us when it initializes
+                Debug.Log("BossBase: UIManager not ready, waiting for it to register us");
             }
         }
 
