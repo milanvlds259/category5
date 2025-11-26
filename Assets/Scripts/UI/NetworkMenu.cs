@@ -36,6 +36,10 @@ namespace Category5.UI
         
         private void Start()
         {
+            // ensure cursor is visible in menu
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            
             // cache the transport reference
             if (NetworkManager.Singleton != null)
             {

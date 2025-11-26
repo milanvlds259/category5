@@ -96,6 +96,10 @@ namespace Category5.Player
                 enabled = false;
                 return;
             }
+            
+            // lock and hide cursor for gameplay
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
 
             // Assign camera target
             var camera = FindFirstObjectByType<Category5.ThirdPersonCamera>();
