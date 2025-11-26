@@ -123,11 +123,31 @@ namespace Category5.Player
                 if (enemy.TryGetComponent<IDamageable>(out var damageable))
                 {
                     damageable.TakeDamage(damage);
+                    
+                    // notify the attacking player to show damage number
+                    // use the enemy's position for the damage number
+                    ShowDamageNumberClientRpc(damage, enemy.transform.position, new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams
+                        {
+                            TargetClientIds = new ulong[] { OwnerClientId }
+                        }
+                    });
                 }
             }
 
             // optional: notify clients to play VFX/Sound
             PlayAttackVfxClientRpc(position, direction);
+        }
+        
+        [ClientRpc]
+        private void ShowDamageNumberClientRpc(int damage, Vector3 position, ClientRpcParams clientRpcParams = default)
+        {
+            // only the attacking player sees their damage numbers
+            if (Category5.UI.UIManager.Instance != null)
+            {
+                Category5.UI.UIManager.Instance.ShowDamageNumber(damage, position);
+            }
         }
 
         [ClientRpc]

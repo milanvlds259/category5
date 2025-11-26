@@ -67,13 +67,7 @@ namespace Category5.UI
             boss.CurrentHealth.OnValueChanged += (oldVal, newVal) =>
             {
                 bossHealthBar.UpdateHealth(newVal);
-                
-                // spawn damage number if damage taken
-                if (newVal < oldVal)
-                {
-                    // pass the boss position directly, let the damage number handle offsets
-                    ShowDamageNumber(oldVal - newVal, boss.transform.position);
-                }
+                // damage numbers are now spawned by the attacking player, not here
             };
         }
 
