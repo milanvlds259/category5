@@ -48,6 +48,14 @@ namespace Category5
         private void LateUpdate()
         {
             if (target == null) return;
+            
+            // don't process camera input if game is paused
+            if (Category5.UI.PauseMenu.GameIsPaused)
+            {
+                // still update camera position to follow target, but don't read input
+                HandleCameraPosition();
+                return;
+            }
 
             HandleInput();
             HandleCameraPosition();

@@ -12,6 +12,7 @@ namespace Category5.Player
         [SerializeField] private int lightDamage = 10;
         [SerializeField] private int heavyDamage = 25;
         [SerializeField] private float attackRange = 2f;
+        [SerializeField] private float attackOffset = 1f;
         [SerializeField] private LayerMask enemyLayers;
 
         [Header("Combo Settings")]
@@ -71,6 +72,7 @@ namespace Category5.Player
         private void OnAttack(InputAction.CallbackContext context)
         {
             if (_isAttacking) return;
+            if (Category5.UI.PauseMenu.GameIsPaused) return;
 
             PerformAttack();
         }
@@ -115,7 +117,7 @@ namespace Category5.Player
         {
             // server performs the hit check to prevent cheating
             // for a simple prototype we use OverlapSphere in front of the player
-            Vector3 attackPoint = position + direction * 1f; // offset slightly forward
+            Vector3 attackPoint = position + direction * attackOffset;
             Collider[] hitEnemies = Physics.OverlapSphere(attackPoint, attackRange, enemyLayers);
 
             foreach (Collider enemy in hitEnemies)
@@ -164,7 +166,7 @@ namespace Category5.Player
         private void OnDrawGizmosSelected()
         {
             Gizmos.color = Color.red;
-            Vector3 attackPoint = transform.position + transform.forward * 1f;
+            Vector3 attackPoint = transform.position + transform.forward * attackOffset;
             Gizmos.DrawWireSphere(attackPoint, attackRange);
         }
     }

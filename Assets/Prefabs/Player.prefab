@@ -126,8 +126,8 @@ GameObject:
   - component: {fileID: 8199348948702367556}
   - component: {fileID: 5284951434624021081}
   - component: {fileID: 972890572938957449}
-  - component: {fileID: 4296747668078663274}
   - component: {fileID: 27346507340196499}
+  - component: {fileID: 4296747668078663274}
   m_Layer: 3
   m_Name: Player
   m_TagString: Untagged
@@ -188,7 +188,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 1432883955
+  GlobalObjectIdHash: 2528484781
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -230,6 +230,30 @@ MonoBehaviour:
   dodgeDistance: 6
   dodgeCooldown: 2
   invertMovement: 0
+--- !u!114 &27346507340196499
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7487642310209406333}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f07767ca53ccdec42af3f8f0f667ef2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.PlayerCombat
+  ShowTopMostFoldoutHeaderGroup: 1
+  lightDamage: 10
+  heavyDamage: 25
+  attackRange: 2.5
+  attackOffset: 1.66
+  enemyLayers:
+    serializedVersion: 2
+    m_Bits: 64
+  comboResetTime: 1
+  attack1Duration: 0.3
+  attack2Duration: 0.4
+  attack3Duration: 0.6
 --- !u!114 &4296747668078663274
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -276,29 +300,6 @@ MonoBehaviour:
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
   SlerpPosition: 0
---- !u!114 &27346507340196499
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7487642310209406333}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f07767ca53ccdec42af3f8f0f667ef2a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.PlayerCombat
-  ShowTopMostFoldoutHeaderGroup: 1
-  lightDamage: 10
-  heavyDamage: 25
-  attackRange: 2
-  enemyLayers:
-    serializedVersion: 2
-    m_Bits: 64
-  comboResetTime: 1
-  attack1Duration: 0.3
-  attack2Duration: 0.4
-  attack3Duration: 0.6
 --- !u!1 &8905102911348418761
 GameObject:
   m_ObjectHideFlags: 0

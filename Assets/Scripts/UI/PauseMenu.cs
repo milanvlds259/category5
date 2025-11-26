@@ -1,13 +1,18 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 using Unity.Netcode;
 using Category5.Core;
+using Category5.Player;
 
 namespace Category5.UI
 {
     // handles pause menu functionality including disconnect/quit options
     public class PauseMenu : MonoBehaviour
     {
+        public static PauseMenu Instance { get; private set; }
+        public static bool GameIsPaused => Instance != null && Instance.isPaused;
+        
         [Header("ui references")]
         [SerializeField] private GameObject pauseMenuPanel;
         [SerializeField] private Button resumeButton;
@@ -19,19 +24,41 @@ namespace Category5.UI
         
         private void Awake()
         {
+            // always take over as the instance since pause menu is scene-specific
+            // the previous instance from another scene is no longer valid
+            Instance = this;
             inputActions = new InputSystem_Actions();
         }
         
         private void OnEnable()
         {
-            inputActions.Enable();
-            // we may need to add a pause action to our input actions
-            // for now we'll use escape key directly
+            // enable only the UI action map for pause input
+            inputActions.UI.Enable();
+            inputActions.UI.Cancel.performed += OnPausePerformed;
         }
         
         private void OnDisable()
         {
-            inputActions.Disable();
+            inputActions.UI.Cancel.performed -= OnPausePerformed;
+            inputActions.UI.Disable();
+        }
+        
+        private void OnDestroy()
+        {
+            // clear instance if we're the current one
+            if (Instance == this)
+            {
+                Instance = null;
+            }
+            
+            if (resumeButton != null) resumeButton.onClick.RemoveListener(Resume);
+            if (disconnectButton != null) disconnectButton.onClick.RemoveListener(Disconnect);
+            if (quitButton != null) quitButton.onClick.RemoveListener(QuitGame);
+        }
+        
+        private void OnPausePerformed(InputAction.CallbackContext context)
+        {
+            TogglePause();
         }
         
         private void Start()
@@ -59,22 +86,6 @@ namespace Category5.UI
             }
         }
         
-        private void OnDestroy()
-        {
-            if (resumeButton != null) resumeButton.onClick.RemoveListener(Resume);
-            if (disconnectButton != null) disconnectButton.onClick.RemoveListener(Disconnect);
-            if (quitButton != null) quitButton.onClick.RemoveListener(QuitGame);
-        }
-        
-        private void Update()
-        {
-            // toggle pause on escape
-            if (Input.GetKeyDown(KeyCode.Escape))
-            {
-                TogglePause();
-            }
-        }
-        
         public void TogglePause()
         {
             if (isPaused)
@@ -94,13 +105,17 @@ namespace Category5.UI
             if (pauseMenuPanel != null)
             {
                 pauseMenuPanel.SetActive(true);
+            } 
+            else
+            {
+                Debug.LogWarning("PauseMenu: pauseMenuPanel reference is missing!");
             }
             
             // unlock cursor for menu interaction
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
             
-            Debug.Log("PauseMenu: Game paused");
+            Debug.Log($"PauseMenu: Game paused. Instance == this: {Instance == this}, isPaused: {isPaused}, GameIsPaused: {GameIsPaused}");
         }
         
         public void Resume()

@@ -138,6 +138,9 @@ namespace Category5.Player
         private void Update()
         {
             if (!IsOwner && !_isOffline) return;
+            
+            // don't process input if game is paused
+            if (Category5.UI.PauseMenu.GameIsPaused) return;
 
             // ensure we have a camera reference
             if (_cameraTransform == null)
