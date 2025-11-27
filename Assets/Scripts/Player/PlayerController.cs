@@ -3,6 +3,7 @@ using Unity.Netcode;
 using UnityEngine.InputSystem;
 using Category5;
 using Category5.Core;
+using Category5.PowerUps;
 
 namespace Category5.Player
 {
@@ -10,8 +11,14 @@ namespace Category5.Player
     public class PlayerController : NetworkBehaviour, IDamageable
     {
         [Header("Health")]
-        [SerializeField] private int maxHealth = 100;
+        [SerializeField] private int baseMaxHealth = 100;
         public NetworkVariable<int> CurrentHealth = new NetworkVariable<int>(100);
+        
+        // reference to player stats for power-up modifiers
+        private PlayerStats _playerStats;
+        
+        // effective max health including power-up bonuses
+        public int MaxHealth => _playerStats != null ? _playerStats.TotalMaxHealth : baseMaxHealth;
 
         [Header("Movement Settings")]
         [SerializeField] private float moveSpeed = 7f;
@@ -54,6 +61,7 @@ namespace Category5.Player
         {
             _controller = GetComponent<CharacterController>();
             _inputActions = new InputSystem_Actions();
+            _playerStats = GetComponent<PlayerStats>();
         }
 
         private void Start()
@@ -76,12 +84,24 @@ namespace Category5.Player
         public override void OnNetworkSpawn()
         {
             _isOffline = false; // we are definitely networked now
+            
+            // cache stats reference
+            if (_playerStats == null)
+            {
+                _playerStats = GetComponent<PlayerStats>();
+            }
 
             if (IsServer)
             {
-                CurrentHealth.Value = maxHealth;
+                CurrentHealth.Value = MaxHealth;
             }
             CurrentHealth.OnValueChanged += OnHealthChanged;
+            
+            // subscribe to stats changes to update max health
+            if (_playerStats != null)
+            {
+                _playerStats.OnStatsChanged += OnStatsChanged;
+            }
 
             // Register with UI
             if (IsOwner && Category5.UI.UIManager.Instance != null)
@@ -113,6 +133,31 @@ namespace Category5.Player
         public override void OnNetworkDespawn()
         {
             CurrentHealth.OnValueChanged -= OnHealthChanged;
+            
+            if (_playerStats != null)
+            {
+                _playerStats.OnStatsChanged -= OnStatsChanged;
+            }
+        }
+        
+        // called when power-ups change player stats
+        private void OnStatsChanged()
+        {
+            if (IsServer)
+            {
+                // if max health increased, also increase current health
+                int newMax = MaxHealth;
+                if (CurrentHealth.Value < newMax)
+                {
+                    // heal the difference when getting max hp bonus
+                    int oldMax = baseMaxHealth + (_playerStats != null ? _playerStats.MaxHealthBonus - 30 : 0); // rough estimate
+                    int hpGain = newMax - oldMax;
+                    if (hpGain > 0)
+                    {
+                        CurrentHealth.Value = Mathf.Min(CurrentHealth.Value + hpGain, newMax);
+                    }
+                }
+            }
         }
 
         private void OnEnable()
@@ -251,7 +296,10 @@ namespace Category5.Player
         private void OnDodge(InputAction.CallbackContext context)
         {
             if (_isDodging || !_isGrounded) return;
-            if (Time.time < _lastDodgeTime + dodgeCooldown) return;
+            
+            // use effective cooldown from player stats if available
+            float effectiveCooldown = _playerStats != null ? _playerStats.EffectiveDodgeCooldown : dodgeCooldown;
+            if (Time.time < _lastDodgeTime + effectiveCooldown) return;
 
             StartDodge();
         }
@@ -327,6 +375,19 @@ namespace Category5.Player
             {
                 Debug.Log("Player Died!");
                 // TODO: Handle death (respawn or game over)
+            }
+        }
+        
+        // heals the player (server only) - used by lifesteal power-up
+        public void Heal(int amount)
+        {
+            if (!IsServer) return;
+            
+            int newHealth = Mathf.Min(CurrentHealth.Value + amount, MaxHealth);
+            if (newHealth > CurrentHealth.Value)
+            {
+                CurrentHealth.Value = newHealth;
+                Debug.Log($"Player healed {amount} HP. Health: {CurrentHealth.Value}/{MaxHealth}");
             }
         }
 

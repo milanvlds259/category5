@@ -3,6 +3,7 @@ using UnityEngine;
 using Unity.Netcode;
 using UnityEngine.InputSystem;
 using Category5.Core;
+using Category5.PowerUps;
 
 namespace Category5.Player
 {
@@ -25,10 +26,14 @@ namespace Category5.Player
         private int _comboCounter = 0;
         private float _lastAttackTime;
         private bool _isAttacking;
+        
+        // reference to player stats for power-up modifiers
+        private PlayerStats _playerStats;
 
         private void Awake()
         {
             _inputActions = new InputSystem_Actions();
+            _playerStats = GetComponent<PlayerStats>();
         }
 
         public override void OnNetworkSpawn()
@@ -37,6 +42,12 @@ namespace Category5.Player
             {
                 enabled = false;
                 return;
+            }
+            
+            // cache stats reference if not found in awake
+            if (_playerStats == null)
+            {
+                _playerStats = GetComponent<PlayerStats>();
             }
         }
 
@@ -113,22 +124,41 @@ namespace Category5.Player
         }
 
         [ServerRpc]
-        private void RequestAttackServerRpc(int damage, Vector3 position, Vector3 direction)
+        private void RequestAttackServerRpc(int baseDamage, Vector3 position, Vector3 direction)
         {
             // server performs the hit check to prevent cheating
             // for a simple prototype we use OverlapSphere in front of the player
             Vector3 attackPoint = position + direction * attackOffset;
             Collider[] hitEnemies = Physics.OverlapSphere(attackPoint, attackRange, enemyLayers);
 
+            // get player stats for damage modifiers
+            if (_playerStats == null)
+            {
+                _playerStats = GetComponent<PlayerStats>();
+            }
+            
+            // calculate final damage with power-up modifiers
+            int finalDamage = _playerStats != null 
+                ? _playerStats.CalculateDamage(baseDamage) 
+                : baseDamage;
+            
+            int lifestealAmount = _playerStats != null ? _playerStats.LifestealAmount : 0;
+
             foreach (Collider enemy in hitEnemies)
             {
                 if (enemy.TryGetComponent<IDamageable>(out var damageable))
                 {
-                    damageable.TakeDamage(damage);
+                    damageable.TakeDamage(finalDamage);
+                    
+                    // apply lifesteal healing
+                    if (lifestealAmount > 0)
+                    {
+                        ApplyLifesteal(lifestealAmount);
+                    }
                     
                     // notify the attacking player to show damage number
                     // use the enemy's position for the damage number
-                    ShowDamageNumberClientRpc(damage, enemy.transform.position, new ClientRpcParams
+                    ShowDamageNumberClientRpc(finalDamage, enemy.transform.position, new ClientRpcParams
                     {
                         Send = new ClientRpcSendParams
                         {
@@ -140,6 +170,32 @@ namespace Category5.Player
 
             // optional: notify clients to play VFX/Sound
             PlayAttackVfxClientRpc(position, direction);
+        }
+        
+        // applies lifesteal healing to the player (server only)
+        private void ApplyLifesteal(int healAmount)
+        {
+            var playerController = GetComponent<PlayerController>();
+            if (playerController != null)
+            {
+                playerController.Heal(healAmount);
+                
+                // show heal feedback on client
+                ShowLifestealVfxClientRpc(healAmount, new ClientRpcParams
+                {
+                    Send = new ClientRpcSendParams
+                    {
+                        TargetClientIds = new ulong[] { OwnerClientId }
+                    }
+                });
+            }
+        }
+        
+        [ClientRpc]
+        private void ShowLifestealVfxClientRpc(int healAmount, ClientRpcParams clientRpcParams = default)
+        {
+            // TODO: play green sparkle vfx for vampire touch
+            Debug.Log($"Lifesteal healed {healAmount} HP!");
         }
         
         [ClientRpc]

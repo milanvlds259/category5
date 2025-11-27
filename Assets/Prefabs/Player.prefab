@@ -128,6 +128,7 @@ GameObject:
   - component: {fileID: 972890572938957449}
   - component: {fileID: 27346507340196499}
   - component: {fileID: 4296747668078663274}
+  - component: {fileID: 8551464889604397006}
   m_Layer: 3
   m_Name: Player
   m_TagString: Untagged
@@ -188,7 +189,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 2528484781
+  GlobalObjectIdHash: 1432883955
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -214,7 +215,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.PlayerController
   ShowTopMostFoldoutHeaderGroup: 1
-  maxHealth: 100
+  baseMaxHealth: 100
   CurrentHealth:
     m_InternalValue: 100
   moveSpeed: 7
@@ -300,6 +301,21 @@ MonoBehaviour:
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
   SlerpPosition: 0
+--- !u!114 &8551464889604397006
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7487642310209406333}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 214e4286006baa54db431734dfedf1ea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.PowerUps.PlayerStats
+  ShowTopMostFoldoutHeaderGroup: 1
+  baseMaxHealth: 100
+  baseDodgeCooldown: 2
 --- !u!1 &8905102911348418761
 GameObject:
   m_ObjectHideFlags: 0

@@ -108,14 +108,14 @@ namespace Category5.UI
             } 
             else
             {
-                Debug.LogWarning("PauseMenu: pauseMenuPanel reference is missing!");
+                // Debug.LogWarning("PauseMenu: pauseMenuPanel reference is missing!");
             }
             
             // unlock cursor for menu interaction
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
             
-            Debug.Log($"PauseMenu: Game paused. Instance == this: {Instance == this}, isPaused: {isPaused}, GameIsPaused: {GameIsPaused}");
+            // Debug.Log($"PauseMenu: Game paused. Instance == this: {Instance == this}, isPaused: {isPaused}, GameIsPaused: {GameIsPaused}");
         }
         
         public void Resume()

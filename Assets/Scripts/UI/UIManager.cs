@@ -1,7 +1,10 @@
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 using Unity.Netcode;
 using Category5.Player;
 using Category5.Boss;
+using Category5.PowerUps;
 
 namespace Category5.UI
 {
@@ -13,10 +16,14 @@ namespace Category5.UI
         [SerializeField] private HealthBar playerHealthBar;
         [SerializeField] private HealthBar bossHealthBar;
         [SerializeField] private GameObject bossHealthContainer; // to hide it when no boss
+        [SerializeField] private TextMeshProUGUI roundText;
 
         [Header("damage numbers")]
         [SerializeField] private DamageNumber damageNumberPrefab;
         [SerializeField] private Transform damageNumberContainer;
+        
+        // track current boss for re-registration
+        private BossBase _currentBoss;
 
         private void Awake()
         {
@@ -30,6 +37,29 @@ namespace Category5.UI
             
             // find and register any bosses that spawned before UIManager was ready
             FindAndRegisterBoss();
+            
+            // subscribe to round changes
+            if (PowerUpManager.Instance != null)
+            {
+                PowerUpManager.Instance.OnRoundChanged += UpdateRoundDisplay;
+                UpdateRoundDisplay(PowerUpManager.Instance.CurrentRound.Value);
+            }
+        }
+        
+        private void OnDestroy()
+        {
+            if (PowerUpManager.Instance != null)
+            {
+                PowerUpManager.Instance.OnRoundChanged -= UpdateRoundDisplay;
+            }
+        }
+        
+        private void UpdateRoundDisplay(int round)
+        {
+            if (roundText != null)
+            {
+                roundText.text = $"Round {round}";
+            }
         }
         
         private void FindAndRegisterBoss()
@@ -48,7 +78,8 @@ namespace Category5.UI
             // only register the local player for the main hud
             if (player.IsOwner)
             {
-                playerHealthBar.Initialize(100, player.CurrentHealth.Value);
+                // use player's max health property which includes power-up bonuses
+                playerHealthBar.Initialize(player.MaxHealth, player.CurrentHealth.Value);
                 
                 // subscribe to health changes
                 player.CurrentHealth.OnValueChanged += (oldVal, newVal) => 
@@ -60,15 +91,30 @@ namespace Category5.UI
 
         public void RegisterBoss(BossBase boss)
         {
+            _currentBoss = boss;
+            
             if (bossHealthContainer != null) bossHealthContainer.SetActive(true);
             
             bossHealthBar.Initialize(boss.MaxHealth, boss.CurrentHealth.Value);
 
-            boss.CurrentHealth.OnValueChanged += (oldVal, newVal) =>
+            // unsubscribe from previous and subscribe to new
+            boss.CurrentHealth.OnValueChanged += OnBossHealthChanged;
+        }
+        
+        private void OnBossHealthChanged(int oldVal, int newVal)
+        {
+            if (_currentBoss == null) return;
+            
+            // check if boss was reset (health went up significantly)
+            if (newVal > oldVal && newVal == _currentBoss.MaxHealth)
+            {
+                // boss was reset, reinitialize health bar
+                bossHealthBar.Initialize(_currentBoss.MaxHealth, newVal);
+            }
+            else
             {
                 bossHealthBar.UpdateHealth(newVal);
-                // damage numbers are now spawned by the attacking player, not here
-            };
+            }
         }
 
         public void ShowDamageNumber(int damage, Vector3 position)

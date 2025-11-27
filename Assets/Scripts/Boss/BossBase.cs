@@ -1,6 +1,7 @@
 using UnityEngine;
 using Unity.Netcode;
 using Category5.Core;
+using Category5.PowerUps;
 
 namespace Category5.Boss
 {
@@ -27,6 +28,9 @@ namespace Category5.Boss
 
         protected NetworkVariable<BossState> currentState = new NetworkVariable<BossState>(BossState.Idle);
         protected float stateTimer;
+        
+        // flag to prevent multiple death triggers
+        private bool _isDead = false;
 
         public override void OnNetworkSpawn()
         {
@@ -35,12 +39,19 @@ namespace Category5.Boss
                 CurrentHealth.Value = maxHealth;
                 currentState.Value = BossState.Idle;
                 stateTimer = idleDuration;
+                _isDead = false;
             }
 
             CurrentHealth.OnValueChanged += OnHealthChanged;
             
             // try to register with ui, it may not be ready yet on scene load
             TryRegisterWithUI();
+            
+            // register with power-up manager
+            if (IsServer && PowerUpManager.Instance != null)
+            {
+                PowerUpManager.Instance.RegisterBoss(this);
+            }
         }
         
         private void TryRegisterWithUI()
@@ -175,8 +186,71 @@ namespace Category5.Boss
 
         protected virtual void Die()
         {
-            Debug.Log("boss died");
-            GetComponent<NetworkObject>().Despawn();
+            if (_isDead) return; // prevent multiple death calls
+            _isDead = true;
+            
+            Debug.Log("BossBase: Boss died!");
+            
+            // notify power-up manager instead of despawning immediately
+            if (PowerUpManager.Instance != null)
+            {
+                Debug.Log("BossBase: Notifying PowerUpManager of boss death");
+                
+                // hide boss visually during power-up selection
+                HideBossClientRpc();
+                
+                PowerUpManager.Instance.OnBossDied();
+                // boss will be reset by PowerUpManager.RespawnBoss()
+            }
+            else
+            {
+                Debug.LogWarning("BossBase: PowerUpManager.Instance is null! Make sure PowerUpManager is in the scene.");
+                // fallback if no power-up manager - just despawn
+                GetComponent<NetworkObject>().Despawn();
+            }
+        }
+        
+        [ClientRpc]
+        private void HideBossClientRpc()
+        {
+            // hide the boss visually during power-up selection
+            gameObject.SetActive(false);
+        }
+        
+        [ClientRpc]
+        private void ShowBossClientRpc()
+        {
+            // show the boss when respawning
+            gameObject.SetActive(true);
+        }
+        
+        // called by PowerUpManager to reset boss for new round with scaled hp
+        public virtual void ResetBoss(int newMaxHealth)
+        {
+            if (!IsServer) return;
+            
+            Debug.Log($"BossBase: Resetting boss with {newMaxHealth} HP");
+            
+            maxHealth = newMaxHealth;
+            CurrentHealth.Value = maxHealth;
+            currentState.Value = BossState.Idle;
+            stateTimer = idleDuration;
+            _isDead = false;
+            
+            // show boss again and notify clients about the reset
+            ShowBossClientRpc();
+            ResetBossClientRpc(newMaxHealth);
+            
+            // re-register with ui for updated health bar
+            TryRegisterWithUI();
+        }
+        
+        [ClientRpc]
+        private void ResetBossClientRpc(int newMaxHealth)
+        {
+            // clients need to update their reference to max health for ui
+            maxHealth = newMaxHealth;
+            TryRegisterWithUI();
         }
     }
 }

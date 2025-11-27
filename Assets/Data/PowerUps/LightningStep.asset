@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f285c4ce326f5a6489f5512b052b4c3d, type: 3}
+  m_Name: LightningStep
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.PowerUps.PowerUpData
+  powerUpName: Lightning Step
+  description: -1s dodge cooldown
+  icon: {fileID: 0}
+  effectType: 2
+  effectValue: 1
+  glowColor: {r: 0.3, g: 0.6, b: 1, a: 1}
+  visualEffectPrefab: {fileID: 0}
