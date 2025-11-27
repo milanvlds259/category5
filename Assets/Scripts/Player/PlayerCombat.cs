@@ -84,6 +84,10 @@ namespace Category5.Player
         {
             if (_isAttacking) return;
             if (Category5.UI.PauseMenu.GameIsPaused) return;
+            
+            // prevent attack input during power-up selection
+            if (PowerUpManager.Instance != null && 
+                PowerUpManager.Instance.CurrentPhase.Value == GamePhase.PowerUpSelection) return;
 
             PerformAttack();
         }

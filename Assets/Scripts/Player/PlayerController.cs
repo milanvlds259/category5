@@ -184,8 +184,8 @@ namespace Category5.Player
         {
             if (!IsOwner && !_isOffline) return;
             
-            // don't process input if game is paused
-            if (Category5.UI.PauseMenu.GameIsPaused) return;
+            // check if input should be blocked (pause menu or power-up selection)
+            bool inputBlocked = Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection();
 
             // ensure we have a camera reference
             if (_cameraTransform == null)
@@ -204,15 +204,30 @@ namespace Category5.Player
                 }
             }
 
+            // always process gravity so player doesn't float when paused
+            // but skip movement input when blocked
             if (_isDodging)
             {
+                // finish dodge even if input blocked
                 HandleDodge();
+            }
+            else if (inputBlocked)
+            {
+                // only apply gravity no movement input
+                HandleGravity();
             }
             else
             {
                 HandleMovement();
                 HandleGravity();
             }
+        }
+        
+        // check if power-up selection is active
+        private bool IsInPowerUpSelection()
+        {
+            return PowerUpManager.Instance != null && 
+                   PowerUpManager.Instance.CurrentPhase.Value == GamePhase.PowerUpSelection;
         }
 
         private void HandleMovement()
@@ -289,12 +304,18 @@ namespace Category5.Player
 
         private void OnJump(InputAction.CallbackContext context)
         {
+            // don't accept input if blocked
+            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection()) return;
+            
             // instead of jumping immediately we buffer the input
             _jumpBufferCounter = _jumpBufferTime;
         }
 
         private void OnDodge(InputAction.CallbackContext context)
         {
+            // don't accept input if blocked
+            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection()) return;
+            
             if (_isDodging || !_isGrounded) return;
             
             // use effective cooldown from player stats if available

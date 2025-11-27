@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Category5.PowerUps;
 
 namespace Category5
 {
@@ -49,8 +50,8 @@ namespace Category5
         {
             if (target == null) return;
             
-            // don't process camera input if game is paused
-            if (Category5.UI.PauseMenu.GameIsPaused)
+            // don't process camera input if game is paused or in power-up selection
+            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection())
             {
                 // still update camera position to follow target, but don't read input
                 HandleCameraPosition();
@@ -59,6 +60,13 @@ namespace Category5
 
             HandleInput();
             HandleCameraPosition();
+        }
+        
+        // check if power-up selection is active
+        private bool IsInPowerUpSelection()
+        {
+            return PowerUpManager.Instance != null && 
+                   PowerUpManager.Instance.CurrentPhase.Value == GamePhase.PowerUpSelection;
         }
 
         public void SetTarget(Transform newTarget)
