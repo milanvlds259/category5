@@ -50,6 +50,7 @@ namespace Category5.PowerUps
                 PowerUpManager.Instance.OnShowPowerUpSelection += ShowSelection;
                 PowerUpManager.Instance.OnHidePowerUpSelection += HideSelection;
                 PowerUpManager.Instance.OnVictory += ShowVictory;
+                PowerUpManager.Instance.OnGameOver += OnGameOver;
                 PowerUpManager.Instance.OnRoundChanged += UpdateRoundDisplay;
                 _isSubscribed = true;
                 Debug.Log("PowerUpSelectionUI: Subscribed to PowerUpManager events");
@@ -63,6 +64,7 @@ namespace Category5.PowerUps
                 PowerUpManager.Instance.OnShowPowerUpSelection -= ShowSelection;
                 PowerUpManager.Instance.OnHidePowerUpSelection -= HideSelection;
                 PowerUpManager.Instance.OnVictory -= ShowVictory;
+                PowerUpManager.Instance.OnGameOver -= OnGameOver;
                 PowerUpManager.Instance.OnRoundChanged -= UpdateRoundDisplay;
             }
         }
@@ -202,8 +204,19 @@ namespace Category5.PowerUps
         {
             if (roundText != null)
             {
-                roundText.text = $"Round {round}";
+                roundText.text = $"Category {round}";
             }
+        }
+        
+        // hide power-up selection on game over (GameOverUI will handle display and cursor)
+        private void OnGameOver()
+        {
+            // just hide the panel i don't re-lock cursor here since GameOverUI needs it unlocked
+            if (selectionPanel != null)
+            {
+                selectionPanel.SetActive(false);
+            }
+            _hasSelected = false;
         }
     }
 }

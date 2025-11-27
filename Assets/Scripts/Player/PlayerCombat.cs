@@ -88,6 +88,10 @@ namespace Category5.Player
             // prevent attack input during power-up selection
             if (PowerUpManager.Instance != null && 
                 PowerUpManager.Instance.CurrentPhase.Value == GamePhase.PowerUpSelection) return;
+            
+            // prevent attack input when dead
+            var playerController = GetComponent<PlayerController>();
+            if (playerController != null && playerController.IsDead.Value) return;
 
             PerformAttack();
         }

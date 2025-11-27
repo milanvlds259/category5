@@ -44,6 +44,7 @@ namespace Category5.PowerUps
         public event System.Action<int[]> OnShowPowerUpSelection; // indices of power-ups to show
         public event System.Action OnHidePowerUpSelection;
         public event System.Action OnVictory;
+        public event System.Action OnGameOver;
         public event System.Action<int> OnRoundChanged;
 
         private void Awake()
@@ -93,6 +94,9 @@ namespace Category5.PowerUps
                     break;
                 case GamePhase.Victory:
                     OnVictory?.Invoke();
+                    break;
+                case GamePhase.GameOver:
+                    OnGameOver?.Invoke();
                     break;
             }
         }
@@ -267,6 +271,9 @@ namespace Category5.PowerUps
             CurrentRound.Value++;
             CurrentPhase.Value = GamePhase.Fighting;
 
+            // respawn any dead players before starting next round
+            RespawnAllPlayers();
+
             // respawn or reset the boss with new health
             RespawnBoss();
 
@@ -318,6 +325,102 @@ namespace Category5.PowerUps
         public void RegisterBoss(BossBase boss)
         {
             _currentBoss = boss;
+        }
+        
+        // called when a player dies (server only)
+        public void OnPlayerDied(ulong clientId)
+        {
+            if (!IsServer) return;
+            
+            Debug.Log($"PowerUpManager: Player {clientId} died, checking for game over");
+            
+            // don't trigger game over during power-up selection or if already game over
+            if (CurrentPhase.Value == GamePhase.PowerUpSelection || 
+                CurrentPhase.Value == GamePhase.GameOver ||
+                CurrentPhase.Value == GamePhase.Victory)
+            {
+                return;
+            }
+            
+            // check if all players are dead
+            if (AreAllPlayersDead())
+            {
+                TriggerGameOver();
+            }
+        }
+        
+        // checks if all connected players are dead
+        private bool AreAllPlayersDead()
+        {
+            foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
+            {
+                if (NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out var client))
+                {
+                    var player = client.PlayerObject?.GetComponent<PlayerController>();
+                    if (player != null && !player.IsDead.Value)
+                    {
+                        // found an alive player
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        
+        // triggers game over state
+        private void TriggerGameOver()
+        {
+            Debug.Log($"PowerUpManager: Game Over on round {CurrentRound.Value}");
+            CurrentPhase.Value = GamePhase.GameOver;
+            TriggerGameOverClientRpc(CurrentRound.Value);
+        }
+        
+        [ClientRpc]
+        private void TriggerGameOverClientRpc(int roundReached)
+        {
+            Debug.Log($"Game Over! Reached round {roundReached}");
+            OnGameOver?.Invoke();
+        }
+        
+        // respawns all dead players (server only) - called at round transitions
+        public void RespawnAllPlayers()
+        {
+            if (!IsServer) return;
+            
+            Debug.Log("PowerUpManager: Respawning all dead players");
+            
+            // reset spawn index for consistent spawning
+            Category5.Core.PlayerSpawnPoint.ResetSpawnIndex();
+            
+            foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
+            {
+                if (NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out var client))
+                {
+                    var player = client.PlayerObject?.GetComponent<PlayerController>();
+                    if (player != null && player.IsDead.Value)
+                    {
+                        player.Respawn();
+                    }
+                }
+            }
+        }
+        
+        // gets count of alive players
+        public int GetAlivePlayerCount()
+        {
+            int count = 0;
+            foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
+            {
+                if (NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out var client))
+                {
+                    var player = client.PlayerObject?.GetComponent<PlayerController>();
+                    if (player != null && !player.IsDead.Value)
+                    {
+                        count++;
+                    }
+                }
+            }
+            return count;
         }
     }
 }

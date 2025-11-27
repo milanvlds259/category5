@@ -4,6 +4,7 @@ using UnityEngine.InputSystem;
 using Unity.Netcode;
 using Category5.Core;
 using Category5.Player;
+using Category5.PowerUps;
 
 namespace Category5.UI
 {
@@ -88,6 +89,16 @@ namespace Category5.UI
         
         public void TogglePause()
         {
+            // don't allow pause during game over or victory
+            if (PowerUpManager.Instance != null)
+            {
+                var phase = PowerUpManager.Instance.CurrentPhase.Value;
+                if (phase == GamePhase.GameOver || phase == GamePhase.Victory)
+                {
+                    return;
+                }
+            }
+            
             if (isPaused)
             {
                 Resume();

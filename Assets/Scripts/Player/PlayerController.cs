@@ -14,11 +14,18 @@ namespace Category5.Player
         [SerializeField] private int baseMaxHealth = 100;
         public NetworkVariable<int> CurrentHealth = new NetworkVariable<int>(100);
         
+        // death state synced across network
+        public NetworkVariable<bool> IsDead = new NetworkVariable<bool>(false);
+        
         // reference to player stats for power-up modifiers
         private PlayerStats _playerStats;
         
         // effective max health including power-up bonuses
         public int MaxHealth => _playerStats != null ? _playerStats.TotalMaxHealth : baseMaxHealth;
+        
+        [Header("Death Settings")]
+        [SerializeField] private GameObject[] visualsToHideOnDeath; // optional: specific objects to hide
+        private Renderer[] _renderers; // cached renderers for visibility toggle
 
         [Header("Movement Settings")]
         [SerializeField] private float moveSpeed = 7f;
@@ -62,6 +69,9 @@ namespace Category5.Player
             _controller = GetComponent<CharacterController>();
             _inputActions = new InputSystem_Actions();
             _playerStats = GetComponent<PlayerStats>();
+            
+            // cache all renderers for death visibility toggle
+            _renderers = GetComponentsInChildren<Renderer>();
         }
 
         private void Start()
@@ -96,6 +106,7 @@ namespace Category5.Player
                 CurrentHealth.Value = MaxHealth;
             }
             CurrentHealth.OnValueChanged += OnHealthChanged;
+            IsDead.OnValueChanged += OnDeadStateChanged;
             
             // subscribe to stats changes to update max health
             if (_playerStats != null)
@@ -133,10 +144,51 @@ namespace Category5.Player
         public override void OnNetworkDespawn()
         {
             CurrentHealth.OnValueChanged -= OnHealthChanged;
+            IsDead.OnValueChanged -= OnDeadStateChanged;
             
             if (_playerStats != null)
             {
                 _playerStats.OnStatsChanged -= OnStatsChanged;
+            }
+        }
+        
+        // called when death state changes, syncs visual state on all clients
+        private void OnDeadStateChanged(bool wasDead, bool isDead)
+        {
+            SetDeathVisuals(isDead);
+        }
+        
+        // enables/disables visuals and collider based on death state
+        private void SetDeathVisuals(bool isDead)
+        {
+            // toggle renderers
+            if (_renderers != null)
+            {
+                foreach (var renderer in _renderers)
+                {
+                    if (renderer != null)
+                    {
+                        renderer.enabled = !isDead;
+                    }
+                }
+            }
+            
+            // toggle specific objects if set
+            if (visualsToHideOnDeath != null)
+            {
+                foreach (var obj in visualsToHideOnDeath)
+                {
+                    if (obj != null)
+                    {
+                        obj.SetActive(!isDead);
+                    }
+                }
+            }
+            
+            // disable collider when dead so boss attacks don't hit us
+            if (_controller != null)
+            {
+                _controller.enabled = !isDead;
             }
         }
         
@@ -183,6 +235,9 @@ namespace Category5.Player
         private void Update()
         {
             if (!IsOwner && !_isOffline) return;
+            
+            // dead players cannot do anything
+            if (IsDead.Value) return;
             
             // check if input should be blocked (pause menu or power-up selection)
             bool inputBlocked = Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection();
@@ -304,7 +359,8 @@ namespace Category5.Player
 
         private void OnJump(InputAction.CallbackContext context)
         {
-            // don't accept input if blocked
+            // don't accept input if dead or blocked
+            if (IsDead.Value) return;
             if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection()) return;
             
             // instead of jumping immediately we buffer the input
@@ -313,7 +369,8 @@ namespace Category5.Player
 
         private void OnDodge(InputAction.CallbackContext context)
         {
-            // don't accept input if blocked
+            // don't accept input if dead or blocked
+            if (IsDead.Value) return;
             if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection()) return;
             
             if (_isDodging || !_isGrounded) return;
@@ -382,6 +439,9 @@ namespace Category5.Player
         {
             if (!IsServer) return;
             
+            // can't take damage if already dead
+            if (IsDead.Value) return;
+            
             // i-frame check
             if (_isDodging) 
             {
@@ -394,9 +454,66 @@ namespace Category5.Player
             
             if (CurrentHealth.Value <= 0)
             {
-                Debug.Log("Player Died!");
-                // TODO: Handle death (respawn or game over)
+                Die();
             }
+        }
+        
+        // handles player death (server only)
+        private void Die()
+        {
+            if (!IsServer) return;
+            if (IsDead.Value) return;
+            
+            Debug.Log($"Player {OwnerClientId} died!");
+            IsDead.Value = true;
+            
+            // notify power-up manager for game over check
+            if (PowerUpManager.Instance != null)
+            {
+                PowerUpManager.Instance.OnPlayerDied(OwnerClientId);
+            }
+        }
+        
+        // respawns the player at a spawn point with full health (server only)
+        public void Respawn()
+        {
+            if (!IsServer) return;
+            
+            Debug.Log($"Respawning player {OwnerClientId}");
+            
+            // reset health to max
+            CurrentHealth.Value = MaxHealth;
+            IsDead.Value = false;
+            
+            // move to spawn point
+            var spawnPoint = Category5.Core.PlayerSpawnPoint.GetNextSpawnPoint();
+            if (spawnPoint != null)
+            {
+                // need to temporarily disable character controller to move
+                RespawnAtPositionClientRpc(spawnPoint.transform.position, spawnPoint.transform.rotation);
+            }
+        }
+        
+        [ClientRpc]
+        private void RespawnAtPositionClientRpc(Vector3 position, Quaternion rotation)
+        {
+            // disable controller to allow teleport
+            if (_controller != null)
+            {
+                _controller.enabled = false;
+            }
+            
+            transform.position = position;
+            transform.rotation = rotation;
+            
+            // re-enable controller
+            if (_controller != null)
+            {
+                _controller.enabled = true;
+            }
+            
+            // reset velocity
+            _velocity = Vector3.zero;
         }
         
         // heals the player (server only) - used by lifesteal power-up
