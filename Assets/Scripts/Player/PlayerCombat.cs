@@ -152,6 +152,9 @@ namespace Category5.Player
             
             int lifestealAmount = _playerStats != null ? _playerStats.LifestealAmount : 0;
 
+            // determine if this is a heavy hit (combo finisher)
+            bool isHeavyHit = baseDamage >= heavyDamage;
+            
             foreach (Collider enemy in hitEnemies)
             {
                 if (enemy.TryGetComponent<IDamageable>(out var damageable))
@@ -173,6 +176,18 @@ namespace Category5.Player
                             TargetClientIds = new ulong[] { OwnerClientId }
                         }
                     });
+                    
+                    // trigger hit feedback for the attacking player
+                    TriggerHitFeedbackClientRpc(enemy.transform.position, isHeavyHit, new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams
+                        {
+                            TargetClientIds = new ulong[] { OwnerClientId }
+                        }
+                    });
+                    
+                    // notify hit feedback manager for vfx hooks (all clients)
+                    NotifyPlayerHitClientRpc(enemy.transform.position, finalDamage, isHeavyHit);
                 }
             }
 
@@ -224,6 +239,32 @@ namespace Category5.Player
             if (!IsOwner)
             {
                 // play sound/vfx for other players
+            }
+        }
+        
+        // trigger hit feedback effects for the attacking player only
+        [ClientRpc]
+        private void TriggerHitFeedbackClientRpc(Vector3 position, bool isHeavyHit, ClientRpcParams clientRpcParams = default)
+        {
+            if (HitFeedbackManager.Instance == null) return;
+            
+            if (isHeavyHit)
+            {
+                HitFeedbackManager.Instance.TriggerHeavyHit(position);
+            }
+            else
+            {
+                HitFeedbackManager.Instance.TriggerLightHit(position);
+            }
+        }
+        
+        // notify all clients for vfx hook events
+        [ClientRpc]
+        private void NotifyPlayerHitClientRpc(Vector3 position, int damage, bool isHeavyHit)
+        {
+            if (HitFeedbackManager.Instance != null)
+            {
+                HitFeedbackManager.Instance.NotifyPlayerHitEnemy(position, damage, isHeavyHit);
             }
         }
 

@@ -452,9 +452,41 @@ namespace Category5.Player
             CurrentHealth.Value -= damage;
             Debug.Log($"Player took {damage} damage. Health: {CurrentHealth.Value}");
             
+            // trigger damage feedback on the player who took damage
+            TriggerDamageFeedbackClientRpc(transform.position, damage, new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = new ulong[] { OwnerClientId }
+                }
+            });
+            
+            // notify all clients for vfx hook events
+            NotifyPlayerDamagedClientRpc(transform.position, damage);
+            
             if (CurrentHealth.Value <= 0)
             {
                 Die();
+            }
+        }
+        
+        // trigger damage feedback for the player who took damage
+        [ClientRpc]
+        private void TriggerDamageFeedbackClientRpc(Vector3 position, int damage, ClientRpcParams clientRpcParams = default)
+        {
+            if (Core.HitFeedbackManager.Instance != null)
+            {
+                Core.HitFeedbackManager.Instance.TriggerPlayerDamaged(position);
+            }
+        }
+        
+        // notify all clients for vfx hook events
+        [ClientRpc]
+        private void NotifyPlayerDamagedClientRpc(Vector3 position, int damage)
+        {
+            if (Core.HitFeedbackManager.Instance != null)
+            {
+                Core.HitFeedbackManager.Instance.NotifyPlayerTakeDamage(position, damage);
             }
         }
         

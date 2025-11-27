@@ -26,11 +26,23 @@ namespace Category5
         
         [Header("Spectator Mode")]
         [SerializeField] private float spectatorSensitivityMultiplier = 1f;
+        
+        [Header("Screen Shake")]
+        [SerializeField] private float shakeDecay = 5f; // how fast shake fades out
+        [SerializeField] private bool usePerlinNoise = true; // perlin noise vs random shake
 
         private float _rotationX;
         private float _rotationY;
         private InputSystem_Actions _inputActions;
         private Vector2 _lookInput;
+        
+        // screen shake state
+        private float _shakeIntensity;
+        private float _shakeDuration;
+        private float _shakeFrequency;
+        private float _shakeTimer;
+        private float _shakeElapsed;
+        private Vector3 _shakeOffset;
         
         // spectator mode state
         private bool _isSpectating = false;
@@ -241,6 +253,9 @@ namespace Category5
 
         private void HandleCameraPosition()
         {
+            // update screen shake
+            UpdateShake();
+            
             Quaternion rotation = Quaternion.Euler(_rotationY, _rotationX, 0);
             Vector3 desiredPosition = target.position + offset - (rotation * Vector3.forward * distance);
 
@@ -252,8 +267,65 @@ namespace Category5
                 desiredPosition = hit.point + (hit.normal * collisionRadius);
             }
 
+            // apply screen shake offset
+            desiredPosition += _shakeOffset;
+
             transform.rotation = rotation;
             transform.position = desiredPosition;
+        }
+        
+        // =====================================
+        // screen shake system
+        // =====================================
+        
+        // trigger screen shake with specified parameters
+        public void TriggerShake(float intensity, float duration, float frequency)
+        {
+            // if new shake is stronger than current, use it
+            // otherwise let current shake finish
+            if (intensity > _shakeIntensity || _shakeTimer <= 0)
+            {
+                _shakeIntensity = intensity;
+                _shakeDuration = duration;
+                _shakeFrequency = frequency;
+                _shakeTimer = duration;
+                _shakeElapsed = 0f;
+            }
+        }
+        
+        // update shake each frame
+        private void UpdateShake()
+        {
+            if (_shakeTimer <= 0)
+            {
+                _shakeOffset = Vector3.zero;
+                return;
+            }
+            
+            _shakeTimer -= Time.unscaledDeltaTime;
+            _shakeElapsed += Time.unscaledDeltaTime;
+            
+            // calculate current intensity with decay
+            float currentIntensity = _shakeIntensity * (_shakeTimer / _shakeDuration);
+            
+            if (usePerlinNoise)
+            {
+                // perlin noise based shake for more smoother feel
+                float noiseX = (Mathf.PerlinNoise(_shakeElapsed * _shakeFrequency, 0f) - 0.5f) * 2f;
+                float noiseY = (Mathf.PerlinNoise(0f, _shakeElapsed * _shakeFrequency) - 0.5f) * 2f;
+                float noiseZ = (Mathf.PerlinNoise(_shakeElapsed * _shakeFrequency, _shakeElapsed * _shakeFrequency) - 0.5f) * 2f;
+                
+                _shakeOffset = new Vector3(noiseX, noiseY, noiseZ * 0.5f) * currentIntensity;
+            }
+            else
+            {
+                // random shake for more violent impacts
+                _shakeOffset = new Vector3(
+                    Random.Range(-1f, 1f),
+                    Random.Range(-1f, 1f),
+                    Random.Range(-0.5f, 0.5f)
+                ) * currentIntensity;
+            }
         }
     }
 }

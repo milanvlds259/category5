@@ -716,6 +716,8 @@ MonoBehaviour:
     m_Bits: 1
   collisionRadius: 0.2
   spectatorSensitivityMultiplier: 1
+  shakeDecay: 5
+  usePerlinNoise: 1
 --- !u!1 &390524415
 GameObject:
   m_ObjectHideFlags: 0
@@ -1055,6 +1057,58 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 459510342}
   m_CullTransparentMesh: 1
+--- !u!1 &465367338
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 465367340}
+  - component: {fileID: 465367339}
+  m_Layer: 0
+  m_Name: HitFeedbackManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &465367339
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 465367338}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 50bd8088150733f448a2b8fccf6167b8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Core.HitFeedbackManager
+  defaultShakeIntensity: 0.5
+  defaultShakeDuration: 0.15
+  defaultShakeFrequency: 20
+  defaultFreezeDuration: 0.1
+  defaultFreezeTimeScale: 0.1
+  enableScreenShake: 1
+  enableHitFreeze: 1
+  globalIntensityMultiplier: 1
+--- !u!4 &465367340
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 465367338}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 485.3586, y: 272.56976, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &467369523
 GameObject:
   m_ObjectHideFlags: 0
@@ -6815,11 +6869,12 @@ SceneRoots:
   - {fileID: 410087041}
   - {fileID: 832575519}
   - {fileID: 876752737}
+  - {fileID: 465367340}
+  - {fileID: 10986185}
+  - {fileID: 791250117}
+  - {fileID: 1469490766}
   - {fileID: 922641886}
   - {fileID: 1130625991}
   - {fileID: 6947738416145930951}
   - {fileID: 1442587501}
   - {fileID: 1992212931}
-  - {fileID: 10986185}
-  - {fileID: 791250117}
-  - {fileID: 1469490766}

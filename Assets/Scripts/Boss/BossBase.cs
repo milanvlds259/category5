@@ -25,9 +25,16 @@ namespace Category5.Boss
         [SerializeField] protected float idleDuration = 2f;
         [SerializeField] protected float telegraphDuration = 1.5f;
         [SerializeField] protected float cooldownDuration = 1f;
+        
+        [Header("vfx/feedback")]
+        [Tooltip("Default attack type for vfx hooks, can be overridden by subclass")]
+        [SerializeField] protected BossAttackType defaultAttackType = BossAttackType.Slam;
 
         protected NetworkVariable<BossState> currentState = new NetworkVariable<BossState>(BossState.Idle);
         protected float stateTimer;
+        
+        // current attack type for vfx hooks
+        protected BossAttackType currentAttackType = BossAttackType.None;
         
         // flag to prevent multiple death triggers
         private bool _isDead = false;
@@ -140,6 +147,9 @@ namespace Category5.Boss
             stateTimer = telegraphDuration;
             SelectNextAttack();
             // show telegraph visual
+            
+            // notify vfx hooks for telegraph
+            NotifyBossTelegraphClientRpc(currentAttackType, transform.position);
         }
 
         protected virtual void StartAttack()
@@ -148,6 +158,9 @@ namespace Category5.Boss
             // duration depends on the specific attack
             stateTimer = 1f; 
             ExecuteAttack();
+            
+            // notify vfx hooks for attack execution
+            NotifyBossAttackClientRpc(currentAttackType, transform.position);
         }
 
         protected virtual void StartCooldown()
@@ -251,6 +264,48 @@ namespace Category5.Boss
             // clients need to update their reference to max health for ui
             maxHealth = newMaxHealth;
             TryRegisterWithUI();
+        }
+        
+        // =====================================
+        // vfx hook clientrpcs
+        // =====================================
+        [ClientRpc]
+        protected void NotifyBossTelegraphClientRpc(BossAttackType attackType, Vector3 position)
+        {
+            if (HitFeedbackManager.Instance != null)
+            {
+                HitFeedbackManager.Instance.NotifyBossAttackTelegraph(attackType, position);
+            }
+        }
+        
+        [ClientRpc]
+        protected void NotifyBossAttackClientRpc(BossAttackType attackType, Vector3 position)
+        {
+            if (HitFeedbackManager.Instance != null)
+            {
+                HitFeedbackManager.Instance.NotifyBossAttackExecute(attackType, position);
+            }
+        }
+        
+        // helper method for subclasses to trigger feedback when boss hits players
+        protected void TriggerBossHitFeedback(Vector3 position, bool isHeavyAttack = false)
+        {
+            TriggerBossHitFeedbackClientRpc(position, isHeavyAttack);
+        }
+        
+        [ClientRpc]
+        private void TriggerBossHitFeedbackClientRpc(Vector3 position, bool isHeavyAttack)
+        {
+            if (HitFeedbackManager.Instance == null) return;
+            
+            if (isHeavyAttack)
+            {
+                HitFeedbackManager.Instance.TriggerBossSlam(position);
+            }
+            else
+            {
+                HitFeedbackManager.Instance.TriggerHeavyHit(position);
+            }
         }
     }
 }
