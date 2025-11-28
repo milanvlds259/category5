@@ -1086,14 +1086,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 50bd8088150733f448a2b8fccf6167b8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Core.HitFeedbackManager
-  defaultShakeIntensity: 0.5
-  defaultShakeDuration: 0.15
-  defaultShakeFrequency: 20
-  defaultFreezeDuration: 0.1
-  defaultFreezeTimeScale: 0.1
+  lightHitFeedback:
+    shakeIntensity: 0.1
+    shakeDuration: 0.1
+    shakeFrequency: 25
+    freezeDuration: 0.05
+    freezeTimeScale: 0.1
+  heavyHitFeedback:
+    shakeIntensity: 0.25
+    shakeDuration: 0.15
+    shakeFrequency: 30
+    freezeDuration: 0.08
+    freezeTimeScale: 0.02
+  bossSlamFeedback:
+    shakeIntensity: 0.5
+    shakeDuration: 0.3
+    shakeFrequency: 20
+    freezeDuration: 0.12
+    freezeTimeScale: 0.01
+  playerDamagedFeedback:
+    shakeIntensity: 0.2
+    shakeDuration: 0.15
+    shakeFrequency: 35
+    freezeDuration: 0.06
+    freezeTimeScale: 0.05
   enableScreenShake: 1
   enableHitFreeze: 1
   globalIntensityMultiplier: 1
+  freezeMethod: 0
+  debugHitFreeze: 1
 --- !u!4 &465367340
 Transform:
   m_ObjectHideFlags: 0

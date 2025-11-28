@@ -61,6 +61,10 @@ namespace Category5.Core
         [Range(0f, 2f)]
         [SerializeField] private float globalIntensityMultiplier = 1f;
         
+        [Header("Hit Freeze Method")]
+        [Tooltip("How to simulate hit freeze - Animator pauses animations, TimeScale affects everything")]
+        [SerializeField] private HitFreezeMethod freezeMethod = HitFreezeMethod.AnimatorPause;
+        
         [Header("Debug")]
         [Tooltip("Log hit freeze events to console")]
         [SerializeField] private bool debugHitFreeze = false;
@@ -68,6 +72,13 @@ namespace Category5.Core
         // reference to camera for shake effects
         private ThirdPersonCamera _camera;
         private Coroutine _freezeCoroutine;
+        
+        // for animator-based freeze
+        private bool _isFreezing = false;
+        public bool IsFreezing => _isFreezing;
+        
+        // event for other systems to react to freeze state
+        public static event Action<bool> OnHitFreezeStateChanged;
         
         // =====================================
         // vfx/sfx event hooks for artists
@@ -184,6 +195,7 @@ namespace Category5.Core
         
         // =====================================
         // hit freeze (client-side only)
+        // uses animator speed manipulation to work with networking
         // =====================================
         
         public void TriggerHitFreeze()
@@ -205,12 +217,12 @@ namespace Category5.Core
             if (_freezeCoroutine != null)
             {
                 StopCoroutine(_freezeCoroutine);
-                Time.timeScale = 1f;
+                EndFreeze();
             }
             
             if (debugHitFreeze)
             {
-                Debug.Log($"[HitFreeze] Triggering freeze: duration={duration}s, timeScale={timeScale}");
+                Debug.Log($"[HitFreeze] Triggering freeze: duration={duration}s, timeScale={timeScale}, method={freezeMethod}");
             }
             
             _freezeCoroutine = StartCoroutine(FreezeCoroutine(duration, timeScale));
@@ -218,17 +230,64 @@ namespace Category5.Core
         
         private IEnumerator FreezeCoroutine(float duration, float timeScale)
         {
-            Time.timeScale = timeScale;
+            _isFreezing = true;
+            OnHitFreezeStateChanged?.Invoke(true);
+            
+            // apply freeze based on selected method
+            if (freezeMethod == HitFreezeMethod.TimeScale || freezeMethod == HitFreezeMethod.Both)
+            {
+                Time.timeScale = timeScale;
+            }
+            
+            if (freezeMethod == HitFreezeMethod.AnimatorPause || freezeMethod == HitFreezeMethod.Both)
+            {
+                SetAllAnimatorSpeeds(0f);
+            }
             
             // use unscaled time for the freeze duration
             yield return new WaitForSecondsRealtime(duration);
             
-            Time.timeScale = 1f;
+            EndFreeze();
             _freezeCoroutine = null;
             
             if (debugHitFreeze)
             {
-                Debug.Log("[HitFreeze] Freeze ended, timeScale restored to 1");
+                Debug.Log("[HitFreeze] Freeze ended");
+            }
+        }
+        
+        private void EndFreeze()
+        {
+            _isFreezing = false;
+            OnHitFreezeStateChanged?.Invoke(false);
+            
+            if (freezeMethod == HitFreezeMethod.TimeScale || freezeMethod == HitFreezeMethod.Both)
+            {
+                Time.timeScale = 1f;
+            }
+            
+            if (freezeMethod == HitFreezeMethod.AnimatorPause || freezeMethod == HitFreezeMethod.Both)
+            {
+                SetAllAnimatorSpeeds(1f);
+            }
+        }
+        
+        // pauses/resumes all animators in the scene
+        private void SetAllAnimatorSpeeds(float speed)
+        {
+            // find all animators and set their speed
+            Animator[] animators = FindObjectsByType<Animator>(FindObjectsSortMode.None);
+            foreach (var animator in animators)
+            {
+                if (animator != null && animator.isActiveAndEnabled)
+                {
+                    animator.speed = speed;
+                }
+            }
+            
+            if (debugHitFreeze)
+            {
+                Debug.Log($"[HitFreeze] Set {animators.Length} animator speeds to {speed}");
             }
         }
         
