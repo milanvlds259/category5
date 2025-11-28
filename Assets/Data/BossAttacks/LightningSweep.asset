@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f246dfa6bc1b0ce45bc10ad334b6ea62, type: 3}
+  m_Name: LightningSweep
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Boss.BossAttackData
+  attackName: Lightning Sweep
+  attackType: 2
+  selectionWeight: 30
+  healthThreshold: 1
+  minRange: 0
+  maxRange: 15
+  telegraphDuration: 1.5
+  attackDuration: 1.5
+  cooldownDuration: 1
+  damage: 30
+  damageRadius: 3
+  damageOffset: {x: 0, y: -2, z: 0}
+  hasLunge: 0
+  lungeSpeed: 8
+  lungeDistance: 2
+  isSweep: 1
+  sweepOffset: {x: 0, y: -2, z: 0}
+  sweepAngle: 180
+  sweepLength: 15
+  sweepWidth: 2
+  customFeedback:
+    shakeIntensity: 0
+    shakeDuration: 0
+    shakeFrequency: 0
+    freezeDuration: 0
+    freezeTimeScale: 0
+  isHeavyAttack: 0
+  gizmoColor: {r: 0.79698133, g: 0, b: 1, a: 1}
+  telegraphPrefab: {fileID: 0}
+  telegraphColor: {r: 1, g: 1, b: 0.2, a: 0.5}
+  attackVfxPrefab: {fileID: 0}
+  telegraphSound: {fileID: 0}
+  attackSound: {fileID: 0}
