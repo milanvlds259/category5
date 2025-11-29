@@ -49,7 +49,6 @@ namespace Category5.PowerUps
             {
                 PowerUpManager.Instance.OnShowPowerUpSelection += ShowSelection;
                 PowerUpManager.Instance.OnHidePowerUpSelection += HideSelection;
-                PowerUpManager.Instance.OnVictory += ShowVictory;
                 PowerUpManager.Instance.OnGameOver += OnGameOver;
                 PowerUpManager.Instance.OnRoundChanged += UpdateRoundDisplay;
                 _isSubscribed = true;
@@ -63,7 +62,6 @@ namespace Category5.PowerUps
             {
                 PowerUpManager.Instance.OnShowPowerUpSelection -= ShowSelection;
                 PowerUpManager.Instance.OnHidePowerUpSelection -= HideSelection;
-                PowerUpManager.Instance.OnVictory -= ShowVictory;
                 PowerUpManager.Instance.OnGameOver -= OnGameOver;
                 PowerUpManager.Instance.OnRoundChanged -= UpdateRoundDisplay;
             }
@@ -166,38 +164,6 @@ namespace Category5.PowerUps
 
             // send selection to manager
             PowerUpManager.Instance?.SelectPowerUp(powerUpIndex);
-        }
-
-        private void ShowVictory()
-        {
-            if (selectionPanel == null) return;
-
-            selectionPanel.SetActive(true);
-            
-            // unlock cursor
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
-
-            // hide cards
-            foreach (var card in powerUpCards)
-            {
-                if (card != null)
-                {
-                    card.gameObject.SetActive(false);
-                }
-            }
-
-            // hide waiting overlay
-            if (waitingOverlay != null)
-            {
-                waitingOverlay.SetActive(false);
-            }
-
-            // show victory message
-            if (statusText != null)
-            {
-                statusText.text = "VICTORY!\nYou defeated all the bosses!";
-            }
         }
 
         private void UpdateRoundDisplay(int round)
