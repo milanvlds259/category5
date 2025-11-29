@@ -1,5 +1,6 @@
 using UnityEngine;
 using Unity.Netcode;
+using Unity.Netcode.Components;
 using Category5.Core;
 using Category5.PowerUps;
 using Category5.Player;
@@ -22,6 +23,8 @@ namespace Category5.Boss
         ChargeAndRetreat // rushes in, backs off after attacks
     }
 
+    [RequireComponent(typeof(NetworkObject))]
+    [RequireComponent(typeof(NetworkTransform))]
     public abstract class BossBase : NetworkBehaviour, IDamageable
     {
         [Header("stats")]
