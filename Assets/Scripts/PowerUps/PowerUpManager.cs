@@ -3,6 +3,7 @@ using UnityEngine;
 using Unity.Netcode;
 using Category5.Boss;
 using Category5.Player;
+using Category5.Audio;
 
 namespace Category5.PowerUps
 {
@@ -158,12 +159,19 @@ namespace Category5.PowerUps
         private void SendPowerUpChoicesClientRpc(int[] powerUpIndices, ClientRpcParams clientRpcParams = default)
         {
             Debug.Log($"PowerUpManager: Received {powerUpIndices.Length} power-up choices");
+            
+            // fire audio event for power-up selection start
+            GameEvents.InvokePowerUpSelectionStart();
+            
             OnShowPowerUpSelection?.Invoke(powerUpIndices); // aaaa
         }
 
         [ClientRpc]
         private void TriggerVictoryClientRpc()
         {
+            // fire audio event for victory
+            GameEvents.InvokeVictory();
+            
             OnVictory?.Invoke();
         }
 
@@ -240,8 +248,23 @@ namespace Category5.PowerUps
                 {
                     playerStats.AddPowerUp(powerUp.UniqueId);
                     Debug.Log($"PowerUpManager: Applied {powerUp.PowerUpName} to player {clientId}");
+                    
+                    // fire audio event for power-up selected (to the specific client)
+                    NotifyPowerUpSelectedClientRpc(powerUp.PowerUpName, new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams
+                        {
+                            TargetClientIds = new ulong[] { clientId }
+                        }
+                    });
                 }
             }
+        }
+        
+        [ClientRpc]
+        private void NotifyPowerUpSelectedClientRpc(string powerUpName, ClientRpcParams clientRpcParams = default)
+        {
+            GameEvents.InvokePowerUpSelected(powerUpName);
         }
 
         [ClientRpc]
@@ -284,6 +307,9 @@ namespace Category5.PowerUps
         [ClientRpc]
         private void HideSelectionUIClientRpc()
         {
+            // fire audio event for round start
+            GameEvents.InvokeRoundStart(CurrentRound.Value);
+            
             OnHidePowerUpSelection?.Invoke();
         }
 
@@ -379,6 +405,10 @@ namespace Category5.PowerUps
         private void TriggerGameOverClientRpc(int roundReached)
         {
             Debug.Log($"Game Over! Reached round {roundReached}");
+            
+            // fire audio event for game over
+            GameEvents.InvokeGameOver();
+            
             OnGameOver?.Invoke();
         }
         

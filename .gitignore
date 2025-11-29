@@ -102,4 +102,5 @@ InitTestScene*.unity*
 .github/copilot-instructions.md
 
 # Documentation
-design-doc.md
+full-design-doc.md
+prototype-design-doc.md

@@ -4,6 +4,7 @@ using Unity.Netcode.Components;
 using Category5.Core;
 using Category5.PowerUps;
 using Category5.Player;
+using Category5.Audio;
 using System.Collections.Generic;
 
 namespace Category5.Boss
@@ -391,6 +392,9 @@ namespace Category5.Boss
 
             CurrentHealth.Value -= damage;
             Debug.Log($"boss took {damage} damage. health: {CurrentHealth.Value}");
+            
+            // fire audio event for boss hurt on all clients
+            NotifyBossHurtClientRpc(transform.position, damage);
 
             if (CurrentHealth.Value <= 0)
             {
@@ -409,6 +413,9 @@ namespace Category5.Boss
             _isDead = true;
             
             Debug.Log("BossBase: Boss died!");
+            
+            // fire audio event for boss death on all clients
+            NotifyBossDeathClientRpc(transform.position);
             
             // notify power-up manager instead of despawning immediately
             if (PowerUpManager.Instance != null)
@@ -459,6 +466,9 @@ namespace Category5.Boss
             // show boss again and notify clients about the reset
             ShowBossClientRpc();
             ResetBossClientRpc(newMaxHealth);
+            
+            // fire audio event for boss spawn on all clients
+            NotifyBossSpawnClientRpc(transform.position);
             
             // re-register with ui for updated health bar
             TryRegisterWithUI();
@@ -512,6 +522,28 @@ namespace Category5.Boss
             {
                 HitFeedbackManager.Instance.TriggerHeavyHit(position);
             }
+        }
+        
+        // =====================================
+        // audio event clientrpcs
+        // =====================================
+        
+        [ClientRpc]
+        private void NotifyBossDeathClientRpc(Vector3 position)
+        {
+            BossEvents.InvokeDeath(position);
+        }
+        
+        [ClientRpc]
+        private void NotifyBossSpawnClientRpc(Vector3 position)
+        {
+            BossEvents.InvokeSpawn(position);
+        }
+        
+        [ClientRpc]
+        private void NotifyBossHurtClientRpc(Vector3 position, int damage)
+        {
+            BossEvents.InvokeHurt(position, damage);
         }
     }
 }

@@ -4,6 +4,7 @@ using Unity.Netcode;
 using UnityEngine.InputSystem;
 using Category5.Core;
 using Category5.PowerUps;
+using Category5.Audio;
 
 namespace Category5.Player
 {
@@ -101,6 +102,9 @@ namespace Category5.Player
             _isAttacking = true;
             _lastAttackTime = Time.time;
             _comboCounter++;
+            
+            // fire audio event for attack swing
+            PlayerEvents.InvokeAttackSwing(transform.position);
 
             // determine damage and duration based on combo step
             int damage = lightDamage;
@@ -204,7 +208,7 @@ namespace Category5.Player
                 playerController.Heal(healAmount);
                 
                 // show heal feedback on client
-                ShowLifestealVfxClientRpc(healAmount, new ClientRpcParams
+                ShowLifestealVfxClientRpc(healAmount, transform.position, new ClientRpcParams
                 {
                     Send = new ClientRpcSendParams
                     {
@@ -215,9 +219,10 @@ namespace Category5.Player
         }
         
         [ClientRpc]
-        private void ShowLifestealVfxClientRpc(int healAmount, ClientRpcParams clientRpcParams = default)
+        private void ShowLifestealVfxClientRpc(int healAmount, Vector3 position, ClientRpcParams clientRpcParams = default)
         {
-            // TODO: play green sparkle vfx for vampire touch
+            // fire audio event for healing
+            PlayerEvents.InvokeHeal(position, healAmount);
             Debug.Log($"Lifesteal healed {healAmount} HP!");
         }
         

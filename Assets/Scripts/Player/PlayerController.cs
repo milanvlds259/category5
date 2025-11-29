@@ -4,6 +4,7 @@ using UnityEngine.InputSystem;
 using Category5;
 using Category5.Core;
 using Category5.PowerUps;
+using Category5.Audio;
 
 namespace Category5.Player
 {
@@ -365,6 +366,9 @@ namespace Category5.Player
             
             // instead of jumping immediately we buffer the input
             _jumpBufferCounter = _jumpBufferTime;
+            
+            // fire audio event for jump
+            PlayerEvents.InvokeJump(transform.position);
         }
 
         private void OnDodge(InputAction.CallbackContext context)
@@ -387,6 +391,9 @@ namespace Category5.Player
             _isDodging = true;
             _dodgeTimer = dodgeDuration;
             _lastDodgeTime = Time.time;
+            
+            // fire audio event for dodge
+            PlayerEvents.InvokeDodge(transform.position);
 
             // determine dodge direction
             Vector2 input = _inputActions.Player.Move.ReadValue<Vector2>();
@@ -499,11 +506,20 @@ namespace Category5.Player
             Debug.Log($"Player {OwnerClientId} died!");
             IsDead.Value = true;
             
+            // fire audio event for death on all clients
+            NotifyPlayerDeathClientRpc(transform.position);
+            
             // notify power-up manager for game over check
             if (PowerUpManager.Instance != null)
             {
                 PowerUpManager.Instance.OnPlayerDied(OwnerClientId);
             }
+        }
+        
+        [ClientRpc]
+        private void NotifyPlayerDeathClientRpc(Vector3 position)
+        {
+            PlayerEvents.InvokeDeath(position);
         }
         
         // respawns the player at a spawn point with full health (server only)
