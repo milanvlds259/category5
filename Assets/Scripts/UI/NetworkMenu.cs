@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using TMPro;
+using System.Collections;
 
 namespace Category5.UI
 {
@@ -31,8 +32,15 @@ namespace Category5.UI
         [SerializeField] private string defaultIP = "127.0.0.1";
         [SerializeField] private ushort defaultPort = 7777;
         
+        [Header("connection timeout")]
+        [SerializeField] private float connectionTimeout = 10f;
+        [SerializeField] private Button cancelConnectionButton;
+        [SerializeField] private TextMeshProUGUI connectingStatusText; // shows countdown (kinda optional if we want)
+        
         private UnityTransport transport;
         private bool isInLobby = false;
+        private bool isConnecting = false;
+        private Coroutine connectionTimeoutCoroutine;
         
         private void Start()
         {
@@ -78,11 +86,19 @@ namespace Category5.UI
                 leaveLobbyButton.onClick.AddListener(OnLeaveLobbyClicked);
             }
             
+            if (cancelConnectionButton != null)
+            {
+                cancelConnectionButton.onClick.AddListener(OnCancelConnectionClicked);
+            }
+            
             // hide connecting panel initially
             if (connectingPanel != null)
             {
                 connectingPanel.SetActive(false);
             }
+            
+            // hide cancel button initially
+            SetCancelButtonVisible(false);
             
             // show main menu, hide lobby
             ShowMainMenu();
@@ -120,6 +136,11 @@ namespace Category5.UI
             if (leaveLobbyButton != null)
             {
                 leaveLobbyButton.onClick.RemoveListener(OnLeaveLobbyClicked);
+            }
+            
+            if (cancelConnectionButton != null)
+            {
+                cancelConnectionButton.onClick.RemoveListener(OnCancelConnectionClicked);
             }
             
             // unsubscribe from network events
@@ -242,6 +263,8 @@ namespace Category5.UI
             UpdateStatus($"Connecting to {ip}:{port}...");
             SetButtonsInteractable(false);
             ShowConnectingPanel(true);
+            SetCancelButtonVisible(true);
+            isConnecting = true;
             
             // register callbacks for connection result
             NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
@@ -255,7 +278,87 @@ namespace Category5.UI
                 Debug.LogError("NetworkMenu: Failed to start client");
                 SetButtonsInteractable(true);
                 ShowConnectingPanel(false);
+                isConnecting = false;
                 UnregisterClientCallbacks();
+            }
+            else
+            {
+                // start timeout countdown
+                connectionTimeoutCoroutine = StartCoroutine(ConnectionTimeoutCoroutine(ip, port));
+            }
+        }
+        
+        // coroutine that handles connection timeout with countdown display
+        private IEnumerator ConnectionTimeoutCoroutine(string ip, ushort port)
+        {
+            float elapsed = 0f;
+            
+            while (elapsed < connectionTimeout && isConnecting)
+            {
+                elapsed += Time.deltaTime;
+                float remaining = connectionTimeout - elapsed;
+                
+                // update connecting status with countdown
+                if (connectingStatusText != null)
+                {
+                    connectingStatusText.text = $"Connecting to {ip}:{port}...\n({Mathf.CeilToInt(remaining)}s)";
+                }
+                else
+                {
+                    UpdateStatus($"Connecting to {ip}:{port}... ({Mathf.CeilToInt(remaining)}s)");
+                }
+                
+                yield return null;
+            }
+            
+            // if still connecting after timeout, cancel
+            if (isConnecting)
+            {
+                Debug.Log("NetworkMenu: Connection timed out");
+                CancelConnection("Connection timed out. Check the IP address and port.");
+            }
+        }
+        
+        // called when cancel button is clicked
+        public void OnCancelConnectionClicked()
+        {
+            if (!isConnecting) return;
+            
+            Debug.Log("NetworkMenu: Connection cancelled by user");
+            CancelConnection("Connection cancelled");
+        }
+        
+        // cancels the current connection attempt
+        private void CancelConnection(string reason)
+        {
+            isConnecting = false;
+            
+            // stop timeout coroutine
+            if (connectionTimeoutCoroutine != null)
+            {
+                StopCoroutine(connectionTimeoutCoroutine);
+                connectionTimeoutCoroutine = null;
+            }
+            
+            // shutdown network
+            if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsClient)
+            {
+                NetworkManager.Singleton.Shutdown();
+            }
+            
+            UnregisterClientCallbacks();
+            ShowConnectingPanel(false);
+            SetCancelButtonVisible(false);
+            SetButtonsInteractable(true);
+            UpdateStatus(reason);
+        }
+        
+        // shows or hides the cancel connection button
+        private void SetCancelButtonVisible(bool visible)
+        {
+            if (cancelConnectionButton != null)
+            {
+                cancelConnectionButton.gameObject.SetActive(visible);
             }
         }
         
@@ -279,7 +382,17 @@ namespace Category5.UI
             if (clientId == NetworkManager.Singleton.LocalClientId)
             {
                 Debug.Log($"NetworkMenu: Connected to server as client {clientId}");
+                
+                // stop timeout coroutine - we connected successfully
+                isConnecting = false;
+                if (connectionTimeoutCoroutine != null)
+                {
+                    StopCoroutine(connectionTimeoutCoroutine);
+                    connectionTimeoutCoroutine = null;
+                }
+                
                 ShowConnectingPanel(false);
+                SetCancelButtonVisible(false);
                 
                 // show lobby as client
                 ShowLobby(false);
@@ -307,10 +420,20 @@ namespace Category5.UI
             if (clientId == NetworkManager.Singleton.LocalClientId)
             {
                 Debug.Log("NetworkMenu: Disconnected from server");
-                UpdateStatus("Disconnected from server");
-                SetButtonsInteractable(true);
-                ShowConnectingPanel(false);
-                UnregisterClientCallbacks();
+                
+                // if we were still trying to connect, this is a connection failure
+                if (isConnecting)
+                {
+                    CancelConnection("Connection failed. Host may not be available.");
+                }
+                else
+                {
+                    // we were already connected and got disconnected
+                    UpdateStatus("Disconnected from server");
+                    SetButtonsInteractable(true);
+                    ShowConnectingPanel(false);
+                    UnregisterClientCallbacks();
+                }
             }
         }
         
