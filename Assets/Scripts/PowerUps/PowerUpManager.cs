@@ -452,5 +452,58 @@ namespace Category5.PowerUps
             }
             return count;
         }
+        
+        // =====================================
+        // disconnect handling
+        // =====================================
+        
+        // called by NetworkSessionManager when a player disconnects mid-game
+        public void OnPlayerDisconnected(ulong clientId)
+        {
+            if (!IsServer) return;
+            
+            Debug.Log($"PowerUpManager: Handling disconnect for player {clientId}");
+            
+            // if we're in power-up selection, mark them as selected so we don't wait forever
+            if (CurrentPhase.Value == GamePhase.PowerUpSelection)
+            {
+                if (_playerSelections.ContainsKey(clientId))
+                {
+                    _playerSelections[clientId] = true; // mark as "selected" so we don't wait
+                    _playerPowerUpChoices.Remove(clientId);
+                    
+                    Debug.Log($"PowerUpManager: Marked disconnected player {clientId} as selected");
+                    
+                    // check if all remaining players have now selected
+                    CheckAllPlayersSelected();
+                }
+            }
+            
+            // if we're fighting, check if all remaining players are dead (game over)
+            if (CurrentPhase.Value == GamePhase.Fighting)
+            {
+                // give a short delay to let the disconnect fully process
+                StartCoroutine(CheckGameOverAfterDisconnect());
+            }
+        }
+        
+        private System.Collections.IEnumerator CheckGameOverAfterDisconnect()
+        {
+            yield return new WaitForSeconds(0.1f);
+            
+            // check if any players remain
+            if (NetworkManager.Singleton.ConnectedClientsIds.Count == 0)
+            {
+                Debug.Log("PowerUpManager: All players disconnected");
+                // don't trigger game over, just end the session
+                yield break;
+            }
+            
+            // check if all remaining players are dead
+            if (AreAllPlayersDead())
+            {
+                TriggerGameOver();
+            }
+        }
     }
 }
