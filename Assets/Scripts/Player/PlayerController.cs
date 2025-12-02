@@ -1,5 +1,6 @@
 using UnityEngine;
 using Unity.Netcode;
+using Unity.Collections;
 using UnityEngine.InputSystem;
 using Category5;
 using Category5.Core;
@@ -11,6 +12,17 @@ namespace Category5.Player
     [RequireComponent(typeof(CharacterController))]
     public class PlayerController : NetworkBehaviour, IDamageable
     {
+        [Header("Player Identity")]
+        // player name synced across network
+        public NetworkVariable<FixedString64Bytes> PlayerName = new NetworkVariable<FixedString64Bytes>(
+            "Player",
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server
+        );
+        
+        // event fired when any player's name changes (for UI updates)
+        public static event System.Action<PlayerController> OnPlayerNameChanged;
+        
         [Header("Health")]
         [SerializeField] private int baseMaxHealth = 100;
         public NetworkVariable<int> CurrentHealth = new NetworkVariable<int>(100);
@@ -108,6 +120,7 @@ namespace Category5.Player
             }
             CurrentHealth.OnValueChanged += OnHealthChanged;
             IsDead.OnValueChanged += OnDeadStateChanged;
+            PlayerName.OnValueChanged += OnPlayerNameChangedCallback;
             
             // subscribe to stats changes to update max health
             if (_playerStats != null)
@@ -119,6 +132,22 @@ namespace Category5.Player
             if (IsOwner && Category5.UI.UIManager.Instance != null)
             {
                 Category5.UI.UIManager.Instance.RegisterPlayer(this);
+            }
+            
+            // if this is the local owner, request to set our name on the server
+            if (IsOwner)
+            {
+                string localName = PlayerNameManager.Instance != null 
+                    ? PlayerNameManager.Instance.GetDisplayName() 
+                    : "Player";
+                RequestSetNameServerRpc(localName);
+            }
+            
+            // initialize name tag if present (name tag is a child of player prefab)
+            var nameTag = GetComponentInChildren<Category5.UI.PlayerNameTag>(true);
+            if (nameTag != null)
+            {
+                nameTag.Initialize();
             }
 
             // spawn position is handled by NetworkManagerBootstrap before spawning
@@ -146,11 +175,45 @@ namespace Category5.Player
         {
             CurrentHealth.OnValueChanged -= OnHealthChanged;
             IsDead.OnValueChanged -= OnDeadStateChanged;
+            PlayerName.OnValueChanged -= OnPlayerNameChangedCallback;
             
             if (_playerStats != null)
             {
                 _playerStats.OnStatsChanged -= OnStatsChanged;
             }
+        }
+        
+        // called when player name changes on network
+        private void OnPlayerNameChangedCallback(FixedString64Bytes oldName, FixedString64Bytes newName)
+        {
+            Debug.Log($"PlayerController: Name changed from '{oldName}' to '{newName}'");
+            OnPlayerNameChanged?.Invoke(this);
+        }
+        
+        // server rpc to set player name (called by owner after spawn)
+        [Rpc(SendTo.Server)]
+        private void RequestSetNameServerRpc(string name, RpcParams rpcParams = default)
+        {
+            // validate the name
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                name = "Player";
+            }
+            
+            // limit length
+            if (name.Length > 20)
+            {
+                name = name.Substring(0, 20);
+            }
+            
+            PlayerName.Value = new FixedString64Bytes(name);
+            Debug.Log($"PlayerController: Server set name to '{name}' for client {OwnerClientId}");
+        }
+        
+        // get the display name as a string (convenience method)
+        public string GetPlayerName()
+        {
+            return PlayerName.Value.ToString();
         }
         
         // called when death state changes, syncs visual state on all clients
@@ -184,6 +247,13 @@ namespace Category5.Player
                         obj.SetActive(!isDead);
                     }
                 }
+            }
+            
+            // toggle name tag visibility (hide nametag if player dead)
+            var nameTag = GetComponentInChildren<Category5.UI.PlayerNameTag>(true);
+            if (nameTag != null)
+            {
+                nameTag.SetVisible(!isDead);
             }
             
             // disable collider when dead so boss attacks don't hit us

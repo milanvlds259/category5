@@ -3,8 +3,10 @@ using Unity.Netcode;
 using UnityEngine.SceneManagement;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using Category5.PowerUps;
 using Category5.Player;
+using Category5.UI;
 
 namespace Category5.Core
 {
@@ -110,7 +112,8 @@ namespace Category5.Core
         // server-side: handle when a player disconnects
         private void HandlePlayerDisconnectOnServer(ulong clientId)
         {
-            string playerName = $"Player {clientId}";
+            // get player name before cleanup (player object may still exist briefly)
+            string playerName = GetPlayerNameForClient(clientId);
             
             // notify all clients about the disconnect
             NotifyPlayerDisconnectedClientRpc(clientId, playerName);
@@ -120,6 +123,33 @@ namespace Category5.Core
             
             // check if game should continue
             CheckGameViability();
+        }
+        
+        // get the player name for a given client id
+        private string GetPlayerNameForClient(ulong clientId)
+        {
+            // try UIManager first (most reliable)
+            if (UIManager.Instance != null)
+            {
+                return UIManager.Instance.GetPlayerName(clientId);
+            }
+            
+            // try to find the player object directly (if above method fails for some reason)
+            if (NetworkManager.Singleton != null && 
+                NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out var client))
+            {
+                var player = client.PlayerObject?.GetComponent<PlayerController>();
+                if (player != null)
+                {
+                    string name = player.GetPlayerName();
+                    if (!string.IsNullOrWhiteSpace(name) && name != "Player")
+                    {
+                        return name;
+                    }
+                }
+            }
+            
+            return $"Player {clientId}";
         }
         
         // clean up a disconnected player's state

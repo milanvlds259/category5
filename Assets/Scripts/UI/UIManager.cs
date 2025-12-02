@@ -5,6 +5,7 @@ using Unity.Netcode;
 using Category5.Player;
 using Category5.Boss;
 using Category5.PowerUps;
+using System.Collections.Generic;
 
 namespace Category5.UI
 {
@@ -125,6 +126,52 @@ namespace Category5.UI
             Transform parent = damageNumberContainer != null ? damageNumberContainer : transform;
             DamageNumber dn = Instantiate(damageNumberPrefab, parent);
             dn.Initialize(damage, position);
+        }
+        
+        // get player name by client id (used by disconnect notifications, etc)
+        public string GetPlayerName(ulong clientId)
+        {
+            if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsListening)
+            {
+                return $"Player {clientId}";
+            }
+            
+            if (NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out var client))
+            {
+                var player = client.PlayerObject?.GetComponent<PlayerController>();
+                if (player != null)
+                {
+                    string name = player.GetPlayerName();
+                    if (!string.IsNullOrWhiteSpace(name) && name != "Player")
+                    {
+                        return name;
+                    }
+                }
+            }
+            
+            return $"Player {clientId}";
+        }
+        
+        // get all player controllers in the game
+        public List<PlayerController> GetAllPlayers()
+        {
+            var players = new List<PlayerController>();
+            
+            if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsListening)
+            {
+                return players;
+            }
+            
+            foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
+            {
+                var player = client.PlayerObject?.GetComponent<PlayerController>();
+                if (player != null)
+                {
+                    players.Add(player);
+                }
+            }
+            
+            return players;
         }
     }
 }

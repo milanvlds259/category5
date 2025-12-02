@@ -4,6 +4,7 @@ using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using TMPro;
 using System.Collections;
+using Category5.Core;
 
 namespace Category5.UI
 {
@@ -16,12 +17,15 @@ namespace Category5.UI
         [SerializeField] private Button joinButton;
         [SerializeField] private TMP_InputField ipInputField;
         [SerializeField] private TMP_InputField portInputField;
+        [SerializeField] private TMP_InputField playerNameInputField;
         
         [Header("ui references - lobby")]
         [SerializeField] private GameObject lobbyPanel;
         [SerializeField] private Button startGameButton; // host only
         [SerializeField] private Button leaveLobbyButton;
         [SerializeField] private TextMeshProUGUI playerCountText;
+        [SerializeField] private Transform playerListContainer; // parent for player entries
+        [SerializeField] private LobbyPlayerEntry playerEntryPrefab; // prefab for each player entry
         
         [Header("status display")]
         [SerializeField] private TextMeshProUGUI statusText;
@@ -48,6 +52,9 @@ namespace Category5.UI
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
             
+            // ensure PlayerNameManager exists
+            EnsurePlayerNameManager();
+            
             // cache the transport reference
             if (NetworkManager.Singleton != null)
             {
@@ -63,6 +70,16 @@ namespace Category5.UI
             if (portInputField != null)
             {
                 portInputField.text = defaultPort.ToString();
+            }
+            
+            // load saved player name
+            if (playerNameInputField != null)
+            {
+                string savedName = PlayerNameManager.Instance != null 
+                    ? PlayerNameManager.Instance.GetDisplayName() 
+                    : "Player";
+                playerNameInputField.text = savedName;
+                playerNameInputField.onEndEdit.AddListener(OnPlayerNameChanged);
             }
             
             // setup button listeners
@@ -106,6 +123,27 @@ namespace Category5.UI
             UpdateStatus("Ready to connect");
         }
         
+        // ensures PlayerNameManager singleton exists
+        private void EnsurePlayerNameManager()
+        {
+            if (PlayerNameManager.Instance == null)
+            {
+                var go = new GameObject("PlayerNameManager");
+                go.AddComponent<PlayerNameManager>();
+                // PlayerNameManager handles its own DontDestroyOnLoad
+            }
+        }
+        
+        // called when player name input field loses focus
+        private void OnPlayerNameChanged(string newName)
+        {
+            if (PlayerNameManager.Instance != null)
+            {
+                PlayerNameManager.Instance.SetLocalPlayerName(newName);
+                Debug.Log($"NetworkMenu: Player name changed to '{newName}'");
+            }
+        }
+        
         private void Update()
         {
             // update player count while in lobby
@@ -142,6 +180,14 @@ namespace Category5.UI
             {
                 cancelConnectionButton.onClick.RemoveListener(OnCancelConnectionClicked);
             }
+            
+            if (playerNameInputField != null)
+            {
+                playerNameInputField.onEndEdit.RemoveListener(OnPlayerNameChanged);
+            }
+            
+            // unsubscribe from lobby events
+            LobbyManager.OnLobbyPlayersChanged -= RefreshPlayerList;
             
             // unsubscribe from network events
             if (NetworkManager.Singleton != null)
@@ -371,6 +417,12 @@ namespace Category5.UI
             NetworkManager.Singleton.OnClientConnectedCallback += OnLobbyClientConnected;
             NetworkManager.Singleton.OnClientDisconnectCallback += OnLobbyClientDisconnected;
             
+            // initialize lobby manager for host
+            if (LobbyManager.Instance != null)
+            {
+                LobbyManager.Instance.Initialize();
+            }
+            
             // show the lobby instead of immediately loading the game
             ShowLobby(true);
             UpdateStatus("Waiting for players to join...");
@@ -393,6 +445,13 @@ namespace Category5.UI
                 
                 ShowConnectingPanel(false);
                 SetCancelButtonVisible(false);
+                
+                // initialize lobby manager for client and send our name
+                if (LobbyManager.Instance != null)
+                {
+                    LobbyManager.Instance.Initialize();
+                    LobbyManager.Instance.SendLocalPlayerName();
+                }
                 
                 // show lobby as client
                 ShowLobby(false);
@@ -475,6 +534,18 @@ namespace Category5.UI
         {
             isInLobby = false;
             
+            // unsubscribe from lobby events
+            LobbyManager.OnLobbyPlayersChanged -= RefreshPlayerList;
+            
+            // cleanup lobby manager
+            if (LobbyManager.Instance != null)
+            {
+                LobbyManager.Instance.Cleanup();
+            }
+            
+            // clear player list
+            ClearPlayerList();
+            
             if (mainMenuPanel != null)
             {
                 mainMenuPanel.SetActive(true);
@@ -508,15 +579,86 @@ namespace Category5.UI
                 startGameButton.gameObject.SetActive(isHost);
             }
             
+            // subscribe to lobby player changes
+            LobbyManager.OnLobbyPlayersChanged += RefreshPlayerList;
+            
             UpdatePlayerCount();
+            RefreshPlayerList();
         }
         
         private void UpdatePlayerCount()
         {
-            if (playerCountText != null && NetworkManager.Singleton != null)
+            if (playerCountText != null)
             {
-                int playerCount = NetworkManager.Singleton.ConnectedClientsIds.Count;
+                int playerCount = LobbyManager.Instance != null 
+                    ? LobbyManager.Instance.GetPlayerCount() 
+                    : (NetworkManager.Singleton != null ? NetworkManager.Singleton.ConnectedClientsIds.Count : 0);
                 playerCountText.text = $"Players: {playerCount}/4";
+            }
+        }
+        
+        // refreshes the player list ui from LobbyManager data
+        private void RefreshPlayerList()
+        {
+            if (playerListContainer == null || playerEntryPrefab == null)
+            {
+                    Debug.LogWarning("NetworkMenu: playerListContainer or playerEntryPrefab is null");
+                return;
+            }
+            
+            // clear existing entries
+            ClearPlayerList();
+            
+            // get players from lobby manager
+            if (LobbyManager.Instance == null)
+            {
+                Debug.LogWarning("NetworkMenu: LobbyManager.Instance is null");
+                return;
+            }
+            
+            var players = LobbyManager.Instance.GetLobbyPlayers();
+            ulong localClientId = NetworkManager.Singleton?.LocalClientId ?? 0;
+            
+            Debug.Log($"NetworkMenu: Refreshing player list with {players.Length} players");
+            
+            foreach (var player in players)
+            {
+                var entryGO = Instantiate(playerEntryPrefab.gameObject, playerListContainer);
+                
+                // reset scale and anchors to work properly with layout group
+                var rectTransform = entryGO.GetComponent<RectTransform>();
+                if (rectTransform != null)
+                {
+                    rectTransform.localScale = Vector3.one;
+                }
+                
+                var entry = entryGO.GetComponent<LobbyPlayerEntry>();
+                if (entry != null)
+                {
+                    string playerName = player.PlayerName.ToString();
+                    Debug.Log($"NetworkMenu: Setting up entry for '{playerName}' (host: {player.IsHost}, local: {player.ClientId == localClientId})");
+                    entry.Setup(playerName, player.IsHost, player.ClientId == localClientId);
+                }
+                else
+                {
+                    Debug.LogError("NetworkMenu: LobbyPlayerEntry component not found on instantiated prefab");
+                }
+            }
+            
+            // force layout rebuild
+            UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(playerListContainer as RectTransform);
+            
+            UpdatePlayerCount();
+        }
+        
+        // clears all player entries from the list
+        private void ClearPlayerList()
+        {
+            if (playerListContainer == null) return;
+            
+            foreach (Transform child in playerListContainer)
+            {
+                Destroy(child.gameObject);
             }
         }
     }
