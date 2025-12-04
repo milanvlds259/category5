@@ -63,6 +63,9 @@ namespace Category5.Player
         private bool _isGrounded;
         private bool _isOffline = false;
         
+        // cached reference to player combat for charge state
+        private PlayerCombat _playerCombat;
+        
         [Header("Debug")]
         [SerializeField] private bool invertMovement = false;
 
@@ -82,6 +85,7 @@ namespace Category5.Player
             _controller = GetComponent<CharacterController>();
             _inputActions = new InputSystem_Actions();
             _playerStats = GetComponent<PlayerStats>();
+            _playerCombat = GetComponent<PlayerCombat>();
             
             // cache all renderers for death visibility toggle
             _renderers = GetComponentsInChildren<Renderer>();
@@ -397,7 +401,14 @@ namespace Category5.Player
 
             if (move != Vector3.zero)
             {
-                _controller.Move(move * moveSpeed * Time.deltaTime);
+                // apply charge movement speed reduction if charging
+                float effectiveSpeed = moveSpeed;
+                if (_playerCombat != null && _playerCombat.IsCharging)
+                {
+                    effectiveSpeed *= _playerCombat.ChargeMovementMultiplier;
+                }
+                
+                _controller.Move(move * effectiveSpeed * Time.deltaTime);
             }
         }
 
@@ -446,6 +457,9 @@ namespace Category5.Player
             // don't accept input if dead or blocked
             if (IsDead.Value) return;
             if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection()) return;
+            
+            // block dodge while charging ranged attack
+            if (_playerCombat != null && _playerCombat.IsCharging) return;
             
             if (_isDodging || !_isGrounded) return;
             
@@ -529,6 +543,15 @@ namespace Category5.Player
             CurrentHealth.Value -= damage;
             Debug.Log($"Player took {damage} damage. Health: {CurrentHealth.Value}");
             
+            // cancel any charging attack when taking damage
+            CancelChargeOnDamageClientRpc(new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = new ulong[] { OwnerClientId }
+                }
+            });
+            
             // trigger damage feedback on the player who took damage
             TriggerDamageFeedbackClientRpc(transform.position, damage, new ClientRpcParams
             {
@@ -544,6 +567,16 @@ namespace Category5.Player
             if (CurrentHealth.Value <= 0)
             {
                 Die();
+            }
+        }
+        
+        // cancel charge attack on the owning client when taking damage
+        [ClientRpc]
+        private void CancelChargeOnDamageClientRpc(ClientRpcParams clientRpcParams = default)
+        {
+            if (_playerCombat != null)
+            {
+                _playerCombat.CancelCharge();
             }
         }
         

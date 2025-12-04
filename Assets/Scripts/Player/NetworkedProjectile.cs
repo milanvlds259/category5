@@ -85,6 +85,18 @@ namespace Category5.Player
             _impactVfxPrefab = data.ImpactVfxPrefab;
         }
         
+        // initialize projectile with charged multipliers (called on server before spawn)
+        public void InitializeCharged(ProjectileData data, ulong ownerClientId, PlayerStats ownerStats, float damageMultiplier, float speedMultiplier)
+        {
+            // apply multipliers to base values
+            speed = data.Speed * speedMultiplier;
+            damage = Mathf.RoundToInt(data.Damage * damageMultiplier);
+            lifetime = data.Lifetime;
+            _ownerClientId = ownerClientId;
+            _ownerStats = ownerStats;
+            _impactVfxPrefab = data.ImpactVfxPrefab;
+        }
+        
         private void OnTriggerEnter(Collider other)
         {
             // only server handles collision

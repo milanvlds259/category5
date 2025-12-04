@@ -36,6 +36,19 @@ namespace Category5.Player
         [Tooltip("sound played on impact")]
         [SerializeField] private AudioClip impactSound;
         
+        [Header("Charge Settings")]
+        [Tooltip("time in seconds to reach full charge")]
+        [SerializeField] private float maxChargeTime = 1.5f;
+        
+        [Tooltip("damage multiplier at full charge (1.0 = no bonus, 2.0 = double damage)")]
+        [SerializeField] private float maxDamageMultiplier = 2f;
+        
+        [Tooltip("speed multiplier at full charge (1.0 = no bonus, 1.5 = 50% faster)")]
+        [SerializeField] private float maxSpeedMultiplier = 1.5f;
+        
+        [Tooltip("movement speed multiplier while charging (0.5 = half speed)")]
+        [SerializeField] private float chargeMovementSpeedMultiplier = 0.5f;
+        
         // public accessors
         public GameObject ProjectilePrefab => projectilePrefab;
         public float Speed => speed;
@@ -45,5 +58,11 @@ namespace Category5.Player
         public GameObject ImpactVfxPrefab => impactVfxPrefab;
         public AudioClip FireSound => fireSound;
         public AudioClip ImpactSound => impactSound;
+        
+        // charge accessors
+        public float MaxChargeTime => maxChargeTime;
+        public float MaxDamageMultiplier => maxDamageMultiplier;
+        public float MaxSpeedMultiplier => maxSpeedMultiplier;
+        public float ChargeMovementSpeedMultiplier => chargeMovementSpeedMultiplier;
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using Unity.Netcode;
@@ -54,8 +55,28 @@ namespace Category5.Player
         // reference to player stats for power-up modifiers
         private PlayerStats _playerStats;
         
-        // public accessor for combat class (useful for ui or animations)
+        // charging state
+        private bool _isCharging;
+        private float _chargeStartTime;
+        private float _lastChargePercent;
+        
+        // public accessors for combat class and charging state
         public CombatClass CurrentCombatClass => combatClass;
+        public bool IsCharging => _isCharging;
+        public float ChargePercent => _isCharging && arrowData != null 
+            ? Mathf.Clamp01((Time.time - _chargeStartTime) / arrowData.MaxChargeTime) 
+            : 0f;
+        
+        // public accessor for charge movement multiplier (used by playercontroller)
+        public float ChargeMovementMultiplier => arrowData != null 
+            ? arrowData.ChargeMovementSpeedMultiplier 
+            : 0.5f;
+        
+        // static events for vfx/sfx to hook into
+        public static event Action<Vector3> OnChargeStarted;
+        public static event Action<float, Vector3> OnChargeProgress;
+        public static event Action<float, Vector3> OnChargeReleased;
+        public static event Action<Vector3> OnChargeCanceled;
 
         private void Awake()
         {
@@ -83,7 +104,10 @@ namespace Category5.Player
             if (_inputActions != null)
             {
                 _inputActions.Player.Enable();
-                _inputActions.Player.Attack.performed += OnAttack;
+                // melee uses performed, ranged uses started/canceled for charging
+                _inputActions.Player.Attack.performed += OnAttackPerformed;
+                _inputActions.Player.Attack.started += OnAttackStarted;
+                _inputActions.Player.Attack.canceled += OnAttackCanceled;
             }
         }
 
@@ -91,7 +115,9 @@ namespace Category5.Player
         {
             if (_inputActions != null)
             {
-                _inputActions.Player.Attack.performed -= OnAttack;
+                _inputActions.Player.Attack.performed -= OnAttackPerformed;
+                _inputActions.Player.Attack.started -= OnAttackStarted;
+                _inputActions.Player.Attack.canceled -= OnAttackCanceled;
                 _inputActions.Player.Disable();
             }
         }
@@ -105,30 +131,106 @@ namespace Category5.Player
             {
                 _comboCounter = 0;
             }
+            
+            // update charge progress event for ui/vfx
+            if (_isCharging)
+            {
+                float currentPercent = ChargePercent;
+                // only fire event when percent changes significantly (avoid spam)
+                if (Mathf.Abs(currentPercent - _lastChargePercent) > 0.01f)
+                {
+                    _lastChargePercent = currentPercent;
+                    OnChargeProgress?.Invoke(currentPercent, transform.position);
+                }
+            }
+        }
+        
+        private void OnAttackStarted(InputAction.CallbackContext context)
+        {
+            // only ranged uses started for charging
+            if (combatClass != CombatClass.Ranged) return;
+            if (!CanAttack()) return;
+            
+            StartCharging();
+        }
+        
+        private void OnAttackCanceled(InputAction.CallbackContext context)
+        {
+            // only ranged uses canceled for releasing charge
+            if (combatClass != CombatClass.Ranged) return;
+            if (!_isCharging) return;
+            
+            ReleaseCharge();
         }
 
-        private void OnAttack(InputAction.CallbackContext context)
+        private void OnAttackPerformed(InputAction.CallbackContext context)
         {
-            if (_isAttacking) return;
-            if (Category5.UI.PauseMenu.GameIsPaused) return;
+            // ranged uses started/canceled for charging, so skip performed
+            if (combatClass == CombatClass.Ranged) return;
+            
+            if (!CanAttack()) return;
+
+            // melee attack on performed
+            PerformMeleeAttack();
+        }
+        
+        /// <summary>
+        /// checks if the player can currently attack
+        /// </summary>
+        private bool CanAttack()
+        {
+            if (_isAttacking) return false;
+            if (Category5.UI.PauseMenu.GameIsPaused) return false;
             
             // prevent attack input during power-up selection
             if (PowerUpManager.Instance != null && 
-                PowerUpManager.Instance.CurrentPhase.Value == GamePhase.PowerUpSelection) return;
+                PowerUpManager.Instance.CurrentPhase.Value == GamePhase.PowerUpSelection) return false;
             
             // prevent attack input when dead
             var playerController = GetComponent<PlayerController>();
-            if (playerController != null && playerController.IsDead.Value) return;
+            if (playerController != null && playerController.IsDead.Value) return false;
+            
+            return true;
+        }
+        
 
-            // branch attack based on combat class
-            if (combatClass == CombatClass.Ranged)
+        // starts charging a ranged attack
+        private void StartCharging()
+        {
+            if (arrowData == null)
             {
-                PerformRangedAttack();
+                Debug.LogWarning("No arrow data assigned to PlayerCombat!");
+                return;
             }
-            else
-            {
-                PerformMeleeAttack();
-            }
+            
+            _isCharging = true;
+            _chargeStartTime = Time.time;
+            _lastChargePercent = 0f;
+            
+            OnChargeStarted?.Invoke(transform.position);
+            Debug.Log("Started charging arrow...");
+        }
+        
+        // releases a charged ranged attack
+        private void ReleaseCharge()
+        {
+            float chargePercent = ChargePercent;
+            _isCharging = false;
+            
+            OnChargeReleased?.Invoke(chargePercent, transform.position);
+            Debug.Log($"Released arrow with {chargePercent:P0} charge!");
+            
+            PerformChargedRangedAttack(chargePercent);
+        }
+        
+        // cancels the current charge (called when taking damage)
+        public void CancelCharge()
+        {
+            if (!_isCharging) return;
+            
+            _isCharging = false;
+            OnChargeCanceled?.Invoke(transform.position);
+            Debug.Log("Charge canceled!");
         }
 
         private void PerformMeleeAttack()
@@ -163,7 +265,10 @@ namespace Category5.Player
             StartCoroutine(AttackCooldown(duration));
         }
         
-        private void PerformRangedAttack()
+        /// <summary>
+        /// performs a charged ranged attack with the given charge percentage
+        /// </summary>
+        private void PerformChargedRangedAttack(float chargePercent)
         {
             if (arrowData == null)
             {
@@ -174,9 +279,6 @@ namespace Category5.Player
             _isAttacking = true;
             _lastAttackTime = Time.time;
             
-            // TODO: fire audio event for bow shot
-            // PlayerEvents.InvokeBowShot(transform.position);
-            
             // get spawn position and direction
             Vector3 spawnPos = projectileSpawnPoint != null 
                 ? projectileSpawnPoint.position 
@@ -185,10 +287,14 @@ namespace Category5.Player
             // use camera direction for aiming (accounts for vertical look angle)
             Vector3 direction = GetAimDirection();
             
-            Debug.Log($"Player Ranged Attack! Arrow spawning at {spawnPos}, direction: {direction}");
+            // calculate multipliers based on charge
+            float damageMultiplier = Mathf.Lerp(1f, arrowData.MaxDamageMultiplier, chargePercent);
+            float speedMultiplier = Mathf.Lerp(1f, arrowData.MaxSpeedMultiplier, chargePercent);
             
-            // request server to spawn projectile
-            RequestRangedAttackServerRpc(spawnPos, direction);
+            Debug.Log($"Charged Ranged Attack! Charge: {chargePercent:P0}, Damage x{damageMultiplier:F2}, Speed x{speedMultiplier:F2}");
+            
+            // request server to spawn charged projectile
+            RequestChargedRangedAttackServerRpc(spawnPos, direction, damageMultiplier, speedMultiplier);
             
             // start cooldown
             StartCoroutine(AttackCooldown(rangedAttackCooldown));
@@ -213,13 +319,17 @@ namespace Category5.Player
         }
 
         [ServerRpc]
-        private void RequestRangedAttackServerRpc(Vector3 spawnPosition, Vector3 direction)
+        private void RequestChargedRangedAttackServerRpc(Vector3 spawnPosition, Vector3 direction, float damageMultiplier, float speedMultiplier)
         {
             if (arrowData == null || arrowData.ProjectilePrefab == null)
             {
                 Debug.LogWarning("Cannot spawn projectile - missing arrow data or prefab!");
                 return;
             }
+            
+            // validate multipliers are within expected bounds (anti-cheat)
+            damageMultiplier = Mathf.Clamp(damageMultiplier, 1f, arrowData.MaxDamageMultiplier);
+            speedMultiplier = Mathf.Clamp(speedMultiplier, 1f, arrowData.MaxSpeedMultiplier);
             
             // get player stats for damage modifiers
             if (_playerStats == null)
@@ -234,10 +344,10 @@ namespace Category5.Player
                 Quaternion.LookRotation(direction)
             );
             
-            // initialize projectile with data
+            // initialize projectile with charged multipliers
             if (projectileObj.TryGetComponent<NetworkedProjectile>(out var projectile))
             {
-                projectile.Initialize(arrowData, OwnerClientId, _playerStats);
+                projectile.InitializeCharged(arrowData, OwnerClientId, _playerStats, damageMultiplier, speedMultiplier);
             }
             
             // spawn on network
