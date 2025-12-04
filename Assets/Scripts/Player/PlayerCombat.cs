@@ -8,20 +8,43 @@ using Category5.Audio;
 
 namespace Category5.Player
 {
+    /// <summary>
+    /// combat class determines whether player uses melee or ranged attacks
+    /// </summary>
+    public enum CombatClass
+    {
+        Melee,
+        Ranged
+    }
+    
     public class PlayerCombat : NetworkBehaviour
     {
-        [Header("Combat Stats")]
+        [Header("Combat Class")]
+        [Tooltip("switch between melee and ranged combat for testing")]
+        [SerializeField] private CombatClass combatClass = CombatClass.Melee;
+        
+        [Header("Melee Combat Stats")]
         [SerializeField] private int lightDamage = 10;
         [SerializeField] private int heavyDamage = 25;
         [SerializeField] private float attackRange = 2f;
         [SerializeField] private float attackOffset = 1f;
         [SerializeField] private LayerMask enemyLayers;
 
-        [Header("Combo Settings")]
+        [Header("Melee Combo Settings")]
         [SerializeField] private float comboResetTime = 1f;
         [SerializeField] private float attack1Duration = 0.3f;
         [SerializeField] private float attack2Duration = 0.4f;
         [SerializeField] private float attack3Duration = 0.6f;
+        
+        [Header("Ranged Combat Settings")]
+        [Tooltip("projectile data defining arrow properties")]
+        [SerializeField] private ProjectileData arrowData;
+        
+        [Tooltip("transform where projectiles spawn from (should be near player's hand or bow)")]
+        [SerializeField] private Transform projectileSpawnPoint;
+        
+        [Tooltip("cooldown between ranged attacks in seconds")]
+        [SerializeField] private float rangedAttackCooldown = 0.5f;
 
         private InputSystem_Actions _inputActions;
         private int _comboCounter = 0;
@@ -30,6 +53,9 @@ namespace Category5.Player
         
         // reference to player stats for power-up modifiers
         private PlayerStats _playerStats;
+        
+        // public accessor for combat class (useful for ui or animations)
+        public CombatClass CurrentCombatClass => combatClass;
 
         private void Awake()
         {
@@ -94,10 +120,18 @@ namespace Category5.Player
             var playerController = GetComponent<PlayerController>();
             if (playerController != null && playerController.IsDead.Value) return;
 
-            PerformAttack();
+            // branch attack based on combat class
+            if (combatClass == CombatClass.Ranged)
+            {
+                PerformRangedAttack();
+            }
+            else
+            {
+                PerformMeleeAttack();
+            }
         }
 
-        private void PerformAttack()
+        private void PerformMeleeAttack()
         {
             _isAttacking = true;
             _lastAttackTime = Time.time;
@@ -120,13 +154,42 @@ namespace Category5.Player
             }
 
             // visuals (Placeholder)
-            Debug.Log($"Player Attacking! Combo: {_comboCounter-1} | Damage: {damage}");
+            Debug.Log($"Player Melee Attack! Combo: {_comboCounter-1} | Damage: {damage}");
 
             // networked attack logic
-            RequestAttackServerRpc(damage, transform.position, transform.forward);
+            RequestMeleeAttackServerRpc(damage, transform.position, transform.forward);
 
             // start cooldown coroutine
             StartCoroutine(AttackCooldown(duration));
+        }
+        
+        private void PerformRangedAttack()
+        {
+            if (arrowData == null)
+            {
+                Debug.LogWarning("No arrow data assigned to PlayerCombat!");
+                return;
+            }
+            
+            _isAttacking = true;
+            _lastAttackTime = Time.time;
+            
+            // TODO: fire audio event for bow shot
+            // PlayerEvents.InvokeBowShot(transform.position);
+            
+            // get spawn position and direction
+            Vector3 spawnPos = projectileSpawnPoint != null 
+                ? projectileSpawnPoint.position 
+                : transform.position + transform.forward * 0.5f + Vector3.up * 1.5f;
+            Vector3 direction = transform.forward;
+            
+            Debug.Log($"Player Ranged Attack! Arrow spawning at {spawnPos}");
+            
+            // request server to spawn projectile
+            RequestRangedAttackServerRpc(spawnPos, direction);
+            
+            // start cooldown
+            StartCoroutine(AttackCooldown(rangedAttackCooldown));
         }
 
         private IEnumerator AttackCooldown(float duration)
@@ -136,7 +199,56 @@ namespace Category5.Player
         }
 
         [ServerRpc]
-        private void RequestAttackServerRpc(int baseDamage, Vector3 position, Vector3 direction)
+        private void RequestRangedAttackServerRpc(Vector3 spawnPosition, Vector3 direction)
+        {
+            if (arrowData == null || arrowData.ProjectilePrefab == null)
+            {
+                Debug.LogWarning("Cannot spawn projectile - missing arrow data or prefab!");
+                return;
+            }
+            
+            // get player stats for damage modifiers
+            if (_playerStats == null)
+            {
+                _playerStats = GetComponent<PlayerStats>();
+            }
+            
+            // spawn the projectile on the server
+            GameObject projectileObj = Instantiate(
+                arrowData.ProjectilePrefab, 
+                spawnPosition, 
+                Quaternion.LookRotation(direction)
+            );
+            
+            // initialize projectile with data
+            if (projectileObj.TryGetComponent<NetworkedProjectile>(out var projectile))
+            {
+                projectile.Initialize(arrowData, OwnerClientId, _playerStats);
+            }
+            
+            // spawn on network
+            var networkObject = projectileObj.GetComponent<NetworkObject>();
+            if (networkObject != null)
+            {
+                networkObject.Spawn();
+            }
+            
+            // notify clients to play fire vfx/sound
+            PlayRangedAttackVfxClientRpc(spawnPosition, direction);
+        }
+        
+        [ClientRpc]
+        private void PlayRangedAttackVfxClientRpc(Vector3 position, Vector3 direction)
+        {
+            // TODO: play bow shot particle effect or sound here
+            if (!IsOwner)
+            {
+                // play sound/vfx for other players
+            }
+        }
+
+        [ServerRpc]
+        private void RequestMeleeAttackServerRpc(int baseDamage, Vector3 position, Vector3 direction)
         {
             // server performs the hit check to prevent cheating
             // for a simple prototype we use OverlapSphere in front of the player
@@ -275,9 +387,23 @@ namespace Category5.Player
 
         private void OnDrawGizmosSelected()
         {
-            Gizmos.color = Color.red;
-            Vector3 attackPoint = transform.position + transform.forward * attackOffset;
-            Gizmos.DrawWireSphere(attackPoint, attackRange);
+            if (combatClass == CombatClass.Melee)
+            {
+                // show melee attack range
+                Gizmos.color = Color.red;
+                Vector3 attackPoint = transform.position + transform.forward * attackOffset;
+                Gizmos.DrawWireSphere(attackPoint, attackRange);
+            }
+            else
+            {
+                // show projectile spawn point for ranged
+                Gizmos.color = Color.cyan;
+                Vector3 spawnPos = projectileSpawnPoint != null 
+                    ? projectileSpawnPoint.position 
+                    : transform.position + transform.forward * 0.5f + Vector3.up * 1.5f;
+                Gizmos.DrawWireSphere(spawnPos, 0.15f);
+                Gizmos.DrawRay(spawnPos, transform.forward * 3f);
+            }
         }
     }
 }
