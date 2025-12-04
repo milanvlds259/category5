@@ -181,15 +181,29 @@ namespace Category5.Player
             Vector3 spawnPos = projectileSpawnPoint != null 
                 ? projectileSpawnPoint.position 
                 : transform.position + transform.forward * 0.5f + Vector3.up * 1.5f;
-            Vector3 direction = transform.forward;
             
-            Debug.Log($"Player Ranged Attack! Arrow spawning at {spawnPos}");
+            // use camera direction for aiming (accounts for vertical look angle)
+            Vector3 direction = GetAimDirection();
+            
+            Debug.Log($"Player Ranged Attack! Arrow spawning at {spawnPos}, direction: {direction}");
             
             // request server to spawn projectile
             RequestRangedAttackServerRpc(spawnPos, direction);
             
             // start cooldown
             StartCoroutine(AttackCooldown(rangedAttackCooldown));
+        }
+        
+        private Vector3 GetAimDirection()
+        {
+            // try to use main camera's forward direction for full 3d aiming
+            if (Camera.main != null)
+            {
+                return Camera.main.transform.forward;
+            }
+            
+            // fallback to player forward if no camera found
+            return transform.forward;
         }
 
         private IEnumerator AttackCooldown(float duration)
