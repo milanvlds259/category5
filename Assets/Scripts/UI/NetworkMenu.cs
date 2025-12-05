@@ -11,8 +11,16 @@ namespace Category5.UI
     // handles main menu networking ui for host/join functionality
     public class NetworkMenu : MonoBehaviour
     {
+        [Header("ui references - title screen")]
+        [SerializeField] private GameObject titlePanel;
+        [SerializeField] private GameObject titleLogoImage;
+        [SerializeField] private Button playButton;
+        [SerializeField] private Button settingsButton;
+        [SerializeField] private Button creditsButton;
+        
         [Header("ui references - main menu")]
         [SerializeField] private GameObject mainMenuPanel;
+        [SerializeField] private Button backToTitleButton;
         [SerializeField] private Button hostButton;
         [SerializeField] private Button joinButton;
         [SerializeField] private TMP_InputField ipInputField;
@@ -82,6 +90,27 @@ namespace Category5.UI
                 playerNameInputField.onEndEdit.AddListener(OnPlayerNameChanged);
             }
             
+            // setup title screen button listeners
+            if (playButton != null)
+            {
+                playButton.onClick.AddListener(OnPlayButtonClicked);
+            }
+            
+            if (settingsButton != null)
+            {
+                settingsButton.onClick.AddListener(OnSettingsButtonClicked);
+            }
+            
+            if (creditsButton != null)
+            {
+                creditsButton.onClick.AddListener(OnCreditsButtonClicked);
+            }
+            
+            if (backToTitleButton != null)
+            {
+                backToTitleButton.onClick.AddListener(ShowTitleScreen);
+            }
+            
             // setup button listeners
             if (hostButton != null)
             {
@@ -117,8 +146,8 @@ namespace Category5.UI
             // hide cancel button initially
             SetCancelButtonVisible(false);
             
-            // show main menu, hide lobby
-            ShowMainMenu();
+            // show title screen initially
+            ShowTitleScreen();
             
             UpdateStatus("Ready to connect");
         }
@@ -155,6 +184,27 @@ namespace Category5.UI
         
         private void OnDestroy()
         {
+            // cleanup title screen listeners
+            if (playButton != null)
+            {
+                playButton.onClick.RemoveListener(OnPlayButtonClicked);
+            }
+            
+            if (settingsButton != null)
+            {
+                settingsButton.onClick.RemoveListener(OnSettingsButtonClicked);
+            }
+            
+            if (creditsButton != null)
+            {
+                creditsButton.onClick.RemoveListener(OnCreditsButtonClicked);
+            }
+            
+            if (backToTitleButton != null)
+            {
+                backToTitleButton.onClick.RemoveListener(ShowTitleScreen);
+            }
+            
             // cleanup listeners
             if (hostButton != null)
             {
@@ -560,7 +610,93 @@ namespace Category5.UI
                 lobbyPanel.SetActive(false);
             }
             
+            // hide title panel when showing main menu
+            if (titlePanel != null)
+            {
+                titlePanel.SetActive(false);
+            }
+            
             SetButtonsInteractable(true);
+        }
+        
+        // shows the title screen and hides other panels
+        private void ShowTitleScreen()
+        {
+            isInLobby = false;
+            
+            // shutdown network if connected
+            if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+            {
+                NetworkManager.Singleton.Shutdown();
+            }
+            
+            // unsubscribe from lobby events
+            LobbyManager.OnLobbyPlayersChanged -= RefreshPlayerList;
+            
+            // cleanup lobby manager
+            if (LobbyManager.Instance != null)
+            {
+                LobbyManager.Instance.Cleanup();
+            }
+            
+            // clear player list
+            ClearPlayerList();
+            
+            if (titlePanel != null)
+            {
+                titlePanel.SetActive(true);
+            }
+            
+            if (titleLogoImage != null)
+            {
+                titleLogoImage.SetActive(true);
+            }
+            
+            if (mainMenuPanel != null)
+            {
+                mainMenuPanel.SetActive(false);
+            }
+            
+            if (lobbyPanel != null)
+            {
+                lobbyPanel.SetActive(false);
+            }
+        }
+        
+        // called when play button on title screen is clicked
+        public void OnPlayButtonClicked()
+        {
+            if (titlePanel != null)
+            {
+                titlePanel.SetActive(false);
+            }
+            
+            if (titleLogoImage != null)
+            {
+                titleLogoImage.SetActive(false);
+            }
+            
+            if (mainMenuPanel != null)
+            {
+                mainMenuPanel.SetActive(true);
+            }
+            
+            SetButtonsInteractable(true);
+            UpdateStatus("Ready to connect");
+        }
+        
+        // placeholder for settings button
+        public void OnSettingsButtonClicked()
+        {
+            Debug.Log("NetworkMenu: Settings button clicked - coming soon");
+            // todo: implement settings panel
+        }
+        
+        // placeholder for credits button
+        public void OnCreditsButtonClicked()
+        {
+            Debug.Log("NetworkMenu: Credits button clicked - coming soon");
+            // todo: implement credits panel
         }
         
         private void ShowLobby(bool isHost)
