@@ -34,14 +34,14 @@ namespace Category5.UI
         [Tooltip("how fast the indicator fades in/out")]
         [SerializeField] private float fadeSpeed = 8f;
         
-        [Tooltip("pulse effect when fully charged")]
-        [SerializeField] private bool pulseWhenFull = true;
+        [Tooltip("pop effect when fully charged")]
+        [SerializeField] private bool popWhenFull = true;
         
-        [Tooltip("pulse speed multiplier")]
-        [SerializeField] private float pulseSpeed = 4f;
+        [Tooltip("how fast the pop animation plays (higher = faster)")]
+        [SerializeField] private float popSpeed = 8f;
         
-        [Tooltip("pulse intensity (0-1 range added to base scale)")]
-        [SerializeField] private float pulseIntensity = 0.1f;
+        [Tooltip("pop intensity (0-1 range added to base scale)")]
+        [SerializeField] private float popIntensity = 0.15f;
         
         // internal state
         private CanvasGroup _canvasGroup;
@@ -49,6 +49,10 @@ namespace Category5.UI
         private float _targetAlpha;
         private float _currentChargePercent;
         private Vector3 _baseScale;
+        
+        // pop effect state
+        private bool _hasPopped;
+        private float _popProgress; // 0 to 1, where 1 means pop is complete
         
         private void Awake()
         {
@@ -74,6 +78,12 @@ namespace Category5.UI
                 chargeSlider.minValue = 0f;
                 chargeSlider.maxValue = 1f;
                 chargeSlider.value = 0f;
+            }
+
+            // if no explicit fill image assigned, try to auto-find it from the slider's FillRect
+            if (chargeFillImage == null && chargeSlider != null && chargeSlider.fillRect != null)
+            {
+                chargeFillImage = chargeSlider.fillRect.GetComponent<Image>();
             }
         }
         
@@ -103,15 +113,36 @@ namespace Category5.UI
                 _canvasGroup.alpha = Mathf.MoveTowards(_canvasGroup.alpha, _targetAlpha, fadeSpeed * Time.deltaTime);
             }
             
-            // pulse effect when fully charged
-            if (pulseWhenFull && _isVisible && _currentChargePercent >= 1f && chargeContainer != null)
+            // pop effect when fully charged (one-time forward pop)
+            if (popWhenFull && _isVisible && chargeContainer != null)
             {
-                float pulse = 1f + Mathf.Sin(Time.time * pulseSpeed) * pulseIntensity;
-                chargeContainer.transform.localScale = _baseScale * pulse;
+                if (_currentChargePercent >= 0.99f && !_hasPopped)
+                {
+                    // trigger the pop
+                    _hasPopped = true;
+                    _popProgress = 0f;
+                }
+                
+                if (_hasPopped && _popProgress < 1f)
+                {
+                    // animate the pop: scale up then back down
+                    _popProgress += Time.deltaTime * popSpeed;
+                    _popProgress = Mathf.Clamp01(_popProgress);
+                    
+                    // use a curve that goes up then down: sin(0 to pi) = 0 -> 1 -> 0 <- random ahh calculus nonsnense
+                    float popCurve = Mathf.Sin(_popProgress * Mathf.PI);
+                    float scale = 1f + popCurve * popIntensity;
+                    chargeContainer.transform.localScale = _baseScale * scale;
+                }
+                else if (_hasPopped && _popProgress >= 1f)
+                {
+                    // pop finished, keep at base scale
+                    chargeContainer.transform.localScale = _baseScale;
+                }
             }
             else if (chargeContainer != null && chargeContainer.transform.localScale != _baseScale)
             {
-                // reset scale when not pulsing
+                // reset scale when not visible or pop disabled
                 chargeContainer.transform.localScale = _baseScale;
             }
         }
@@ -119,6 +150,8 @@ namespace Category5.UI
         private void OnChargeStarted(Vector3 position)
         {
             _currentChargePercent = 0f;
+            _hasPopped = false;
+            _popProgress = 0f;
             UpdateFillAmount(0f);
             SetVisible(true);
         }

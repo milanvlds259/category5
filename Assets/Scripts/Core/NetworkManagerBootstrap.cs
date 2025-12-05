@@ -58,6 +58,14 @@ namespace Category5.Core
         
         private void OnServerStarted()
         {
+            // ensure player prefab is null to prevent auto-spawning
+            // this is needed when restarting the host after returning from a game
+            if (networkManager != null && networkManager.NetworkConfig.PlayerPrefab != null)
+            {
+                Debug.Log("NetworkManagerBootstrap: Clearing PlayerPrefab to prevent auto-spawning");
+                networkManager.NetworkConfig.PlayerPrefab = null;
+            }
+            
             // now we can subscribe to scene events
             if (networkManager.SceneManager != null)
             {

@@ -4029,11 +4029,11 @@ MonoBehaviour:
   chargeContainer: {fileID: 935858619}
   emptyColor: {r: 1, g: 1, b: 1, a: 1}
   midColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
-  fullColor: {r: 1, g: 0.5, b: 0, a: 1}
+  fullColor: {r: 0, g: 1, b: 0.054740667, a: 1}
   fadeSpeed: 8
-  pulseWhenFull: 1
-  pulseSpeed: 4
-  pulseIntensity: 0.1
+  popWhenFull: 1
+  popSpeed: 10
+  popIntensity: 0.25
 --- !u!1 &939663709
 GameObject:
   m_ObjectHideFlags: 0

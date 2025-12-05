@@ -120,6 +120,10 @@ namespace Category5.UI
         {
             Debug.Log("GameOverUI: Returning to menu");
             
+            // ensure cursor is unlocked before scene transition
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            
             // disconnect from network
             if (NetworkManager.Singleton != null)
             {

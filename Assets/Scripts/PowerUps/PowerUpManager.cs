@@ -412,12 +412,13 @@ namespace Category5.PowerUps
             OnGameOver?.Invoke();
         }
         
-        // respawns all dead players (server only) - called at round transitions
+        // respawns all players to spawn positions (server only) - called at round transitions
+        // repositions all players (alive or dead) so boss doesnt spawn on top of them
         public void RespawnAllPlayers()
         {
             if (!IsServer) return;
             
-            Debug.Log("PowerUpManager: Respawning all dead players");
+            Debug.Log("PowerUpManager: Respawning all players to spawn positions");
             
             // reset spawn index for consistent spawning
             Category5.Core.PlayerSpawnPoint.ResetSpawnIndex();
@@ -427,8 +428,9 @@ namespace Category5.PowerUps
                 if (NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out var client))
                 {
                     var player = client.PlayerObject?.GetComponent<PlayerController>();
-                    if (player != null && player.IsDead.Value)
+                    if (player != null)
                     {
+                        // respawn handles both dead players (revives them) and alive players (repositions them)
                         player.Respawn();
                     }
                 }

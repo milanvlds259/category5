@@ -155,6 +155,11 @@ namespace Category5.Player
             }
 
             // spawn position is handled by NetworkManagerBootstrap before spawning
+            // server syncs spawn position to owning client since we dont use NetworkTransform
+            if (IsServer)
+            {
+                SyncSpawnPositionClientRpc(transform.position, transform.rotation);
+            }
 
             if (!IsOwner)
             {
@@ -626,13 +631,15 @@ namespace Category5.Player
         }
         
         // respawns the player at a spawn point with full health (server only)
+        // works for both dead players (revives) and alive players (repositions and heals)
         public void Respawn()
         {
             if (!IsServer) return;
             
-            Debug.Log($"Respawning player {OwnerClientId}");
+            bool wasDead = IsDead.Value;
+            Debug.Log($"Respawning player {OwnerClientId} (was dead: {wasDead})");
             
-            // reset health to max
+            // reset health to max and revive if dead
             CurrentHealth.Value = MaxHealth;
             IsDead.Value = false;
             
@@ -665,6 +672,35 @@ namespace Category5.Player
             
             // reset velocity
             _velocity = Vector3.zero;
+        }
+        
+        // syncs spawn position to owning client after network spawn
+        // only the owner needs to teleport since server already has correct position
+        [ClientRpc]
+        private void SyncSpawnPositionClientRpc(Vector3 position, Quaternion rotation)
+        {
+            // only owner needs to sync position
+            if (!IsOwner) return;
+            
+            // disable controller to allow teleport
+            if (_controller != null)
+            {
+                _controller.enabled = false;
+            }
+            
+            transform.position = position;
+            transform.rotation = rotation;
+            
+            // re-enable controller
+            if (_controller != null)
+            {
+                _controller.enabled = true;
+            }
+            
+            // reset velocity
+            _velocity = Vector3.zero;
+            
+            Debug.Log($"PlayerController: Synced spawn position to {position}");
         }
         
         // heals the player (server only) - used by lifesteal power-up
