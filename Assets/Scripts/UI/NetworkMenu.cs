@@ -209,12 +209,16 @@ namespace Category5.UI
             }
             
             // configure port if specified
-            if (transport != null && portInputField != null)
+            // use 0.0.0.0 to bind to all interfaces (required for internet play with port forwarding)
+            if (transport != null)
             {
-                if (ushort.TryParse(portInputField.text, out ushort port))
+                ushort port = defaultPort;
+                if (portInputField != null)
                 {
-                    transport.SetConnectionData(defaultIP, port);
+                    ushort.TryParse(portInputField.text, out port);
                 }
+                transport.SetConnectionData("0.0.0.0", port);
+                Debug.Log($"NetworkMenu: Host binding to 0.0.0.0:{port}");
             }
             
             UpdateStatus("Starting host...");
@@ -593,7 +597,7 @@ namespace Category5.UI
                 int playerCount = LobbyManager.Instance != null 
                     ? LobbyManager.Instance.GetPlayerCount() 
                     : (NetworkManager.Singleton != null ? NetworkManager.Singleton.ConnectedClientsIds.Count : 0);
-                playerCountText.text = $"Players: {playerCount}/4";
+                playerCountText.text = $"Players: {playerCount}/5";
             }
         }
         
