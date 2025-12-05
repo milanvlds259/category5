@@ -6,7 +6,7 @@ namespace Category5.UI
 {
     /// <summary>
     /// ui component that displays a charge indicator near the crosshair
-    /// shows charge progress when player is charging a ranged attack
+    /// shows charge progress when player is charging a ranged attack lol
     /// </summary>
     public class ChargeIndicatorUI : MonoBehaviour
     {
