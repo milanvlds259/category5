@@ -1242,6 +1242,84 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &427063805
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 427063807}
+  - component: {fileID: 427063806}
+  m_Layer: 0
+  m_Name: AudioManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &427063806
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 427063805}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: edfe91afb9f976c4ba5aa74a545245f0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Audio.AudioManager
+  playerAttackSwing: {fileID: 0}
+  playerLightHit: {fileID: 0}
+  playerHeavyHit: {fileID: 0}
+  playerHurt: {fileID: 0}
+  playerDeath: {fileID: 0}
+  playerDodge: {fileID: 0}
+  playerJump: {fileID: 0}
+  playerLand: {fileID: 0}
+  playerFootsteps: {fileID: 0}
+  playerHeal: {fileID: 0}
+  bossIdle: {fileID: 0}
+  bossHurt: {fileID: 0}
+  bossDeath: {fileID: 0}
+  bossSpawn: {fileID: 0}
+  bossTelegraph: {fileID: 0}
+  bossGroundSlam: {fileID: 0}
+  bossLightningSweep: {fileID: 0}
+  bossThunderClap: {fileID: 0}
+  bossAttackHit: {fileID: 0}
+  uiHover: {fileID: 0}
+  uiSelect: {fileID: 0}
+  powerUpSelect: {fileID: 0}
+  powerUpScreenAppear: {fileID: 0}
+  roundStart: {fileID: 0}
+  victoryFanfare: {fileID: 0}
+  gameOverSound: {fileID: 0}
+  menuMusic: {fileID: 0}
+  combatMusic: {fileID: 0}
+  powerUpMusic: {fileID: 0}
+  victoryMusic: {fileID: 0}
+  gameOverMusic: {fileID: 0}
+  musicCrossfadeDuration: 1
+  sfxPoolSize: 20
+  mainMixer: {fileID: 0}
+--- !u!4 &427063807
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 427063805}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -2.49137, y: 0, z: 5.87958}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &458789688
 GameObject:
   m_ObjectHideFlags: 0
@@ -9168,6 +9246,7 @@ SceneRoots:
   - {fileID: 410087041}
   - {fileID: 832575519}
   - {fileID: 496888722}
+  - {fileID: 427063807}
   - {fileID: 876752737}
   - {fileID: 465367340}
   - {fileID: 10986185}

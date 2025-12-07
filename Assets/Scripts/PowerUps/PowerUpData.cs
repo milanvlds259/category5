@@ -5,11 +5,11 @@ namespace Category5.PowerUps
     // defines the type of effect a power-up provides
     public enum PowerUpEffectType
     {
-        DamageMultiplier,   // berserker rage: +20% damage dealt
-        MaxHealthBonus,     // stone skin: +30 max hp
-        DodgeCooldownReduction, // lightning step: -1s dodge cooldown
-        FlatDamageBonus,    // giant slayer: +15 flat damage to boss
-        Lifesteal           // vampire touch: heal 5 hp per hit
+        DamageMultiplier,
+        MaxHealthBonus, 
+        DodgeCooldownReduction,
+        FlatDamageBonus,  
+        Lifesteal      
     }
 
     // scriptable object defining power-up properties
