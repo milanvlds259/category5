@@ -1,5 +1,4 @@
 ﻿<Solution>
-  <Project Path="Mischief.MDV.Editor.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
 </Solution>
