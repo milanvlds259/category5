@@ -42,6 +42,14 @@ namespace Category5.UI
             PlayerAbilityManager.OnCooldownChanged -= HandleCooldownChanged;
         }
         
+        private void Update()
+        {
+            // update cooldown text countdown each frame
+            if (ability1Slot != null) ability1Slot.UpdateCooldownText(Time.deltaTime);
+            if (ability2Slot != null) ability2Slot.UpdateCooldownText(Time.deltaTime);
+            if (ability3Slot != null) ability3Slot.UpdateCooldownText(Time.deltaTime);
+        }
+        
         private void FindLocalPlayerAbilityManager()
         {
             // wait a frame for players to spawn
@@ -92,8 +100,14 @@ namespace Category5.UI
         
         private void HandleCooldownChanged(AbilitySlot slot, float current, float max)
         {
+            Debug.Log($"[AbilityCooldownUI] HandleCooldownChanged: slot={slot}, current={current}, max={max}");
+            
             // only update if this is for our local player
-            if (abilityManager == null) return;
+            if (abilityManager == null)
+            {
+                Debug.LogWarning("[AbilityCooldownUI] abilityManager is null!");
+                return;
+            }
             
             AbilitySlotUI targetSlot = slot switch
             {
@@ -105,7 +119,12 @@ namespace Category5.UI
             
             if (targetSlot != null)
             {
+                Debug.Log($"[AbilityCooldownUI] Found target slot for {slot}");
                 targetSlot.UpdateCooldown(current, max);
+            }
+            else
+            {
+                Debug.LogWarning($"[AbilityCooldownUI] Target slot is null for {slot}");
             }
         }
         
@@ -127,6 +146,7 @@ namespace Category5.UI
         public Image iconImage;
         public Image fillImage; // radial fill for cooldown
         public TextMeshProUGUI keybindText;
+        public TextMeshProUGUI cooldownText; // cooldown countdown text
         public GameObject readyGlow; // shows when ability is ready
         
         [Header("Placeholder Settings")]
@@ -134,16 +154,26 @@ namespace Category5.UI
         
         private AbilityData abilityData;
         private string keybind;
+        private float remainingCooldown;
+        private float maxCooldown;
         
         public void Initialize(AbilityData data, string key)
         {
             abilityData = data;
             keybind = key;
+            remainingCooldown = 0f;
+            maxCooldown = 0f;
             
             // set keybind text
             if (keybindText != null)
             {
                 keybindText.text = keybind;
+            }
+            
+            // hide cooldown text initially
+            if (cooldownText != null)
+            {
+                cooldownText.gameObject.SetActive(false);
             }
             
             // set icon (or placeholder)
@@ -176,11 +206,21 @@ namespace Category5.UI
         
         public void UpdateCooldown(float currentCooldown, float maxCooldown)
         {
-            if (fillImage == null) return;
+            Debug.Log($"[AbilitySlotUI] UpdateCooldown called: current={currentCooldown}, max={maxCooldown}, cooldownText={cooldownText}, fillImage={fillImage}");
             
-            // calculate fill amount (1 = on cooldown, 0 = ready)
-            float fillAmount = maxCooldown > 0f ? (currentCooldown / maxCooldown) : 0f;
-            fillImage.fillAmount = fillAmount;
+            remainingCooldown = currentCooldown;
+            this.maxCooldown = maxCooldown;
+            
+            if (fillImage != null)
+            {
+                // calculate fill amount (1 = on cooldown, 0 = ready)
+                float fillAmount = maxCooldown > 0f ? (currentCooldown / maxCooldown) : 0f;
+                fillImage.fillAmount = fillAmount;
+            }
+            else
+            {
+                Debug.LogWarning("[AbilitySlotUI] fillImage is null!");
+            }
             
             // show/hide glow based on ready state
             bool isReady = currentCooldown <= 0f;
@@ -189,10 +229,59 @@ namespace Category5.UI
                 readyGlow.SetActive(isReady);
             }
             
+            // show/hide cooldown text and update it
+            if (cooldownText != null)
+            {
+                if (currentCooldown > 0f)
+                {
+                    Debug.Log($"[AbilitySlotUI] Showing cooldown text, setting to {currentCooldown.ToString("F1")}");
+                    cooldownText.gameObject.SetActive(true);
+                    cooldownText.text = Mathf.Max(0f, currentCooldown).ToString("F1");
+                }
+                else
+                {
+                    Debug.Log($"[AbilitySlotUI] Hiding cooldown text (cooldown ready)");
+                    cooldownText.gameObject.SetActive(false);
+                }
+            }
+            else
+            {
+                Debug.LogWarning("[AbilitySlotUI] cooldownText is null!");
+            }
+            
             // dim icon while on cooldown
             if (iconImage != null)
             {
                 iconImage.color = isReady ? Color.white : new Color(0.5f, 0.5f, 0.5f, 1f);
+            }
+        }
+        
+        public void UpdateCooldownText(float deltaTime)
+        {
+            // only update if cooldown text is assigned
+            if (cooldownText == null) return;
+            
+            // decrease remaining cooldown each frame
+            if (remainingCooldown > 0f)
+            {
+                remainingCooldown -= deltaTime;
+                
+                // update text display
+                if (cooldownText.gameObject.activeSelf)
+                {
+                    cooldownText.text = Mathf.Max(0f, remainingCooldown).ToString("F1");
+                }
+                
+                // hide when cooldown reaches 0
+                if (remainingCooldown <= 0f)
+                {
+                    cooldownText.gameObject.SetActive(false);
+                }
+            }
+            else if (remainingCooldown <= 0f && cooldownText.gameObject.activeSelf)
+            {
+                // ensure text is hidden when not on cooldown
+                cooldownText.gameObject.SetActive(false);
             }
         }
     }
