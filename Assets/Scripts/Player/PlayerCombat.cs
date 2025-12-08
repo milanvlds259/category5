@@ -46,6 +46,9 @@ namespace Category5.Player
         
         [Tooltip("cooldown between ranged attacks in seconds")]
         [SerializeField] private float rangedAttackCooldown = 0.5f;
+        
+        [Tooltip("enable predictive aiming for moving enemies")]
+        [SerializeField] private bool enableTargetLeading = true;
 
         private InputSystem_Actions _inputActions;
         private int _comboCounter = 0;
@@ -279,17 +282,20 @@ namespace Category5.Player
             _isAttacking = true;
             _lastAttackTime = Time.time;
             
-            // get spawn position and direction
+            // calculate multipliers based on charge
+            float damageMultiplier = Mathf.Lerp(1f, arrowData.MaxDamageMultiplier, chargePercent);
+            float speedMultiplier = Mathf.Lerp(1f, arrowData.MaxSpeedMultiplier, chargePercent);
+            
+            // get spawn position
             Vector3 spawnPos = projectileSpawnPoint != null 
                 ? projectileSpawnPoint.position 
                 : transform.position + transform.forward * 0.5f + Vector3.up * 1.5f;
             
-            // use camera direction for aiming (accounts for vertical look angle)
-            Vector3 direction = GetAimDirection();
+            // apply forward offset to prevent collision with shooter
+            spawnPos += (projectileSpawnPoint != null ? projectileSpawnPoint.forward : transform.forward) * arrowData.SpawnForwardOffset;
             
-            // calculate multipliers based on charge
-            float damageMultiplier = Mathf.Lerp(1f, arrowData.MaxDamageMultiplier, chargePercent);
-            float speedMultiplier = Mathf.Lerp(1f, arrowData.MaxSpeedMultiplier, chargePercent);
+            // use raycast-based aiming (accounts for crosshair position)
+            Vector3 direction = GetAimDirection(chargePercent, speedMultiplier);
             
             Debug.Log($"Charged Ranged Attack! Charge: {chargePercent:P0}, Damage x{damageMultiplier:F2}, Speed x{speedMultiplier:F2}");
             
@@ -300,16 +306,106 @@ namespace Category5.Player
             StartCoroutine(AttackCooldown(rangedAttackCooldown));
         }
         
-        private Vector3 GetAimDirection()
+        // calculates aim direction using screen-center raycast to ensure projectiles hit where crosshair points
+        private Vector3 GetAimDirection(float chargePercent, float speedMultiplier)
         {
-            // try to use main camera's forward direction for full 3d aiming
-            if (Camera.main != null)
+            if (Camera.main == null || arrowData == null)
             {
-                return Camera.main.transform.forward;
+                // fallback to player forward if no camera or arrow data
+                return transform.forward;
+            }
+
+            // calculate spawn position with offset (computed once and reused)
+            Vector3 spawnPos = projectileSpawnPoint != null
+                ? projectileSpawnPoint.position
+                : transform.position + transform.forward * 0.5f + Vector3.up * 1.5f;
+            spawnPos += (projectileSpawnPoint != null ? projectileSpawnPoint.forward : transform.forward) * arrowData.SpawnForwardOffset;
+
+            // calculate effective projectile speed (accounts for charge multiplier)
+            float effectiveProjectileSpeed = arrowData.Speed * speedMultiplier;
+
+            // calculate effective aim range (base range + charge bonus if fully charged, clamped to projectile lifetime)
+            float effectiveRange = arrowData.BaseAimRange;
+            if (chargePercent >= 0.99f)
+            {
+                effectiveRange += arrowData.ChargedAimRangeBonus;
+            }
+            effectiveRange = Mathf.Min(effectiveRange, arrowData.Lifetime * effectiveProjectileSpeed);
+
+            // cast ray from screen center (where crosshair is)
+            Ray aimRay = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+            Vector3 targetPoint;
+
+            // raycast to find what we're aiming at
+            if (Physics.Raycast(aimRay, out RaycastHit hit, effectiveRange, arrowData.AimLayers))
+            {
+                targetPoint = hit.point;
+
+                // apply target leading if enabled and hit a moving enemy
+                if (enableTargetLeading && hit.collider != null)
+                {
+                    // check if hit object is on enemy layer and has rigidbody
+                    if (((1 << hit.collider.gameObject.layer) & LayerMask.GetMask("Enemy")) != 0)
+                    {
+                        Rigidbody rb = hit.collider.GetComponent<Rigidbody>();
+                        if (rb != null && rb.linearVelocity.magnitude > 0.1f)
+                        {
+                            // get intercept point for moving target
+                            targetPoint = GetInterceptPoint(hit.point, rb.linearVelocity, spawnPos, effectiveProjectileSpeed);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // no hit - aim at max range along ray direction
+                targetPoint = aimRay.GetPoint(effectiveRange);
+            }
+
+            // return direction from spawn position to target point
+            return (targetPoint - spawnPos).normalized;
+        }
+        
+        // calculates intercept point for hitting a moving target
+        // MATH WARNING THE CODE BELOW USES COMPLEX NERD AHH MATH AVERT YOUR EYES
+        private Vector3 GetInterceptPoint(Vector3 targetPos, Vector3 targetVel, Vector3 shooterPos, float projectileSpeed)
+        {
+            // relative position and velocity
+            Vector3 toTarget = targetPos - shooterPos;
+            
+            // quadratic equation coefficients: a*t^2 + b*t + c = 0
+            float a = targetVel.sqrMagnitude - projectileSpeed * projectileSpeed;
+            float b = 2f * Vector3.Dot(toTarget, targetVel);
+            float c = toTarget.sqrMagnitude;
+            
+            // discriminant
+            float discriminant = b * b - 4f * a * c;
+            
+            // if discriminant is negative, target is too fast to catch
+            if (discriminant < 0f || Mathf.Abs(a) < 0.001f)
+            {
+                // fallback to current position (no leading)
+                return targetPos;
             }
             
-            // fallback to player forward if no camera found
-            return transform.forward;
+            // solve for time (use smallest positive root)
+            float t1 = (-b + Mathf.Sqrt(discriminant)) / (2f * a);
+            float t2 = (-b - Mathf.Sqrt(discriminant)) / (2f * a);
+            
+            float t = Mathf.Min(t1, t2);
+            if (t < 0f)
+            {
+                t = Mathf.Max(t1, t2);
+            }
+            
+            // if both solutions are negative, target is moving away too fast
+            if (t < 0f)
+            {
+                return targetPos;
+            }
+            
+            // return predicted future position
+            return targetPos + targetVel * t;
         }
 
         private IEnumerator AttackCooldown(float duration)
@@ -518,15 +614,84 @@ namespace Category5.Player
                 Vector3 attackPoint = transform.position + transform.forward * attackOffset;
                 Gizmos.DrawWireSphere(attackPoint, attackRange);
             }
-            else
+            else if (combatClass == CombatClass.Ranged && arrowData != null && Camera.main != null)
             {
-                // show projectile spawn point for ranged
-                Gizmos.color = Color.cyan;
+                // visualize aim raycast system for ranged combat
+                
+                // calculate spawn position with offset
                 Vector3 spawnPos = projectileSpawnPoint != null 
                     ? projectileSpawnPoint.position 
                     : transform.position + transform.forward * 0.5f + Vector3.up * 1.5f;
+                Vector3 spawnOffset = (projectileSpawnPoint != null ? projectileSpawnPoint.forward : transform.forward) * arrowData.SpawnForwardOffset;
+                Vector3 offsetSpawnPos = spawnPos + spawnOffset;
+                
+                // calculate effective range (simulating full charge for visualization)
+                float effectiveProjectileSpeed = arrowData.Speed * arrowData.MaxSpeedMultiplier;
+                float effectiveRange = arrowData.BaseAimRange + arrowData.ChargedAimRangeBonus;
+                effectiveRange = Mathf.Min(effectiveRange, arrowData.Lifetime * effectiveProjectileSpeed);
+                
+                // cast ray from screen center
+                Ray aimRay = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+                
+                // draw cyan ray from camera through screen center
+                Gizmos.color = Color.cyan;
+                Vector3 targetPoint;
+                
+                if (Physics.Raycast(aimRay, out RaycastHit hit, effectiveRange, arrowData.AimLayers))
+                {
+                    // hit something - draw to hit point
+                    targetPoint = hit.point;
+                    Gizmos.DrawLine(aimRay.origin, hit.point);
+                    
+                    // draw red sphere at hit point
+                    Gizmos.color = Color.red;
+                    Gizmos.DrawWireSphere(hit.point, 0.3f);
+                    
+                    // check if we would apply target leading
+                    if (enableTargetLeading && hit.collider != null)
+                    {
+                        if (((1 << hit.collider.gameObject.layer) & LayerMask.GetMask("Enemy")) != 0)
+                        {
+                            Rigidbody rb = hit.collider.GetComponent<Rigidbody>();
+                            if (rb != null && rb.linearVelocity.magnitude > 0.1f)
+                            {
+                                // calculate intercept point
+                                Vector3 interceptPoint = GetInterceptPoint(hit.point, rb.linearVelocity, offsetSpawnPos, effectiveProjectileSpeed);
+                                
+                                // draw green line to intercept point
+                                Gizmos.color = Color.green;
+                                Gizmos.DrawLine(offsetSpawnPos, interceptPoint);
+                                Gizmos.DrawWireSphere(interceptPoint, 0.25f);
+                                
+                                targetPoint = interceptPoint;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // no hit - draw to max range
+                    targetPoint = aimRay.GetPoint(effectiveRange);
+                    Gizmos.DrawLine(aimRay.origin, targetPoint);
+                }
+                
+                // draw yellow sphere at offset spawn position
+                Gizmos.color = Color.yellow;
+                Gizmos.DrawWireSphere(offsetSpawnPos, 0.2f);
+                
+                // draw original spawn position (before offset) for comparison
+                Gizmos.color = new Color(1f, 0.5f, 0f, 0.5f); // semi-transparent orange
                 Gizmos.DrawWireSphere(spawnPos, 0.15f);
-                Gizmos.DrawRay(spawnPos, transform.forward * 3f);
+                
+                // draw final firing direction
+                Gizmos.color = Color.white;
+                Vector3 fireDirection = (targetPoint - offsetSpawnPos).normalized;
+                Gizmos.DrawRay(offsetSpawnPos, fireDirection * 5f);
+                
+                // draw range text
+                #if UNITY_EDITOR
+                UnityEditor.Handles.Label(offsetSpawnPos + Vector3.up * 0.5f, $"Range: {effectiveRange:F1}m");
+                #endif
             }
         }
     }

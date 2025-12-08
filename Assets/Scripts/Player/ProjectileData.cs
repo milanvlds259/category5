@@ -49,6 +49,19 @@ namespace Category5.Player
         [Tooltip("movement speed multiplier while charging (0.5 = half speed)")]
         [SerializeField] private float chargeMovementSpeedMultiplier = 0.5f;
         
+        [Header("Aim Settings")]
+        [Tooltip("base raycast range for aiming in meters")]
+        [SerializeField] private float baseAimRange = 100f;
+        
+        [Tooltip("additional range added when fully charged")]
+        [SerializeField] private float chargedAimRangeBonus = 50f;
+        
+        [Tooltip("forward offset applied to spawn position to prevent collision with shooter")]
+        [SerializeField] private float spawnForwardOffset = 0.15f;
+        
+        [Tooltip("layers the aim raycast can hit (should exclude player, projectile, ui)")]
+        [SerializeField] private LayerMask aimLayers = ~((1 << 3) | (1 << 7) | (1 << 5)); // exclude player(3), projectile(7), ui(5)
+        
         // public accessors
         public GameObject ProjectilePrefab => projectilePrefab;
         public float Speed => speed;
@@ -64,5 +77,11 @@ namespace Category5.Player
         public float MaxDamageMultiplier => maxDamageMultiplier;
         public float MaxSpeedMultiplier => maxSpeedMultiplier;
         public float ChargeMovementSpeedMultiplier => chargeMovementSpeedMultiplier;
+        
+        // aim accessors
+        public float BaseAimRange => baseAimRange;
+        public float ChargedAimRangeBonus => chargedAimRangeBonus;
+        public float SpawnForwardOffset => spawnForwardOffset;
+        public LayerMask AimLayers => aimLayers;
     }
 }
