@@ -103,6 +103,8 @@ namespace Category5.Player
             if (!IsServer) return;
             if (_hasHit) return;
             
+            Debug.Log($"Projectile collision with: {other.gameObject.name} on layer {LayerMask.LayerToName(other.gameObject.layer)}");
+            
             // ignore collision with all players (friendly fire disabled)
             if (other.TryGetComponent<PlayerController>(out _))
                 return;
@@ -111,9 +113,16 @@ namespace Category5.Player
             if (other.GetComponentInParent<PlayerController>() != null)
                 return;
             
-            // check if we hit something damageable
-            if (other.TryGetComponent<IDamageable>(out var damageable))
+            // check if we hit something damageable (check both this object and parent)
+            IDamageable damageable = other.GetComponent<IDamageable>();
+            if (damageable == null)
             {
+                damageable = other.GetComponentInParent<IDamageable>();
+            }
+            
+            if (damageable != null)
+            {
+                Debug.Log($"Found IDamageable on {(damageable as MonoBehaviour)?.gameObject.name ?? "unknown"}");
                 _hasHit = true;
                 
                 // calculate final damage with power-up modifiers
@@ -157,6 +166,7 @@ namespace Category5.Player
             }
             else
             {
+                Debug.Log($"No IDamageable found on {other.gameObject.name} or its parents");
                 // hit something non-damageable (wall, obstacle)
                 // still despawn the projectile
                 _hasHit = true;

@@ -20,6 +20,7 @@ namespace Category5.Enemies
     // abstract base class for all enemies
     // handles health, targeting, state machine, movement, and networking
     [RequireComponent(typeof(NetworkObject))]
+    [RequireComponent(typeof(Rigidbody))]
     public abstract class EnemyBase : NetworkBehaviour, IDamageable
     {
         [Header("enemy data")]
@@ -82,6 +83,9 @@ namespace Category5.Enemies
         protected Vector3 spawnPosition;
         protected float _groundY;
         
+        // rigidbody for physics interactions (kinematic since we control movement)
+        protected Rigidbody _rigidbody;
+        
         // reference to spawner for death notification
         private EnemySpawner _spawner;
         
@@ -96,6 +100,15 @@ namespace Category5.Enemies
         {
             // try to cache a character controller if present
             characterController = GetComponent<CharacterController>();
+            
+            // cache and configure rigidbody for trigger collision detection
+            _rigidbody = GetComponent<Rigidbody>();
+            if (_rigidbody != null)
+            {
+                _rigidbody.isKinematic = true; // we control movement manually
+                _rigidbody.useGravity = false; // we handle gravity ourselves
+                _rigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            }
         }
         
         public override void OnNetworkSpawn()

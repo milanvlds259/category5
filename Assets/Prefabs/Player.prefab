@@ -562,6 +562,7 @@ MonoBehaviour:
   arrowData: {fileID: 11400000, guid: ec4e19a6215de594291cf4b54dd2dbfb, type: 2}
   projectileSpawnPoint: {fileID: 3966561765945640776}
   rangedAttackCooldown: 0.5
+  enableTargetLeading: 1
 --- !u!114 &4296747668078663274
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -24,3 +24,9 @@ MonoBehaviour:
   maxDamageMultiplier: 3
   maxSpeedMultiplier: 3
   chargeMovementSpeedMultiplier: 0.33
+  baseAimRange: 200
+  chargedAimRangeBonus: 100
+  spawnForwardOffset: 0.15
+  aimLayers:
+    serializedVersion: 2
+    m_Bits: 87
