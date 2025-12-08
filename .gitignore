@@ -101,7 +101,6 @@ InitTestScene*.unity*
 # Copilot instructions
 .github/copilot-instructions.md
 
-# Documentation
-full-design-doc.md
-prototype-design-doc.md
+# Documentation + reference files
+/[Dd]esign/
 

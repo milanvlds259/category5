@@ -63,11 +63,19 @@ namespace Category5.Player
         private float _chargeStartTime;
         private float _lastChargePercent;
         
+        // quickbow buff state
+        private bool _quickbowActive;
+        private float _quickbowAttackSpeedMult = 1f;
+        private float _quickbowChargeSpeedMult = 1f;
+        private int _quickbowBurstCount = 0;
+        private float _quickbowBurstInterval = 0.1f;
+        private float _quickbowBurstDamageMult = 1f;
+        
         // public accessors for combat class and charging state
         public CombatClass CurrentCombatClass => combatClass;
         public bool IsCharging => _isCharging;
         public float ChargePercent => _isCharging && arrowData != null 
-            ? Mathf.Clamp01((Time.time - _chargeStartTime) / arrowData.MaxChargeTime) 
+            ? Mathf.Clamp01((Time.time - _chargeStartTime) / (arrowData.MaxChargeTime * _quickbowChargeSpeedMult)) 
             : 0f;
         
         // public accessor for charge movement multiplier (used by playercontroller)
@@ -282,7 +290,27 @@ namespace Category5.Player
             _isAttacking = true;
             _lastAttackTime = Time.time;
             
-            // calculate multipliers based on charge
+            // check if this is a fully charged shot with quickbow active
+            if (_quickbowActive && chargePercent >= 0.99f)
+            {
+                // fire burst of arrows
+                StartCoroutine(FireBurstArrows());
+            }
+            else
+            {
+                // fire single arrow
+                FireSingleArrow(chargePercent);
+            }
+            
+            // start cooldown (modified by quickbow buff)
+            float effectiveCooldown = rangedAttackCooldown * _quickbowAttackSpeedMult;
+            StartCoroutine(AttackCooldown(effectiveCooldown));
+        }
+        
+        // fires a single arrow with the given charge
+        private void FireSingleArrow(float chargePercent)
+        {
+            // calculate multipliers based on charge (modified by quickbow)
             float damageMultiplier = Mathf.Lerp(1f, arrowData.MaxDamageMultiplier, chargePercent);
             float speedMultiplier = Mathf.Lerp(1f, arrowData.MaxSpeedMultiplier, chargePercent);
             
@@ -301,9 +329,36 @@ namespace Category5.Player
             
             // request server to spawn charged projectile
             RequestChargedRangedAttackServerRpc(spawnPos, direction, damageMultiplier, speedMultiplier);
-            
-            // start cooldown
-            StartCoroutine(AttackCooldown(rangedAttackCooldown));
+        }
+        
+        // fires a burst of arrows rapidly (quickbow ability)
+        private IEnumerator FireBurstArrows()
+        {
+            for (int i = 0; i < _quickbowBurstCount; i++)
+            {
+                // get spawn position for each arrow
+                Vector3 spawnPos = projectileSpawnPoint != null 
+                    ? projectileSpawnPoint.position 
+                    : transform.position + transform.forward * 0.5f + Vector3.up * 1.5f;
+                
+                spawnPos += (projectileSpawnPoint != null ? projectileSpawnPoint.forward : transform.forward) * arrowData.SpawnForwardOffset;
+                
+                // use current aim direction (player can move and aim during burst)
+                Vector3 direction = GetAimDirection(1f, 1f); // full charge stats
+                
+                // apply burst damage multiplier
+                float damageMultiplier = _quickbowBurstDamageMult;
+                float speedMultiplier = 1f;
+                
+                // spawn arrow
+                RequestChargedRangedAttackServerRpc(spawnPos, direction, damageMultiplier, speedMultiplier);
+                
+                // wait before next arrow
+                if (i < _quickbowBurstCount - 1)
+                {
+                    yield return new WaitForSeconds(_quickbowBurstInterval);
+                }
+            }
         }
         
         // calculates aim direction using screen-center raycast to ensure projectiles hit where crosshair points
@@ -693,6 +748,34 @@ namespace Category5.Player
                 UnityEditor.Handles.Label(offsetSpawnPos + Vector3.up * 0.5f, $"Range: {effectiveRange:F1}m");
                 #endif
             }
+        }
+        
+        // =====================================
+        // quickbow ability buff methods
+        // =====================================
+        
+        public void ApplyQuickbowBuff(float attackSpeedMult, float chargeSpeedMult, int burstCount, float burstInterval, float burstDamageMult)
+        {
+            _quickbowActive = true;
+            _quickbowAttackSpeedMult = attackSpeedMult;
+            _quickbowChargeSpeedMult = chargeSpeedMult;
+            _quickbowBurstCount = burstCount;
+            _quickbowBurstInterval = burstInterval;
+            _quickbowBurstDamageMult = burstDamageMult;
+            
+            Debug.Log("Quickbow buff applied! Attack speed and charge speed increased, burst fire enabled.");
+        }
+        
+        public void RemoveQuickbowBuff()
+        {
+            _quickbowActive = false;
+            _quickbowAttackSpeedMult = 1f;
+            _quickbowChargeSpeedMult = 1f;
+            _quickbowBurstCount = 0;
+            _quickbowBurstInterval = 0.1f;
+            _quickbowBurstDamageMult = 1f;
+            
+            Debug.Log("Quickbow buff removed.");
         }
     }
 }

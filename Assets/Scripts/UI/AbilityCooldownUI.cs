@@ -1,0 +1,199 @@
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+using System;
+using Category5.Player;
+
+namespace Category5.UI
+{
+    // displays cooldown indicators for the 3 player abilities (Q/E/R)
+    // positioned bottom-right per ui sketch
+    public class AbilityCooldownUI : MonoBehaviour
+    {
+        [Header("Ability Slot References")]
+        [SerializeField] private AbilitySlotUI ability1Slot; // Q
+        [SerializeField] private AbilitySlotUI ability2Slot; // E
+        [SerializeField] private AbilitySlotUI ability3Slot; // R
+        
+        [Header("Buff Indicator")]
+        [SerializeField] private GameObject buffIndicator; // shows when quickbow is active
+        
+        private PlayerAbilityManager abilityManager;
+        
+        private void Start()
+        {
+            // hide buff indicator initially
+            if (buffIndicator != null)
+            {
+                buffIndicator.SetActive(false);
+            }
+            
+            // find the local player's ability manager
+            FindLocalPlayerAbilityManager();
+        }
+        
+        private void OnEnable()
+        {
+            PlayerAbilityManager.OnCooldownChanged += HandleCooldownChanged;
+        }
+        
+        private void OnDisable()
+        {
+            PlayerAbilityManager.OnCooldownChanged -= HandleCooldownChanged;
+        }
+        
+        private void FindLocalPlayerAbilityManager()
+        {
+            // wait a frame for players to spawn
+            Invoke(nameof(FindLocalPlayerAbilityManagerDelayed), 0.5f);
+        }
+        
+        private void FindLocalPlayerAbilityManagerDelayed()
+        {
+            var players = FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
+            foreach (var player in players)
+            {
+                if (player.IsOwner)
+                {
+                    abilityManager = player.GetComponent<PlayerAbilityManager>();
+                    if (abilityManager != null)
+                    {
+                        InitializeSlots();
+                        break;
+                    }
+                }
+            }
+        }
+        
+        private void InitializeSlots()
+        {
+            if (abilityManager == null) return;
+            
+            // set up each slot with ability data
+            var ability1 = abilityManager.GetAbility1();
+            var ability2 = abilityManager.GetAbility2();
+            var ability3 = abilityManager.GetAbility3();
+            
+            if (ability1 != null && ability1Slot != null)
+            {
+                ability1Slot.Initialize(ability1.Data, "Q");
+            }
+            
+            if (ability2 != null && ability2Slot != null)
+            {
+                ability2Slot.Initialize(ability2.Data, "E");
+            }
+            
+            if (ability3 != null && ability3Slot != null)
+            {
+                ability3Slot.Initialize(ability3.Data, "R");
+            }
+        }
+        
+        private void HandleCooldownChanged(AbilitySlot slot, float current, float max)
+        {
+            // only update if this is for our local player
+            if (abilityManager == null) return;
+            
+            AbilitySlotUI targetSlot = slot switch
+            {
+                AbilitySlot.Ability1 => ability1Slot,
+                AbilitySlot.Ability2 => ability2Slot,
+                AbilitySlot.Ability3 => ability3Slot,
+                _ => null
+            };
+            
+            if (targetSlot != null)
+            {
+                targetSlot.UpdateCooldown(current, max);
+            }
+        }
+        
+        // public method for abilities to show/hide buff indicator
+        public void ShowBuffIndicator(bool show)
+        {
+            if (buffIndicator != null)
+            {
+                buffIndicator.SetActive(show);
+            }
+        }
+    }
+    
+    // individual ability slot component
+    [System.Serializable]
+    public class AbilitySlotUI
+    {
+        [Header("UI References")]
+        public Image iconImage;
+        public Image fillImage; // radial fill for cooldown
+        public TextMeshProUGUI keybindText;
+        public GameObject readyGlow; // shows when ability is ready
+        
+        [Header("Placeholder Settings")]
+        public Color placeholderColor = Color.cyan;
+        
+        private AbilityData abilityData;
+        private string keybind;
+        
+        public void Initialize(AbilityData data, string key)
+        {
+            abilityData = data;
+            keybind = key;
+            
+            // set keybind text
+            if (keybindText != null)
+            {
+                keybindText.text = keybind;
+            }
+            
+            // set icon (or placeholder)
+            if (iconImage != null)
+            {
+                if (data.abilityIcon != null)
+                {
+                    iconImage.sprite = data.abilityIcon;
+                    iconImage.color = Color.white;
+                }
+                else
+                {
+                    // use placeholder colored square with keybind letter
+                    iconImage.color = placeholderColor;
+                }
+            }
+            
+            // set fill to ready initially
+            if (fillImage != null)
+            {
+                fillImage.fillAmount = 0f;
+            }
+            
+            // show ready glow
+            if (readyGlow != null)
+            {
+                readyGlow.SetActive(true);
+            }
+        }
+        
+        public void UpdateCooldown(float currentCooldown, float maxCooldown)
+        {
+            if (fillImage == null) return;
+            
+            // calculate fill amount (1 = on cooldown, 0 = ready)
+            float fillAmount = maxCooldown > 0f ? (currentCooldown / maxCooldown) : 0f;
+            fillImage.fillAmount = fillAmount;
+            
+            // show/hide glow based on ready state
+            bool isReady = currentCooldown <= 0f;
+            if (readyGlow != null)
+            {
+                readyGlow.SetActive(isReady);
+            }
+            
+            // dim icon while on cooldown
+            if (iconImage != null)
+            {
+                iconImage.color = isReady ? Color.white : new Color(0.5f, 0.5f, 0.5f, 1f);
+            }
+        }
+    }
+}

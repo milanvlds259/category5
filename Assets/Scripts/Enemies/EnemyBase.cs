@@ -4,9 +4,26 @@ using Category5.Core;
 using Category5.Audio;
 using Category5.Player;
 using Category5.UI;
+using System.Collections.Generic;
 
 namespace Category5.Enemies
 {
+    // movement modifier for abilities like spiralbow slow
+    [System.Serializable]
+    public class MovementModifier
+    {
+        public string sourceId; // identifier for the source (e.g., "Spiralbow_Player1")
+        public float multiplier; // speed multiplier (0.6 = 60% speed)
+        public float remainingDuration; // time left on this modifier
+        
+        public MovementModifier(string id, float mult, float duration)
+        {
+            sourceId = id;
+            multiplier = mult;
+            remainingDuration = duration;
+        }
+    }
+    
     // enemy states for the state machine
     public enum EnemyState
     {
@@ -44,6 +61,10 @@ namespace Category5.Enemies
         protected float detectionRange = 15f;
         protected float leashRange = 25f;
         protected ElementType elementType = ElementType.None;
+        
+        // movement modifiers (for abilities like spiralbow slow)
+        private Dictionary<string, MovementModifier> _movementModifiers = new Dictionary<string, MovementModifier>();
+        private float _effectiveMoveSpeed;
 
         [Header("timing & targeting")]
         [SerializeField] protected float targetUpdateInterval = 0.5f;
@@ -183,6 +204,7 @@ namespace Category5.Enemies
             // always populate runtime stats from the EnemyData asset
             maxHealth = enemyData.maxHealth;
             moveSpeed = enemyData.moveSpeed;
+            _effectiveMoveSpeed = moveSpeed; // initialize effective speed
             rotationSpeed = enemyData.rotationSpeed;
             damage = enemyData.damage;
             attackRange = enemyData.attackRange;
@@ -243,6 +265,61 @@ namespace Category5.Enemies
             {
                 attackCooldownTimer -= Time.deltaTime;
             }
+            
+            // update movement modifiers
+            UpdateMovementModifiers();
+        }
+        
+        private void UpdateMovementModifiers()
+        {
+            // tick down modifier durations and remove expired ones
+            List<string> toRemove = new List<string>();
+            foreach (var kvp in _movementModifiers)
+            {
+                kvp.Value.remainingDuration -= Time.deltaTime;
+                if (kvp.Value.remainingDuration <= 0f)
+                {
+                    toRemove.Add(kvp.Key);
+                }
+            }
+            
+            foreach (var key in toRemove)
+            {
+                _movementModifiers.Remove(key);
+            }
+            
+            // recalculate effective move speed (use lowest multiplier if multiple modifiers)
+            _effectiveMoveSpeed = moveSpeed;
+            float lowestMultiplier = 1f;
+            foreach (var modifier in _movementModifiers.Values)
+            {
+                if (modifier.multiplier < lowestMultiplier)
+                {
+                    lowestMultiplier = modifier.multiplier;
+                }
+            }
+            _effectiveMoveSpeed = moveSpeed * lowestMultiplier;
+        }
+        
+        // public method for abilities to apply movement speed modifiers
+        public void ApplyMovementModifier(float multiplier, float duration, string sourceId)
+        {
+            if (!IsServer) return;
+            
+            // add or update the modifier
+            if (_movementModifiers.ContainsKey(sourceId))
+            {
+                // refresh duration and update multiplier
+                _movementModifiers[sourceId].multiplier = multiplier;
+                _movementModifiers[sourceId].remainingDuration = duration;
+            }
+            else
+            {
+                _movementModifiers[sourceId] = new MovementModifier(sourceId, multiplier, duration);
+            }
+            
+            // immediately recalculate effective speed
+            UpdateMovementModifiers();
         }
         
         // =====================================
@@ -449,7 +526,7 @@ namespace Category5.Enemies
             Vector3 direction = GetDirectionToTarget();
             if (direction == Vector3.zero) return;
             
-            Vector3 movement = direction * moveSpeed * Time.deltaTime;
+            Vector3 movement = direction * _effectiveMoveSpeed * Time.deltaTime;
             
             if (characterController != null)
             {

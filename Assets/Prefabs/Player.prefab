@@ -181,6 +181,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!136 &1713919456950515335
 CapsuleCollider:
@@ -310,6 +311,7 @@ MonoBehaviour:
   m_VerticalAlignment: 256
   m_textAlignment: 65535
   m_characterSpacing: -2
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -358,6 +360,8 @@ GameObject:
   - component: {fileID: 27346507340196499}
   - component: {fileID: 4296747668078663274}
   - component: {fileID: 8551464889604397006}
+  - component: {fileID: 4670924441742465071}
+  - component: {fileID: 7004229516117512557}
   m_Layer: 3
   m_Name: Player
   m_TagString: Untagged
@@ -624,6 +628,49 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   baseMaxHealth: 100
   baseDodgeCooldown: 2
+--- !u!114 &4670924441742465071
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7487642310209406333}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6860db1527215a24da524de5d2b602a6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.PlayerAbilityManager
+  ShowTopMostFoldoutHeaderGroup: 1
+  ability1: {fileID: 0}
+  ability2: {fileID: 0}
+  ability3: {fileID: 0}
+  ability1Cooldown:
+    m_InternalValue: 0
+  ability2Cooldown:
+    m_InternalValue: 0
+  ability3Cooldown:
+    m_InternalValue: 0
+--- !u!114 &7004229516117512557
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7487642310209406333}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4185a3a8941f1a345bbf24f5823d98d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.PlayerClassManager
+  ShowTopMostFoldoutHeaderGroup: 1
+  SelectedClass:
+    m_InternalValue: 1
+  availableClasses:
+  - {fileID: 11400000, guid: 8ab7e8aa71bf6e140a71e7cac1e2e8dc, type: 2}
+  - {fileID: 11400000, guid: 9b367dd7810d9154791130879fac4fa7, type: 2}
+  - {fileID: 11400000, guid: ec38eb8764ff7c744aa59805cd5da5d6, type: 2}
+  - {fileID: 11400000, guid: 4031365e67c9a1342b642c0e229c004a, type: 2}
+  - {fileID: 11400000, guid: d0bf17c0eadd40a4e9701be026247c41, type: 2}
 --- !u!1 &8085112078672293956
 GameObject:
   m_ObjectHideFlags: 0
@@ -744,6 +791,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!65 &5460786977058448700
 BoxCollider:

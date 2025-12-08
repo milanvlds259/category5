@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f9d0aa058f97e644a9eea914321dfdc, type: 3}
+  m_Name: Ranger
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.PlayerClass
+  classType: 1
+  className: Ranger
+  classDescription: Swift archer with burst fire and piercing shots
+  classIcon: {fileID: 0}
+  ability1Prefab: {fileID: 53412344211962831, guid: 0ec5371159efbd94db90813399a65147, type: 3}
+  ability2Prefab: {fileID: 53412344211962831, guid: d6c001f49f785ca40ab6d2e3e6d544fd, type: 3}
+  ability3Prefab: {fileID: 53412344211962831, guid: 26c0e4470eb396c46bad84189b44eb97, type: 3}
+  combatClass: 1

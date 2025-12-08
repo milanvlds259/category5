@@ -2,6 +2,7 @@ using UnityEngine;
 using Unity.Netcode;
 using Category5.Core;
 using Category5.PowerUps;
+using Category5.Boss;
 
 namespace Category5.Player
 {
@@ -18,6 +19,11 @@ namespace Category5.Player
         [SerializeField] private float speed = 20f;
         [SerializeField] private int damage = 15;
         [SerializeField] private float lifetime = 5f;
+        
+        // piercing behavior for critshot
+        private bool _isPiercing = false;
+        private bool _ignoreEnemies = false;
+        private bool _ignoreEnvironment = false;
         
         // the client who fired this projectile (for damage feedback)
         private ulong _ownerClientId;
@@ -83,6 +89,9 @@ namespace Category5.Player
             _ownerClientId = ownerClientId;
             _ownerStats = ownerStats;
             _impactVfxPrefab = data.ImpactVfxPrefab;
+            _isPiercing = false;
+            _ignoreEnemies = false;
+            _ignoreEnvironment = false;
         }
         
         // initialize projectile with charged multipliers (called on server before spawn)
@@ -95,13 +104,30 @@ namespace Category5.Player
             _ownerClientId = ownerClientId;
             _ownerStats = ownerStats;
             _impactVfxPrefab = data.ImpactVfxPrefab;
+            _isPiercing = false;
+            _ignoreEnemies = false;
+            _ignoreEnvironment = false;
+        }
+        
+        // initialize piercing projectile (for critshot ultimate)
+        public void InitializePiercing(ProjectileData data, ulong ownerClientId, PlayerStats ownerStats, float damageMultiplier, bool ignoreEnemies = true, bool ignoreEnvironment = true)
+        {
+            speed = data.Speed;
+            damage = Mathf.RoundToInt(data.Damage * damageMultiplier);
+            lifetime = data.Lifetime;
+            _ownerClientId = ownerClientId;
+            _ownerStats = ownerStats;
+            _impactVfxPrefab = data.ImpactVfxPrefab;
+            _isPiercing = true;
+            _ignoreEnemies = ignoreEnemies;
+            _ignoreEnvironment = ignoreEnvironment;
         }
         
         private void OnTriggerEnter(Collider other)
         {
             // only server handles collision
             if (!IsServer) return;
-            if (_hasHit) return;
+            if (_hasHit && !_isPiercing) return;
             
             Debug.Log($"Projectile collision with: {other.gameObject.name} on layer {LayerMask.LayerToName(other.gameObject.layer)}");
             
@@ -123,56 +149,92 @@ namespace Category5.Player
             if (damageable != null)
             {
                 Debug.Log($"Found IDamageable on {(damageable as MonoBehaviour)?.gameObject.name ?? "unknown"}");
-                _hasHit = true;
                 
-                // calculate final damage with power-up modifiers
-                int finalDamage = _ownerStats != null 
-                    ? _ownerStats.CalculateDamage(damage) 
-                    : damage;
+                // check if this is a boss
+                bool isBoss = other.GetComponentInParent<BossBase>() != null;
                 
-                // deal damage
-                damageable.TakeDamage(finalDamage);
-                
-                // apply lifesteal if owner has it
-                int lifestealAmount = _ownerStats != null ? _ownerStats.LifestealAmount : 0;
-                if (lifestealAmount > 0)
+                // piercing logic
+                if (_isPiercing)
                 {
-                    ApplyLifestealToOwner(lifestealAmount);
+                    // if it's an enemy and we ignore enemies, pierce through
+                    if (_ignoreEnemies && !isBoss)
+                    {
+                        // still deal damage but don't stop
+                        ApplyDamageAndEffects(damageable, other.transform.position);
+                        return;
+                    }
+                    
+                    // if it's a boss, always stop (boss ends piercing)
+                    if (isBoss)
+                    {
+                        ApplyDamageAndEffects(damageable, other.transform.position);
+                        _hasHit = true;
+                        DespawnProjectile();
+                        return;
+                    }
                 }
                 
-                // notify the attacking player to show damage number
-                ShowDamageNumberClientRpc(finalDamage, other.transform.position, new ClientRpcParams
-                {
-                    Send = new ClientRpcSendParams
-                    {
-                        TargetClientIds = new ulong[] { _ownerClientId }
-                    }
-                });
-                
-                // trigger hit feedback for the attacking player
-                TriggerHitFeedbackClientRpc(other.transform.position, new ClientRpcParams
-                {
-                    Send = new ClientRpcSendParams
-                    {
-                        TargetClientIds = new ulong[] { _ownerClientId }
-                    }
-                });
-                
-                // notify all clients for vfx hooks
-                NotifyProjectileHitClientRpc(other.transform.position, finalDamage);
-                
-                // spawn impact vfx and despawn projectile
+                // normal hit (non-piercing or hit a valid target)
+                _hasHit = true;
+                ApplyDamageAndEffects(damageable, other.transform.position);
                 DespawnProjectile();
             }
             else
             {
                 Debug.Log($"No IDamageable found on {other.gameObject.name} or its parents");
-                // hit something non-damageable (wall, obstacle)
-                // still despawn the projectile
+                
+                // hit environment (wall, obstacle)
+                if (_isPiercing && _ignoreEnvironment)
+                {
+                    // pierce through environment
+                    return;
+                }
+                
+                // hit something non-damageable and not piercing through it
                 _hasHit = true;
                 NotifyProjectileHitClientRpc(transform.position, 0);
                 DespawnProjectile();
             }
+        }
+        
+        // helper method to apply damage and all effects
+        private void ApplyDamageAndEffects(IDamageable damageable, Vector3 hitPosition)
+        {
+            // calculate final damage with power-up modifiers
+            int finalDamage = _ownerStats != null 
+                ? _ownerStats.CalculateDamage(damage) 
+                : damage;
+                
+            // deal damage
+            damageable.TakeDamage(finalDamage);
+            
+            // apply lifesteal if owner has it
+            int lifestealAmount = _ownerStats != null ? _ownerStats.LifestealAmount : 0;
+            if (lifestealAmount > 0)
+            {
+                ApplyLifestealToOwner(lifestealAmount);
+            }
+            
+            // notify the attacking player to show damage number
+            ShowDamageNumberClientRpc(finalDamage, hitPosition, new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = new ulong[] { _ownerClientId }
+                }
+            });
+            
+            // trigger hit feedback for the attacking player
+            TriggerHitFeedbackClientRpc(hitPosition, new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = new ulong[] { _ownerClientId }
+                }
+            });
+            
+            // notify all clients for vfx hooks
+            NotifyProjectileHitClientRpc(hitPosition, finalDamage);
         }
         
         private void ApplyLifestealToOwner(int healAmount)
