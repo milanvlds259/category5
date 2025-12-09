@@ -10,14 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: da4b3cd86bfbb504fbfa4e92f8d91186, type: 3}
-  m_Name: Spiralbow
+  m_Name: RangerR
   m_EditorClassIdentifier: Assembly-CSharp::Category5.AbilityData
-  abilityName: Spiralbow
-  description: Fire a tracker arrow that creates a damage-over-time zone on impact.
-    Enemies in the zone take damage every 0.5s and are slowed by 40%.
+  abilityName: Critshot
+  description: Fire an instant-charged piercing arrow that deals 3x damage. Pierces
+    through all enemies and walls, only stops on bosses.
   abilityIcon: {fileID: 0}
-  cooldownDuration: 12
-  baseDamage: 10
+  cooldownDuration: 30
+  baseDamage: 15
   castTime: 0
   manaCost: 0
   vfxPrefab: {fileID: 0}

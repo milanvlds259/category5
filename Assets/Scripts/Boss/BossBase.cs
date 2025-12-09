@@ -388,6 +388,8 @@ namespace Category5.Boss
         // idamageable implementation
         public void TakeDamage(int damage)
         {
+            Debug.Log($"BossBase.TakeDamage called: damage={damage}, isServer={IsServer}");
+            
             if (!IsServer) return;
 
             CurrentHealth.Value -= damage;

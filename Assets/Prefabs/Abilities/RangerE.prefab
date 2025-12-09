@@ -9,10 +9,10 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5635682412758554744}
-  - component: {fileID: 1408013246136352476}
-  - component: {fileID: -7745859038415539777}
+  - component: {fileID: -2904119278226214956}
+  - component: {fileID: 6726751588165059955}
   m_Layer: 3
-  m_Name: Critshot
+  m_Name: RangerE
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -33,7 +33,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1408013246136352476
+--- !u!114 &-2904119278226214956
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -45,7 +45,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 608404837
+  GlobalObjectIdHash: 2369090784
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -58,7 +58,7 @@ MonoBehaviour:
   AutoObjectParentSync: 1
   SyncOwnerTransformWhenParented: 1
   AllowOwnerToParent: 0
---- !u!114 &-7745859038415539777
+--- !u!114 &6726751588165059955
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -67,11 +67,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 53412344211962831}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fdee313b6d4559d4ba76c192f8386408, type: 3}
+  m_Script: {fileID: 11500000, guid: dd0fe46fa87bd894d93ee9a059a2a60c, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Category5.CritshotAbility
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.SpiralbowAbility
   ShowTopMostFoldoutHeaderGroup: 1
-  abilityData: {fileID: 11400000, guid: a57ea188b16c8a54cbfdfebe69bf800b, type: 2}
-  damageMultiplier: 4
-  arrowData: {fileID: 11400000, guid: 280db4f33df073544a185ffd626b9d10, type: 2}
-  projectileSpawnPoint: {fileID: 0}
+  abilityData: {fileID: 11400000, guid: bda3beae2c88c7b419e919172ee02753, type: 2}
+  zoneRadius: 8
+  zoneDuration: 6
+  damageTickInterval: 0.5
+  slowMultiplier: 0.6
+  arrowSpeed: 20
+  arrowLifetime: 5

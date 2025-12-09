@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: da4b3cd86bfbb504fbfa4e92f8d91186, type: 3}
-  m_Name: Quickbow
+  m_Name: RangerQ
   m_EditorClassIdentifier: Assembly-CSharp::Category5.AbilityData
   abilityName: Quickbow
   description: Increases attack speed and charge speed for 5 seconds. Fully charged

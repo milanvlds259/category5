@@ -82,8 +82,14 @@ namespace Category5
             arrow.transform.forward = direction;
             arrow.transform.localScale = Vector3.one * 0.3f;
             
-            // set layer to something that can detect collision
-            arrow.layer = LayerMask.NameToLayer("Default");
+            // set layer to "Projectile" so DoT zones know to ignore it
+            int projectileLayer = LayerMask.NameToLayer("Projectile");
+            if (projectileLayer == -1)
+            {
+                // if layer doesn't exist, use Default
+                projectileLayer = LayerMask.NameToLayer("Default");
+            }
+            arrow.layer = projectileLayer;
             
             // remove the collider created by CreatePrimitive
             Collider primCollider = arrow.GetComponent<Collider>();
@@ -239,6 +245,15 @@ namespace Category5
             sphereCol.radius = zoneRadius;
             sphereCol.isTrigger = true;
             
+            // configure collider to ignore projectiles
+            int projectileLayer = LayerMask.NameToLayer("Projectile");
+            if (projectileLayer != -1)
+            {
+                // use layer-based collision matrix to ignore projectiles
+                Physics.IgnoreLayerCollision(hitbox.layer, projectileLayer);
+                Debug.Log($"Configured DoT zone to ignore Projectile layer");
+            }
+            
             // add rigidbody for proper trigger detection
             Rigidbody hitboxRb = hitbox.AddComponent<Rigidbody>();
             hitboxRb.useGravity = false;
@@ -355,8 +370,10 @@ namespace Category5
                     ? ownerStats.CalculateDamage((int)baseDamage) 
                     : (int)baseDamage;
                 
-                // deal damage to enemies or bosses
+                // deal damage directly - boss/enemy TakeDamage will handle server authority
                 target.TakeDamage(finalDamage);
+                
+                Debug.Log($"Spiralbow DoT: Dealt {finalDamage} damage to {target}");
             }
         }
         
