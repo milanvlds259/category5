@@ -5,6 +5,7 @@ using Category5.Core;
 using Category5.Enemies;
 using Category5.Player;
 using Category5.PowerUps;
+using Category5.Boss;
 
 namespace Category5
 {
@@ -81,20 +82,33 @@ namespace Category5
             arrow.transform.forward = direction;
             arrow.transform.localScale = Vector3.one * 0.3f;
             
-            // configure collider as trigger
-            Collider collider = arrow.GetComponent<Collider>();
-            if (collider != null)
+            // set layer to something that can detect collision
+            arrow.layer = LayerMask.NameToLayer("Default");
+            
+            // remove the collider created by CreatePrimitive
+            Collider primCollider = arrow.GetComponent<Collider>();
+            if (primCollider != null)
             {
-                collider.isTrigger = true;
+                Destroy(primCollider);
             }
             
-            // add rigidbody for physics
-            Rigidbody rb = arrow.GetComponent<Rigidbody>();
-            if (rb != null)
+            // remove the rigidbody created by CreatePrimitive
+            Rigidbody primRb = arrow.GetComponent<Rigidbody>();
+            if (primRb != null)
             {
-                rb.useGravity = false;
-                rb.isKinematic = true; // kinematic since we're moving it manually
+                Destroy(primRb);
             }
+            
+            // add a fresh collider as trigger
+            SphereCollider sphereCollider = arrow.AddComponent<SphereCollider>();
+            sphereCollider.isTrigger = true;
+            sphereCollider.radius = 0.5f;
+            
+            // add rigidbody (non-kinematic for proper trigger detection)
+            Rigidbody rb = arrow.AddComponent<Rigidbody>();
+            rb.useGravity = false;
+            rb.isKinematic = false; // NOT kinematic so triggers work properly
+            rb.constraints = RigidbodyConstraints.FreezeRotation; // don't rotate
             
             // add tracker component
             TrackerArrow tracker = arrow.AddComponent<TrackerArrow>();
@@ -142,51 +156,100 @@ namespace Category5
             // manually move the arrow
             if (!hasImpacted)
             {
-                transform.position += velocity * Time.deltaTime;
+                Vector3 nextPos = transform.position + velocity * Time.deltaTime;
+                Vector3 moveDirection = (nextPos - transform.position).normalized;
+                float moveDistance = Vector3.Distance(nextPos, transform.position);
+                
+                // raycast to check for collision along the path
+                if (Physics.Raycast(transform.position, moveDirection, out RaycastHit hit, moveDistance))
+                {
+                    // check if we hit a player (should ignore)
+                    if (hit.collider.GetComponent<PlayerController>() != null || 
+                        hit.collider.GetComponentInParent<PlayerController>() != null)
+                    {
+                        // move past the player and continue
+                        transform.position = nextPos;
+                        return;
+                    }
+                    
+                    // we hit something - trigger impact
+                    Debug.Log($"TrackerArrow raycast hit: {hit.collider.name}");
+                    hasImpacted = true;
+                    
+                    // find ground level - raycast down from impact point
+                    Vector3 zonePosition = hit.point;
+                    if (Physics.Raycast(hit.point, Vector3.down, out RaycastHit groundHit, 100f))
+                    {
+                        zonePosition = groundHit.point;
+                        Debug.Log($"  -> Ground detected at {zonePosition}");
+                    }
+                    else
+                    {
+                        // fallback: set Y to 0 if no ground hit
+                        zonePosition.y = 0f;
+                        Debug.Log($"  -> No ground hit, using Y=0");
+                    }
+                    
+                    CreateDotZone(zonePosition);
+                    Destroy(gameObject);
+                    return;
+                }
+                
+                // no collision, move normally
+                transform.position = nextPos;
             }
         }
         
-        private void OnTriggerEnter(Collider other)
-        {
-            if (hasImpacted) return;
-            
-            Debug.Log($"TrackerArrow hit: {other.name}");
-            
-            // ignore players
-            if (other.GetComponent<PlayerController>() != null || other.GetComponentInParent<PlayerController>() != null)
-            {
-                Debug.Log($"  -> Ignoring player");
-                return;
-            }
-            
-            // impact - create dot zone
-            Debug.Log($"  -> Creating DoT zone at {transform.position}");
-            hasImpacted = true;
-            CreateDotZone(transform.position);
-            Destroy(gameObject);
-        }
         
         private void CreateDotZone(Vector3 position)
         {
-            // create zone object
-            GameObject zone = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            zone.transform.position = position;
-            zone.transform.localScale = new Vector3(zoneRadius * 2f, 0.1f, zoneRadius * 2f);
+            // create visual telegraph cylinder (flat on ground)
+            GameObject visualCylinder = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            visualCylinder.name = "SpiralbowZoneVisual";
+            visualCylinder.transform.position = position;
+            visualCylinder.transform.localScale = new Vector3(zoneRadius * 2f, 0.1f, zoneRadius * 2f);
             
-            // make it a trigger
-            Collider col = zone.GetComponent<Collider>();
-            col.isTrigger = true;
+            // disable collider on visual (we'll use invisible sphere for detection)
+            Collider visualCol = visualCylinder.GetComponent<Collider>();
+            if (visualCol != null) Destroy(visualCol);
             
-            // remove rigidbody if present
-            Rigidbody rb = zone.GetComponent<Rigidbody>();
-            if (rb != null) Destroy(rb);
+            // remove rigidbody from visual
+            Rigidbody visualRb = visualCylinder.GetComponent<Rigidbody>();
+            if (visualRb != null) Destroy(visualRb);
             
-            // add dot zone component
-            SpiralbowDotZone dotZone = zone.AddComponent<SpiralbowDotZone>();
+            // make visual semi-transparent
+            MeshRenderer visualRenderer = visualCylinder.GetComponent<MeshRenderer>();
+            if (visualRenderer != null)
+            {
+                foreach (var mat in visualRenderer.materials)
+                {
+                    Color col = mat.color;
+                    col.a = 0.3f;
+                    mat.color = col;
+                }
+            }
+            
+            // create invisible hitbox sphere for damage detection
+            GameObject hitbox = new GameObject("SpiralbowZoneHitbox");
+            hitbox.transform.position = position;
+            hitbox.transform.parent = visualCylinder.transform;
+            
+            // add sphere collider as trigger for damage detection
+            SphereCollider sphereCol = hitbox.AddComponent<SphereCollider>();
+            sphereCol.radius = zoneRadius;
+            sphereCol.isTrigger = true;
+            
+            // add rigidbody for proper trigger detection
+            Rigidbody hitboxRb = hitbox.AddComponent<Rigidbody>();
+            hitboxRb.useGravity = false;
+            hitboxRb.isKinematic = true;
+            
+            // add dot zone component to HITBOX (where the collider is), not the visual
+            SpiralbowDotZone dotZone = hitbox.AddComponent<SpiralbowDotZone>();
             dotZone.Initialize(zoneDuration, zoneRadius, damageTickInterval, slowMultiplier, baseDamage, ownerStats, ownerClientId);
             
-            // destroy after duration
-            Destroy(zone, zoneDuration);
+            // destroy the visual cylinder after duration (which also destroys the hitbox child)
+            Destroy(visualCylinder, zoneDuration);
         }
     }
     
@@ -202,7 +265,7 @@ namespace Category5
         private ulong ownerClientId;
         
         private float tickTimer;
-        private HashSet<EnemyBase> enemiesInZone = new HashSet<EnemyBase>();
+        private HashSet<IDamageable> enemiesInZone = new HashSet<IDamageable>();
         
         public void Initialize(float duration, float radius, float tickInterval, float slow, float damage, PlayerStats stats, ulong clientId)
         {
@@ -229,6 +292,18 @@ namespace Category5
         
         private void OnTriggerEnter(Collider other)
         {
+            // check if it's a boss
+            BossBase boss = other.GetComponent<BossBase>();
+            if (boss != null)
+            {
+                if (!enemiesInZone.Contains(boss))
+                {
+                    enemiesInZone.Add(boss);
+                    Debug.Log($"Spiralbow zone hit boss");
+                }
+                return;
+            }
+            
             // check if it's an enemy
             EnemyBase enemy = other.GetComponent<EnemyBase>();
             if (enemy == null)
@@ -239,6 +314,7 @@ namespace Category5
             if (enemy != null && !enemiesInZone.Contains(enemy))
             {
                 enemiesInZone.Add(enemy);
+                Debug.Log($"Spiralbow zone hit enemy");
                 // apply slow
                 enemy.ApplyMovementModifier(slowMultiplier, zoneDuration, $"Spiralbow_{ownerClientId}");
             }
@@ -246,6 +322,15 @@ namespace Category5
         
         private void OnTriggerExit(Collider other)
         {
+            // check if it's a boss
+            BossBase boss = other.GetComponent<BossBase>();
+            if (boss != null)
+            {
+                enemiesInZone.Remove(boss);
+                return;
+            }
+            
+            // check if it's an enemy
             EnemyBase enemy = other.GetComponent<EnemyBase>();
             if (enemy == null)
             {
@@ -263,15 +348,15 @@ namespace Category5
             // remove any destroyed enemies from the set
             enemiesInZone.RemoveWhere(e => e == null);
             
-            foreach (var enemy in enemiesInZone)
+            foreach (IDamageable target in enemiesInZone)
             {
                 // calculate damage with power-up modifiers
                 int finalDamage = ownerStats != null 
                     ? ownerStats.CalculateDamage((int)baseDamage) 
                     : (int)baseDamage;
                 
-                // deal damage
-                enemy.TakeDamage(finalDamage);
+                // deal damage to enemies or bosses
+                target.TakeDamage(finalDamage);
             }
         }
         

@@ -17,7 +17,7 @@ MonoBehaviour:
     through all enemies and walls, only stops on bosses.
   abilityIcon: {fileID: 0}
   cooldownDuration: 30
-  baseDamage: 45
+  baseDamage: 15
   castTime: 0
   manaCost: 0
   vfxPrefab: {fileID: 0}
