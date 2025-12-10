@@ -138,6 +138,13 @@ namespace Category5.Player
                 Category5.UI.UIManager.Instance.RegisterPlayer(this);
             }
             
+            // register with team health ui
+            var teamHealthUI = FindFirstObjectByType<Category5.UI.TeamHealthUI>();
+            if (teamHealthUI != null)
+            {
+                teamHealthUI.OnPlayerSpawned(this);
+            }
+            
             // if this is the local owner, request to set our name on the server
             if (IsOwner)
             {
