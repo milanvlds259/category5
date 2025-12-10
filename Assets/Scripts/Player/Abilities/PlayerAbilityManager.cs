@@ -37,8 +37,8 @@ namespace Category5
         // prevents multiple abilities from executing simultaneously
         public bool IsExecutingAbility { get; private set; }
 
-        // events for ui updates
-        public static event Action<AbilitySlot, float, float> OnCooldownChanged; // slot, current, max
+        // events for ui updates - includes reference to source PlayerAbilityManager so UI can filter
+        public static event Action<PlayerAbilityManager, AbilitySlot, float, float> OnCooldownChanged; // source, slot, current, max
 
         private void Awake()
         {
@@ -251,21 +251,21 @@ namespace Category5
                 return;
             }
             
-            Debug.Log($"  -> Executing ability {slot}");
+            Debug.Log($"  -> Requesting ability {slot} from server");
             
-            // get the ability and check cooldown locally
-            AbilityBase ability = GetAbility(slot);
+            // validate cooldown locally
             NetworkVariable<float> cooldown = GetCooldown(slot);
-            
-            if (ability == null)
-            {
-                Debug.LogWarning($"PlayerAbilityManager: No ability assigned for slot {slot}!");
-                return;
-            }
+            AbilityBase ability = GetAbility(slot);
             
             if (cooldown.Value > 0f)
             {
                 Debug.Log($"  -> Blocked: Ability on cooldown for {cooldown.Value}s more");
+                return;
+            }
+            
+            if (ability == null)
+            {
+                Debug.LogWarning($"PlayerAbilityManager: No ability assigned for slot {slot}!");
                 return;
             }
             
@@ -275,7 +275,7 @@ namespace Category5
                 return;
             }
             
-            // execute locally first - wrap in try-catch to ensure flag is always reset
+            // execute locally on the owner (client has the abilities instantiated)
             IsExecutingAbility = true;
             try
             {
@@ -287,40 +287,30 @@ namespace Category5
             }
             finally
             {
-                IsExecutingAbility = false; // always reset, even if exception occurs
+                IsExecutingAbility = false;
             }
             
-            // start cooldown
-            cooldown.Value = ability.Data.cooldownDuration;
-            
-            // notify ui
-            OnCooldownChanged?.Invoke(slot, cooldown.Value, ability.Data.cooldownDuration);
-            
-            // notify server to sync cooldown state
-            SyncAbilityCooldownServerRpc(slot, cooldown.Value, ability.Data.cooldownDuration);
+            // send request to server to set cooldown on NetworkVariable
+            RequestSetAbilityCooldownServerRpc(slot, ability.Data.cooldownDuration);
         }
-        
-        // removed ResetExecutingAbilityAfterDelay since cooldown prevents spam anyway
 
         [Rpc(SendTo.Server)]
-        private void SyncAbilityCooldownServerRpc(AbilitySlot slot, float current, float max)
+        private void RequestSetAbilityCooldownServerRpc(AbilitySlot slot, float cooldownDuration)
         {
-            // server receives cooldown state and syncs to other clients via NetworkVariable
+            // server finds the correct player's ability manager by OwnerClientId
+            // and sets the cooldown on the NetworkVariable
             NetworkVariable<float> cooldown = GetCooldown(slot);
-            cooldown.Value = current;
+            cooldown.Value = cooldownDuration;
             
-            // notify all clients (including us) about the cooldown change
-            NotifyCooldownChangedClientRpc(slot, current, max);
+            // notify all clients about the cooldown change
+            NotifyCooldownChangedClientRpc(slot, cooldownDuration, cooldownDuration);
         }
 
         [Rpc(SendTo.Everyone)]
         private void NotifyCooldownChangedClientRpc(AbilitySlot slot, float current, float max)
         {
-            // fire event for UI updates (only if not the owner, owner already did this)
-            if (!IsOwner)
-            {
-                OnCooldownChanged?.Invoke(slot, current, max);
-            }
+            // fire event for all clients for UI updates
+            OnCooldownChanged?.Invoke(this, slot, current, max);
         }
 
         private AbilityBase GetAbility(AbilitySlot slot)
@@ -349,5 +339,87 @@ namespace Category5
         public AbilityBase GetAbility1() => ability1;
         public AbilityBase GetAbility2() => ability2;
         public AbilityBase GetAbility3() => ability3;
+
+        [Rpc(SendTo.Server)]
+        public void RequestSpawnNetworkProjectileServerRpc(Vector3 position, Vector3 direction, ulong ownerClientId, float damageMultiplier)
+        {
+            // server spawns a piercing projectile for critshot ability
+            // the RPC is called on the requesting client's PlayerAbilityManager, but we need to
+            // find the OWNER's PlayerAbilityManager to get the abilities
+            
+            Debug.Log($"RequestSpawnNetworkProjectileServerRpc called. Looking for player {ownerClientId}'s abilities");
+            
+            // find the player object that owns this ability by clientId
+            PlayerAbilityManager ownerAbilityManager = FindPlayerAbilityManagerByClientId(ownerClientId);
+            if (ownerAbilityManager == null)
+            {
+                Debug.LogError($"PlayerAbilityManager: Could not find ability manager for client {ownerClientId}!");
+                return;
+            }
+            
+            // now get the ability3 from the OWNER's manager
+            AbilityBase ability3 = ownerAbilityManager.GetAbility3();
+            if (ability3 == null)
+            {
+                Debug.LogError($"PlayerAbilityManager: Ability3 not found on client {ownerClientId}'s manager!");
+                return;
+            }
+            
+            // cast to CritshotAbility to access the projectile data
+            CritshotAbility critshotAbility = ability3 as CritshotAbility;
+            if (critshotAbility == null)
+            {
+                Debug.LogError("PlayerAbilityManager: Ability3 is not CritshotAbility!");
+                return;
+            }
+            
+            ProjectileData arrowData = critshotAbility.GetArrowData();
+            if (arrowData == null)
+            {
+                Debug.LogError("PlayerAbilityManager: CritshotAbility has no arrow data!");
+                return;
+            }
+            
+            // instantiate projectile
+            GameObject projectileObj = Instantiate(arrowData.ProjectilePrefab, position, Quaternion.LookRotation(direction));
+            NetworkObject netObj = projectileObj.GetComponent<NetworkObject>();
+            NetworkedProjectile projectile = projectileObj.GetComponent<NetworkedProjectile>();
+            
+            if (netObj == null || projectile == null)
+            {
+                Debug.LogError("PlayerAbilityManager: Arrow prefab missing NetworkObject or NetworkedProjectile component!");
+                Destroy(projectileObj);
+                return;
+            }
+            
+            // initialize with piercing behavior
+            ProjectileData arrowDataForInit = critshotAbility.GetArrowData();
+            projectile.InitializePiercing(
+                arrowDataForInit,
+                ownerClientId,
+                ownerAbilityManager.playerStats,
+                damageMultiplier,
+                ignoreEnemies: true,
+                ignoreEnvironment: true
+            );
+            
+            // spawn on network
+            netObj.Spawn();
+            
+            Debug.Log($"Critshot fired! Piercing arrow with {damageMultiplier}x damage!");
+        }
+
+        private PlayerAbilityManager FindPlayerAbilityManagerByClientId(ulong clientId)
+        {
+            // search all connected clients for the matching ability manager
+            var connectedClients = NetworkManager.Singleton.ConnectedClients;
+            if (connectedClients.TryGetValue(clientId, out var playerNetworkObject))
+            {
+                return playerNetworkObject.PlayerObject.GetComponent<PlayerAbilityManager>();
+            }
+            
+            Debug.LogError($"PlayerAbilityManager: Could not find connected client {clientId}");
+            return null;
+        }
     }
 }

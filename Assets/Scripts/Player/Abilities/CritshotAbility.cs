@@ -58,13 +58,14 @@ namespace Category5
             // get aim direction from camera
             Vector3 direction = GetAimDirection(spawnPos);
             
-            // spawn piercing arrow
-            SpawnPiercingArrow(spawnPos, direction);
+            // send request to ability manager to spawn piercing arrow on server
+            abilityManager.RequestSpawnNetworkProjectileServerRpc(spawnPos, direction, OwnerClientId, damageMultiplier);
             
-            // play vfx and audio directly (no need for RPC since we're owner)
+            // play vfx and audio directly (client-side)
             SpawnVfx(spawnPos);
             PlayAudio(spawnPos);
         }
+
         
         private Vector3 GetAimDirection(Vector3 spawnPos)
         {
@@ -86,35 +87,9 @@ namespace Category5
                 return (aimRay.GetPoint(maxRange) - spawnPos).normalized;
             }
         }
-        
-        private void SpawnPiercingArrow(Vector3 position, Vector3 direction)
-        {
-            // instantiate projectile
-            GameObject projectileObj = Instantiate(arrowData.ProjectilePrefab, position, Quaternion.LookRotation(direction));
-            NetworkObject netObj = projectileObj.GetComponent<NetworkObject>();
-            NetworkedProjectile projectile = projectileObj.GetComponent<NetworkedProjectile>();
-            
-            if (netObj == null || projectile == null)
-            {
-                Debug.LogError("CritshotAbility: Arrow prefab missing NetworkObject or NetworkedProjectile component!");
-                Destroy(projectileObj);
-                return;
-            }
-            
-            // initialize with piercing behavior
-            projectile.InitializePiercing(
-                arrowData, 
-                OwnerClientId, 
-                playerStats, 
-                damageMultiplier,
-                ignoreEnemies: true, // pierce through all enemies
-                ignoreEnvironment: true // pierce through walls
-            );
-            
-            // spawn on network
-            netObj.Spawn();
-            
-            Debug.Log($"Critshot fired! Piercing arrow with {damageMultiplier}x damage!");
-        }
+
+        // getters for PlayerAbilityManager RPC
+        public ProjectileData GetArrowData() => arrowData;
+        public float GetDamageMultiplier() => damageMultiplier;
     }
 }

@@ -23,22 +23,20 @@ namespace Category5.Player
         
         public override void OnNetworkSpawn()
         {
-            Debug.Log($"PlayerClassManager.OnNetworkSpawn: IsServer={IsServer}, IsOwner={IsOwner}");
+            Debug.Log($"PlayerClassManager.OnNetworkSpawn: IsServer={IsServer}, IsOwner={IsOwner}, SelectedClass={SelectedClass.Value}, OwnerClientId={OwnerClientId}");
             
             // subscribe to class changes
             SelectedClass.OnValueChanged += OnSelectedClassChanged;
             
-            if (IsServer)
+            // each client/owner loads their own player's abilities when they spawn
+            if (IsOwner)
             {
-                // load the default class (or use value synced from client)
-                Debug.Log($"PlayerClassManager: Loading default class {SelectedClass.Value}");
+                Debug.Log($"PlayerClassManager: Owner {OwnerClientId} loading class {SelectedClass.Value}");
                 LoadClassLocally(SelectedClass.Value);
             }
-            else if (IsOwner)
+            else
             {
-                // client sends their selected class to server
-                Debug.Log($"PlayerClassManager: Client requesting class {SelectedClass.Value}");
-                RequestSetClassServerRpc(SelectedClass.Value);
+                Debug.Log($"PlayerClassManager: Non-owner observing player {OwnerClientId} with class {SelectedClass.Value}");
             }
         }
         
@@ -59,10 +57,13 @@ namespace Category5.Player
             SelectedClass.Value = classType;
         }
 
-        // load class and spawn its abilities locally (runs on all instances)
+        // load class and spawn its abilities (for the owner of this player)
         private void LoadClassLocally(PlayerClassType classType)
         {
-            Debug.Log($"PlayerClassManager.LoadClassLocally: Loading class {classType}");
+            // only instantiate for this player's owner (server can own, client can own their own player)
+            if (!IsOwner) return;
+            
+            Debug.Log($"PlayerClassManager.LoadClassLocally: Owner loading class {classType} for player {OwnerClientId}");
             
             PlayerClass classData = GetClassData(classType);
             if (classData == null)
@@ -99,12 +100,6 @@ namespace Category5.Player
                 var abilityObj = Instantiate(classData.ability3Prefab, transform);
                 abilityObj.name = "Ability3";
                 Debug.Log($"PlayerClassManager: Instantiated Ability3");
-            }
-            
-            // set combat class
-            if (playerCombat != null)
-            {
-                // TODO: expose SetCombatClass method in PlayerCombat if needed
             }
             
             // notify ability manager that abilities have been loaded

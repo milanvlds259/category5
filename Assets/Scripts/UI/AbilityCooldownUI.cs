@@ -19,6 +19,8 @@ namespace Category5.UI
         [SerializeField] private GameObject buffIndicator; // shows when quickbow is active
         
         private PlayerAbilityManager abilityManager;
+        private int _retryCount = 0;
+        private int _maxRetries = 5;
         
         private void Start()
         {
@@ -52,24 +54,43 @@ namespace Category5.UI
         
         private void FindLocalPlayerAbilityManager()
         {
-            // wait a frame for players to spawn
+            // wait a frame for players to spawn with retry logic for host initialization timing issues
             Invoke(nameof(FindLocalPlayerAbilityManagerDelayed), 0.5f);
         }
         
         private void FindLocalPlayerAbilityManagerDelayed()
         {
             var players = FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
+            Debug.Log($"[AbilityCooldownUI] FindLocalPlayerAbilityManagerDelayed attempt {_retryCount + 1}: Found {players.Length} players");
+            
             foreach (var player in players)
             {
+                Debug.Log($"[AbilityCooldownUI] Checking player {player.gameObject.name}: IsOwner={player.IsOwner}, HasAbilityManager={player.GetComponent<PlayerAbilityManager>() != null}");
+                
                 if (player.IsOwner)
                 {
                     abilityManager = player.GetComponent<PlayerAbilityManager>();
                     if (abilityManager != null)
                     {
+                        Debug.Log($"[AbilityCooldownUI] Found local player ability manager on attempt {_retryCount + 1}");
                         InitializeSlots();
-                        break;
+                        _retryCount = 0;
+                        return;
                     }
                 }
+            }
+            
+            // retry if not found (helps with host initialization timing)
+            _retryCount++;
+            if (_retryCount < _maxRetries)
+            {
+                Debug.Log($"[AbilityCooldownUI] Ability manager not found, retrying... ({_retryCount}/{_maxRetries})");
+                Invoke(nameof(FindLocalPlayerAbilityManagerDelayed), 0.3f);
+            }
+            else
+            {
+                Debug.LogWarning("[AbilityCooldownUI] Could not find local player ability manager after max retries!");
+                _retryCount = 0;
             }
         }
         
@@ -98,14 +119,21 @@ namespace Category5.UI
             }
         }
         
-        private void HandleCooldownChanged(AbilitySlot slot, float current, float max)
+        private void HandleCooldownChanged(PlayerAbilityManager source, AbilitySlot slot, float current, float max)
         {
-            Debug.Log($"[AbilityCooldownUI] HandleCooldownChanged: slot={slot}, current={current}, max={max}");
+            Debug.Log($"[AbilityCooldownUI] HandleCooldownChanged: source={source.gameObject.name}, slot={slot}, current={current}, max={max}");
             
-            // only update if this is for our local player
+            // only update if this is for OUR local player's ability manager
             if (abilityManager == null)
             {
                 Debug.LogWarning("[AbilityCooldownUI] abilityManager is null!");
+                return;
+            }
+            
+            // filter: only handle events from our ability manager
+            if (source != abilityManager)
+            {
+                Debug.Log($"[AbilityCooldownUI] Ignoring cooldown change from different player");
                 return;
             }
             
