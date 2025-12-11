@@ -23,6 +23,9 @@ namespace Category5
         [SerializeField] private AbilityBase ability1; // Q
         [SerializeField] private AbilityBase ability2; // E
         [SerializeField] private AbilityBase ability3; // R (ultimate)
+        
+        [Header("Critshot Projectile Data")]
+        [SerializeField] private ProjectileData critshotArrowData;
 
         [Header("Cooldown Tracking")]
         public NetworkVariable<float> ability1Cooldown = new NetworkVariable<float>(0f);
@@ -341,47 +344,31 @@ namespace Category5
         public AbilityBase GetAbility3() => ability3;
 
         [Rpc(SendTo.Server)]
-        public void RequestSpawnNetworkProjectileServerRpc(Vector3 position, Vector3 direction, ulong ownerClientId, float damageMultiplier)
+        public void RequestSpawnNetworkProjectileServerRpc(Vector3 position, Vector3 direction, float damageMultiplier)
         {
             // server spawns a piercing projectile for critshot ability
-            // the RPC is called on the requesting client's PlayerAbilityManager, but we need to
-            // find the OWNER's PlayerAbilityManager to get the abilities
+            // reads ownerClientId from OwnerClientId (this RPC executes in the context of the calling player's ability manager)
             
-            Debug.Log($"RequestSpawnNetworkProjectileServerRpc called. Looking for player {ownerClientId}'s abilities");
-            
-            // find the player object that owns this ability by clientId
-            PlayerAbilityManager ownerAbilityManager = FindPlayerAbilityManagerByClientId(ownerClientId);
-            if (ownerAbilityManager == null)
+            if (critshotArrowData == null)
             {
-                Debug.LogError($"PlayerAbilityManager: Could not find ability manager for client {ownerClientId}!");
+                Debug.LogError("PlayerAbilityManager: critshotArrowData is not assigned!");
                 return;
             }
             
-            // now get the ability3 from the OWNER's manager
-            AbilityBase ability3 = ownerAbilityManager.GetAbility3();
-            if (ability3 == null)
+            if (critshotArrowData.ProjectilePrefab == null)
             {
-                Debug.LogError($"PlayerAbilityManager: Ability3 not found on client {ownerClientId}'s manager!");
+                Debug.LogError("PlayerAbilityManager: ProjectilePrefab is null!");
                 return;
             }
             
-            // cast to CritshotAbility to access the projectile data
-            CritshotAbility critshotAbility = ability3 as CritshotAbility;
-            if (critshotAbility == null)
+            if (playerStats == null)
             {
-                Debug.LogError("PlayerAbilityManager: Ability3 is not CritshotAbility!");
-                return;
-            }
-            
-            ProjectileData arrowData = critshotAbility.GetArrowData();
-            if (arrowData == null)
-            {
-                Debug.LogError("PlayerAbilityManager: CritshotAbility has no arrow data!");
+                Debug.LogError("PlayerAbilityManager: playerStats is null!");
                 return;
             }
             
             // instantiate projectile
-            GameObject projectileObj = Instantiate(arrowData.ProjectilePrefab, position, Quaternion.LookRotation(direction));
+            GameObject projectileObj = Instantiate(critshotArrowData.ProjectilePrefab, position, Quaternion.LookRotation(direction));
             NetworkObject netObj = projectileObj.GetComponent<NetworkObject>();
             NetworkedProjectile projectile = projectileObj.GetComponent<NetworkedProjectile>();
             
@@ -392,12 +379,11 @@ namespace Category5
                 return;
             }
             
-            // initialize with piercing behavior
-            ProjectileData arrowDataForInit = critshotAbility.GetArrowData();
+            // initialize with piercing behavior using OwnerClientId from this manager's context
             projectile.InitializePiercing(
-                arrowDataForInit,
-                ownerClientId,
-                ownerAbilityManager.playerStats,
+                critshotArrowData,
+                OwnerClientId,
+                playerStats,
                 damageMultiplier,
                 ignoreEnemies: true,
                 ignoreEnvironment: true
@@ -406,20 +392,8 @@ namespace Category5
             // spawn on network
             netObj.Spawn();
             
-            Debug.Log($"Critshot fired! Piercing arrow with {damageMultiplier}x damage!");
+            Debug.Log($"Critshot fired for client {OwnerClientId}! Piercing arrow with {damageMultiplier}x damage!");
         }
 
-        private PlayerAbilityManager FindPlayerAbilityManagerByClientId(ulong clientId)
-        {
-            // search all connected clients for the matching ability manager
-            var connectedClients = NetworkManager.Singleton.ConnectedClients;
-            if (connectedClients.TryGetValue(clientId, out var playerNetworkObject))
-            {
-                return playerNetworkObject.PlayerObject.GetComponent<PlayerAbilityManager>();
-            }
-            
-            Debug.LogError($"PlayerAbilityManager: Could not find connected client {clientId}");
-            return null;
-        }
     }
 }

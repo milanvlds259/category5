@@ -59,7 +59,8 @@ namespace Category5
             Vector3 direction = GetAimDirection(spawnPos);
             
             // send request to ability manager to spawn piercing arrow on server
-            abilityManager.RequestSpawnNetworkProjectileServerRpc(spawnPos, direction, OwnerClientId, damageMultiplier);
+            // pass all necessary data directly to avoid dependency on ability state
+            abilityManager.RequestSpawnNetworkProjectileServerRpc(spawnPos, direction, damageMultiplier);
             
             // play vfx and audio directly (client-side)
             SpawnVfx(spawnPos);

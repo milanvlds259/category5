@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using Unity.Netcode;
 using Category5.Core;
 using Category5.PowerUps;
@@ -274,13 +274,7 @@ namespace Category5.Player
         [ClientRpc]
         private void ShowDamageNumberClientRpc(int damageAmount, Vector3 position, ClientRpcParams clientRpcParams = default)
         {
-            // only show damage number on the client who owns this projectile
-            if (NetworkManager.Singleton.LocalClientId != _ownerClientId)
-            {
-                Debug.Log($"[NetworkedProjectile] Ignoring damage number RPC on client {NetworkManager.Singleton.LocalClientId}, owner is {_ownerClientId}");
-                return;
-            }
-            
+            // RPC with TargetClientIds already ensures this only runs on the intended client
             if (Category5.UI.UIManager.Instance != null)
             {
                 Category5.UI.UIManager.Instance.ShowDamageNumber(damageAmount, position);
