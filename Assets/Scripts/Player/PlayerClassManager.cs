@@ -11,11 +11,6 @@ namespace Category5.Player
         [Header("Class Selection")]
         public NetworkVariable<PlayerClassType> SelectedClass = new NetworkVariable<PlayerClassType>(PlayerClassType.Ranger);
         
-        [SerializeField] private PlayerClass[] availableClasses = new PlayerClass[5]; // one for each class type
-        
-        // static reference to the player class definitions for UI access (any player has the same class data)
-        private static PlayerClass[] _staticAvailableClasses;
-        
         private PlayerAbilityManager abilityManager;
         private PlayerCombat playerCombat;
         
@@ -23,12 +18,6 @@ namespace Category5.Player
         {
             abilityManager = GetComponent<PlayerAbilityManager>();
             playerCombat = GetComponent<PlayerCombat>();
-            
-            // cache the available classes for static access (all players use the same class definitions)
-            if (_staticAvailableClasses == null || _staticAvailableClasses.Length == 0)
-            {
-                _staticAvailableClasses = availableClasses;
-            }
         }
         
         public override void OnNetworkSpawn()
@@ -147,19 +136,22 @@ namespace Category5.Player
         
         private PlayerClass GetClassData(PlayerClassType classType)
         {
-            // search for the class by matching classType enum, not by array index
-            // this is safer and doesn't require array ordering to match enum order
-            foreach (var classData in availableClasses)
+            // get class definition from the registry (single source of truth)
+            if (ClassRegistry.Instance == null)
             {
-                if (classData != null && classData.classType == classType)
-                {
-                    Debug.Log($"PlayerClassManager.GetClassData: Found {classType} -> {classData.className}");
-                    return classData;
-                }
+                Debug.LogError("PlayerClassManager.GetClassData: ClassRegistry not found!");
+                return null;
             }
             
-            Debug.LogError($"PlayerClassManager.GetClassData: No class data found for {classType}!");
-            return null;
+            PlayerClass classData = ClassRegistry.Instance.GetClass(classType);
+            if (classData == null)
+            {
+                Debug.LogError($"PlayerClassManager.GetClassData: No class data found for {classType}!");
+                return null;
+            }
+            
+            Debug.Log($"PlayerClassManager.GetClassData: Found {classType} -> {classData.className}");
+            return classData;
         }
         
         // public method to set class (call before spawning or during lobby)
@@ -171,12 +163,6 @@ namespace Category5.Player
         public PlayerClassType GetSelectedClass()
         {
             return SelectedClass.Value;
-        }
-        
-        // static method to get available classes for UI (doesn't require a player instance)
-        public static PlayerClass[] GetAvailableClassesStatic()
-        {
-            return _staticAvailableClasses;
         }
     }
 }

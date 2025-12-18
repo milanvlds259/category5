@@ -5664,6 +5664,56 @@ Transform:
   m_Children: []
   m_Father: {fileID: 2027999372}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1100111624
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1100111626}
+  - component: {fileID: 1100111625}
+  m_Layer: 0
+  m_Name: ClassRegistry (BACKUP)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1100111625
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1100111624}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60a3fb21bf83458499f2432becbec6f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Core.ClassRegistry
+  availableClasses:
+  - {fileID: 11400000, guid: 4031365e67c9a1342b642c0e229c004a, type: 2}
+  - {fileID: 11400000, guid: d0bf17c0eadd40a4e9701be026247c41, type: 2}
+  - {fileID: 11400000, guid: 9b367dd7810d9154791130879fac4fa7, type: 2}
+  - {fileID: 11400000, guid: 8ab7e8aa71bf6e140a71e7cac1e2e8dc, type: 2}
+  - {fileID: 11400000, guid: ec38eb8764ff7c744aa59805cd5da5d6, type: 2}
+--- !u!4 &1100111626
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1100111624}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 594.2539, y: 65.77148, z: -4.07908}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1101738287
 GameObject:
   m_ObjectHideFlags: 0
@@ -11095,3 +11145,4 @@ SceneRoots:
   - {fileID: 1442587501}
   - {fileID: 1992212931}
   - {fileID: 2027999372}
+  - {fileID: 1100111626}

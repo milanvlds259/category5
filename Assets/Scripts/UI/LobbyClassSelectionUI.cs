@@ -74,14 +74,20 @@ namespace Category5.UI
         {
             if (classDropdown == null) return;
             
+            if (ClassRegistry.Instance == null)
+            {
+                Debug.LogError("LobbyClassSelectionUI: ClassRegistry not found! Make sure it's in the scene.");
+                return;
+            }
+            
             classDropdown.ClearOptions();
             
-            // get all available classes (static, doesn't require player instance)
-            var classes = PlayerClassManager.GetAvailableClassesStatic();
+            // get all available classes from ClassRegistry (single source of truth)
+            var classes = ClassRegistry.Instance.GetAllClasses();
             
             if (classes == null || classes.Length == 0)
             {
-                Debug.LogError("LobbyClassSelectionUI: No available classes found!");
+                Debug.LogError("LobbyClassSelectionUI: No available classes found in ClassRegistry!");
                 return;
             }
             
@@ -94,6 +100,7 @@ namespace Category5.UI
             }
             
             classDropdown.RefreshShownValue();
+            Debug.Log($"LobbyClassSelectionUI: Populated dropdown with {classDropdown.options.Count} classes");
         }
         
         private void UpdateDropdownToCurrentSelection()
