@@ -1,6 +1,7 @@
 using Unity.Netcode;
 using UnityEngine;
 using Category5.PowerUps;
+using Category5.Core;
 
 namespace Category5.Player
 {
@@ -12,6 +13,9 @@ namespace Category5.Player
         
         [SerializeField] private PlayerClass[] availableClasses = new PlayerClass[5]; // one for each class type
         
+        // static reference to the player class definitions for UI access (any player has the same class data)
+        private static PlayerClass[] _staticAvailableClasses;
+        
         private PlayerAbilityManager abilityManager;
         private PlayerCombat playerCombat;
         
@@ -19,6 +23,12 @@ namespace Category5.Player
         {
             abilityManager = GetComponent<PlayerAbilityManager>();
             playerCombat = GetComponent<PlayerCombat>();
+            
+            // cache the available classes for static access (all players use the same class definitions)
+            if (_staticAvailableClasses == null || _staticAvailableClasses.Length == 0)
+            {
+                _staticAvailableClasses = availableClasses;
+            }
         }
         
         public override void OnNetworkSpawn()
@@ -28,11 +38,27 @@ namespace Category5.Player
             // subscribe to class changes
             SelectedClass.OnValueChanged += OnSelectedClassChanged;
             
-            // each client/owner loads their own player's abilities when they spawn
+            // if owner, try to get the class selection from the lobby
             if (IsOwner)
             {
-                Debug.Log($"PlayerClassManager: Owner {OwnerClientId} loading class {SelectedClass.Value}");
-                LoadClassLocally(SelectedClass.Value);
+                PlayerClassType classToLoad = SelectedClass.Value;
+                
+                // check if LobbyManager has a selected class for this player
+                if (LobbyManager.Instance != null)
+                {
+                    PlayerClassType lobbySelectedClass = LobbyManager.Instance.GetPlayerClass(OwnerClientId);
+                    Debug.Log($"PlayerClassManager: Found lobby selection {lobbySelectedClass} for player {OwnerClientId}");
+                    classToLoad = lobbySelectedClass;
+                    
+                    // request server to set the class from lobby
+                    RequestSetClassServerRpc(classToLoad);
+                }
+                else
+                {
+                    Debug.Log($"PlayerClassManager: LobbyManager not found, using current class {SelectedClass.Value}");
+                }
+                
+                Debug.Log($"PlayerClassManager: Owner {OwnerClientId} loading class {classToLoad}");
             }
             else
             {
@@ -145,6 +171,12 @@ namespace Category5.Player
         public PlayerClassType GetSelectedClass()
         {
             return SelectedClass.Value;
+        }
+        
+        // static method to get available classes for UI (doesn't require a player instance)
+        public static PlayerClass[] GetAvailableClassesStatic()
+        {
+            return _staticAvailableClasses;
         }
     }
 }

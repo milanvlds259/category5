@@ -34,6 +34,7 @@ namespace Category5.UI
         [SerializeField] private TextMeshProUGUI playerCountText;
         [SerializeField] private Transform playerListContainer; // parent for player entries
         [SerializeField] private LobbyPlayerEntry playerEntryPrefab; // prefab for each player entry
+        [SerializeField] private LobbyClassSelectionUI classSelectionUI; // class selection dropdown
         
         [Header("status display")]
         [SerializeField] private TextMeshProUGUI statusText;
@@ -639,6 +640,12 @@ namespace Category5.UI
                 LobbyManager.Instance.Cleanup();
             }
             
+            // hide class selection
+            if (classSelectionUI != null)
+            {
+                classSelectionUI.HideSelection();
+            }
+            
             // clear player list
             ClearPlayerList();
             
@@ -711,6 +718,13 @@ namespace Category5.UI
             if (lobbyPanel != null)
             {
                 lobbyPanel.SetActive(true);
+            }
+            
+            // initialize and show class selection UI
+            if (classSelectionUI != null)
+            {
+                classSelectionUI.Initialize();
+                classSelectionUI.ShowSelection();
             }
             
             // only the host can start the game

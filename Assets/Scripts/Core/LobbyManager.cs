@@ -3,6 +3,7 @@ using Unity.Netcode;
 using Unity.Collections;
 using System;
 using System.Collections.Generic;
+using Category5.Player;
 
 namespace Category5.Core
 {
@@ -12,12 +13,14 @@ namespace Category5.Core
         public ulong ClientId;
         public FixedString64Bytes PlayerName;
         public bool IsHost;
+        public PlayerClassType SelectedClass;
         
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             serializer.SerializeValue(ref ClientId);
             serializer.SerializeValue(ref PlayerName);
             serializer.SerializeValue(ref IsHost);
+            serializer.SerializeValue(ref SelectedClass);
         }
         
         public bool Equals(LobbyPlayerData other)
@@ -51,6 +54,7 @@ namespace Category5.Core
         
         // custom message names
         private const string MSG_PLAYER_NAME = "LobbyPlayerName";
+        private const string MSG_PLAYER_CLASS = "LobbyPlayerClass";
         private const string MSG_PLAYER_LIST = "LobbyPlayerList";
         private const string MSG_PLAYER_LEFT = "LobbyPlayerLeft";
         
@@ -86,6 +90,7 @@ namespace Category5.Core
             
             // register custom message handlers
             NetworkManager.Singleton.CustomMessagingManager.RegisterNamedMessageHandler(MSG_PLAYER_NAME, OnPlayerNameReceived);
+            NetworkManager.Singleton.CustomMessagingManager.RegisterNamedMessageHandler(MSG_PLAYER_CLASS, OnPlayerClassReceived);
             NetworkManager.Singleton.CustomMessagingManager.RegisterNamedMessageHandler(MSG_PLAYER_LIST, OnPlayerListReceived);
             NetworkManager.Singleton.CustomMessagingManager.RegisterNamedMessageHandler(MSG_PLAYER_LEFT, OnPlayerLeftReceived);
             
@@ -97,8 +102,8 @@ namespace Category5.Core
             
             if (NetworkManager.Singleton.IsServer)
             {
-                // host adds themselves immediately
-                AddPlayer(NetworkManager.Singleton.LocalClientId, PlayerNameManager.Instance?.GetDisplayName() ?? "Host", true);
+                // host adds themselves immediately with ranger as default class
+                AddPlayer(NetworkManager.Singleton.LocalClientId, PlayerNameManager.Instance?.GetDisplayName() ?? "Host", true, PlayerClassType.Ranger);
             }
             
             Debug.Log("LobbyManager: Initialized");
@@ -112,6 +117,7 @@ namespace Category5.Core
             if (NetworkManager.Singleton != null)
             {
                 NetworkManager.Singleton.CustomMessagingManager?.UnregisterNamedMessageHandler(MSG_PLAYER_NAME);
+                NetworkManager.Singleton.CustomMessagingManager?.UnregisterNamedMessageHandler(MSG_PLAYER_CLASS);
                 NetworkManager.Singleton.CustomMessagingManager?.UnregisterNamedMessageHandler(MSG_PLAYER_LIST);
                 NetworkManager.Singleton.CustomMessagingManager?.UnregisterNamedMessageHandler(MSG_PLAYER_LEFT);
                 
@@ -281,7 +287,7 @@ namespace Category5.Core
             OnLobbyPlayersChanged?.Invoke();
         }
         
-        private void AddPlayer(ulong clientId, string playerName, bool isHost)
+        private void AddPlayer(ulong clientId, string playerName, bool isHost, PlayerClassType selectedClass = PlayerClassType.Ranger)
         {
             // check if already exists
             foreach (var p in _lobbyPlayers)
@@ -293,11 +299,12 @@ namespace Category5.Core
             {
                 ClientId = clientId,
                 PlayerName = new FixedString64Bytes(playerName),
-                IsHost = isHost
+                IsHost = isHost,
+                SelectedClass = selectedClass
             };
             
             _lobbyPlayers.Add(player);
-            Debug.Log($"LobbyManager: Added player '{playerName}' (client {clientId}, host: {isHost})");
+            Debug.Log($"LobbyManager: Added player '{playerName}' (client {clientId}, host: {isHost}, class: {selectedClass})");
             
             OnLobbyPlayersChanged?.Invoke();
         }
@@ -325,6 +332,88 @@ namespace Category5.Core
                 }
             }
             return $"Player {clientId}";
+        }
+        
+        // get a player's selected class by client id
+        public PlayerClassType GetPlayerClass(ulong clientId)
+        {
+            foreach (var p in _lobbyPlayers)
+            {
+                if (p.ClientId == clientId)
+                {
+                    return p.SelectedClass;
+                }
+            }
+            return PlayerClassType.Ranger; // default fallback
+        }
+        
+        // client sends their selected class to server
+        public void SendLocalPlayerClass(PlayerClassType classType)
+        {
+            if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsClient) return;
+            if (NetworkManager.Singleton.IsServer) return; // host updates directly
+            
+            using var writer = new FastBufferWriter(16, Allocator.Temp);
+            writer.WriteValueSafe((int)classType);
+            
+            NetworkManager.Singleton.CustomMessagingManager.SendNamedMessage(
+                MSG_PLAYER_CLASS,
+                NetworkManager.ServerClientId,
+                writer
+            );
+            
+            Debug.Log($"LobbyManager: Sent class selection '{classType}' to server");
+        }
+        
+        // host sets their own class directly
+        public void SetHostPlayerClass(PlayerClassType classType)
+        {
+            if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsServer) return;
+            
+            // update local list
+            for (int i = 0; i < _lobbyPlayers.Count; i++)
+            {
+                if (_lobbyPlayers[i].ClientId == NetworkManager.Singleton.LocalClientId)
+                {
+                    var player = _lobbyPlayers[i];
+                    player.SelectedClass = classType;
+                    _lobbyPlayers[i] = player;
+                    
+                    Debug.Log($"LobbyManager: Host set class to {classType}");
+                    OnLobbyPlayersChanged?.Invoke();
+                    
+                    // broadcast to all clients
+                    BroadcastPlayerList();
+                    break;
+                }
+            }
+        }
+        
+        // server receives class selection from client
+        private void OnPlayerClassReceived(ulong senderClientId, FastBufferReader reader)
+        {
+            if (!NetworkManager.Singleton.IsServer) return;
+            
+            reader.ReadValueSafe(out int classInt);
+            PlayerClassType classType = (PlayerClassType)classInt;
+            
+            // update player's class
+            for (int i = 0; i < _lobbyPlayers.Count; i++)
+            {
+                if (_lobbyPlayers[i].ClientId == senderClientId)
+                {
+                    var player = _lobbyPlayers[i];
+                    player.SelectedClass = classType;
+                    _lobbyPlayers[i] = player;
+                    
+                    Debug.Log($"LobbyManager: Player {senderClientId} selected class {classType}");
+                    OnLobbyPlayersChanged?.Invoke();
+                    
+                    // broadcast updated list to all clients
+                    BroadcastPlayerList();
+                    break;
+                }
+            }
         }
     }
 }
