@@ -356,8 +356,8 @@ namespace Category5.Enemies
         
         protected virtual void OnIdleUpdate()
         {
-            // check for target
-            if (currentTarget != null && GetDistanceToTarget() <= detectionRange)
+            // check for target using effective target (respects taunt)
+            if (GetEffectiveTarget() != null && GetDistanceToTarget() <= detectionRange)
             {
                 TransitionToChase();
             }
@@ -365,12 +365,16 @@ namespace Category5.Enemies
         
         protected virtual void OnChaseUpdate()
         {
-            if (currentTarget == null)
+            Transform effectiveTarget = GetEffectiveTarget();
+            
+            if (effectiveTarget == null)
             {
                 TransitionToIdle();
                 return;
             }
             
+            // update currentTarget to effective target for distance calculations
+            currentTarget = effectiveTarget;
             float distance = GetDistanceToTarget();
             
             // check leash range
@@ -558,6 +562,15 @@ namespace Category5.Enemies
             direction.y = 0f;
             return direction.normalized;
         }
+        
+        // get effective target (respects taunt from abilities)
+        // this method can be overridden by concrete enemies or used by the state machine
+        protected virtual Transform GetEffectiveTarget()
+        {
+            // by default return currentTarget
+            // BasicEnemy (ICanBeTaunted) will override to check taunt state
+            return currentTarget;
+        }
 
         // ground check helper (mirrors PlayerController's ground check)
         protected void UpdateGroundCheck()
@@ -706,6 +719,35 @@ namespace Category5.Enemies
             if (CurrentHealth.Value <= 0)
             {
                 Die();
+            }
+        }
+        
+        // apply a stun from an ability (overrides current state)
+        public virtual void ApplyStun(float stunDuration)
+        {
+            if (!IsServer) return;
+            if (_isDead) return;
+            
+            CurrentState.Value = EnemyState.Stagger;
+            stateTimer = stunDuration;
+        }
+        
+        // check if this enemy is dead
+        public bool IsDead => _isDead;
+        
+        // apply knockback to the enemy (used by grappling hook ability)
+        public virtual void ApplyKnockback(Vector3 knockbackForce)
+        {
+            if (!IsServer) return;
+            
+            // apply the knockback
+            if (TryGetComponent<CharacterController>(out var cc))
+            {
+                cc.Move(knockbackForce * Time.deltaTime);
+            }
+            else if (TryGetComponent<Rigidbody>(out var rb))
+            {
+                rb.linearVelocity += knockbackForce;
             }
         }
         

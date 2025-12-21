@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
+using System;
 
 namespace Category5.PowerUps
 {
@@ -156,6 +157,47 @@ namespace Category5.PowerUps
         {
             if (!IsServer) return;
             acquiredPowerUpIds.Clear();
+        }
+        
+        // apply a temporary stat multiplier (used by abilities like Fighter R)
+        private Dictionary<string, (float multiplier, float remaining)> _temporaryMultipliers = new Dictionary<string, (float, float)>();
+        
+        public void ApplyTemporaryMultiplier(string statName, float bonusMultiplier, float duration)
+        {
+            _temporaryMultipliers[statName] = (bonusMultiplier, duration);
+        }
+        
+        private void Update()
+        {
+            if (!IsSpawned) return;
+            
+            // update temporary multipliers
+            var keys = new List<string>(_temporaryMultipliers.Keys);
+            foreach (var key in keys)
+            {
+                var (multiplier, remaining) = _temporaryMultipliers[key];
+                remaining -= Time.deltaTime;
+                
+                if (remaining <= 0)
+                {
+                    _temporaryMultipliers.Remove(key);
+                }
+                else
+                {
+                    _temporaryMultipliers[key] = (multiplier, remaining);
+                }
+            }
+        }
+        
+        // get effective damage multiplier including temporary boosts
+        public float GetEffectiveDamageMultiplier()
+        {
+            float effective = _damageMultiplier;
+            if (_temporaryMultipliers.TryGetValue("damage", out var boost))
+            {
+                effective += boost.multiplier;
+            }
+            return effective;
         }
     }
 }
