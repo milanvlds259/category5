@@ -96,10 +96,11 @@ namespace Category5
                 Debug.Log($"  - Child: {child.name}, Components: {string.Join(", ", child.GetComponents<Component>().Select(c => c.GetType().Name))}");
             }
             
-            // try to find them if not already assigned
-            if (ability1 == null) ability1 = GetComponentInChildren<QuickbowAbility>();
-            if (ability2 == null) ability2 = GetComponentInChildren<SpiralbowAbility>();
-            if (ability3 == null) ability3 = GetComponentInChildren<CritshotAbility>();
+            // find abilities by name (set by PlayerClassManager: "Ability1", "Ability2", "Ability3")
+            // this approach is generic and works with any class system
+            if (ability1 == null) ability1 = FindAbilityBySlotName("Ability1");
+            if (ability2 == null) ability2 = FindAbilityBySlotName("Ability2");
+            if (ability3 == null) ability3 = FindAbilityBySlotName("Ability3");
             
             Debug.Log($"PlayerAbilityManager.AttemptToFindAbilities: Found abilities - Q:{ability1 != null}, E:{ability2 != null}, R:{ability3 != null}");
             
@@ -112,6 +113,30 @@ namespace Category5
                     ability.Initialize(playerController, playerStats, this);
                 }
             }
+        }
+        
+        // find an ability by its slot name (generic approach, works with any class)
+        private AbilityBase FindAbilityBySlotName(string slotName)
+        {
+            foreach (Transform child in transform)
+            {
+                if (child.name == slotName)
+                {
+                    var ability = child.GetComponent<AbilityBase>();
+                    if (ability != null)
+                    {
+                        Debug.Log($"PlayerAbilityManager.FindAbilityBySlotName: Found {slotName} with component {ability.GetType().Name}");
+                        return ability;
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"PlayerAbilityManager.FindAbilityBySlotName: Found child '{slotName}' but it has no AbilityBase component!");
+                    }
+                }
+            }
+            
+            Debug.LogWarning($"PlayerAbilityManager.FindAbilityBySlotName: Could not find ability slot '{slotName}'");
+            return null;
         }
 
         private void SubscribeToInputActions()

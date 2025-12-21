@@ -48,6 +48,7 @@ namespace Category5.Player
                 }
                 
                 Debug.Log($"PlayerClassManager: Owner {OwnerClientId} loading class {classToLoad}");
+                LoadClassLocally(classToLoad);
             }
             else
             {
