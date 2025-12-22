@@ -13,7 +13,6 @@ namespace Category5
     {
         [SerializeField] private GameObject hookProjectilePrefab;
         [SerializeField] private float grapplePullForce = 15f;
-        [SerializeField] private Transform projectileSpawnPoint;
         
         private bool isGrappling;
         private float grappleTimer;
@@ -43,8 +42,8 @@ namespace Category5
         {
             if (!CanUse()) return;
             
-            // fire hook from spawn point (or player position if not set)
-            Vector3 spawnPos = projectileSpawnPoint != null ? projectileSpawnPoint.position : playerController.transform.position;
+            // fire hook from player position
+            Vector3 spawnPos = playerController.transform.position;
             Vector3 fireDirection = playerController.GetAimDirection();
             
             FireHookServerRpc(spawnPos, fireDirection);

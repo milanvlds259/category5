@@ -741,10 +741,10 @@ namespace Category5.Player
         // apply knockback to the player (used by abilities like grappling hook)
         public void ApplyKnockback(Vector3 knockbackForce)
         {
-            if (characterController == null) return;
+            if (_controller == null) return;
             
             // apply the knockback
-            characterController.Move(knockbackForce * Time.deltaTime);
+            _controller.Move(knockbackForce * Time.deltaTime);
         }
 
         private void OnDrawGizmosSelected()
