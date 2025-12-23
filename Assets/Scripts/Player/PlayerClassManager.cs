@@ -27,7 +27,7 @@ namespace Category5.Player
             // subscribe to class changes
             SelectedClass.OnValueChanged += OnSelectedClassChanged;
             
-            // if owner, try to get the class selection from the lobby
+            // if owner, try to get the class selection from the lobby or persistent selection
             if (IsOwner)
             {
                 PlayerClassType classToLoad = SelectedClass.Value;
@@ -44,7 +44,13 @@ namespace Category5.Player
                 }
                 else
                 {
-                    Debug.Log($"PlayerClassManager: LobbyManager not found, using current class {SelectedClass.Value}");
+                    // LobbyManager is gone (cleaned up during scene load), use persistent ClassSelectionManager
+                    PlayerClassType persistentClass = ClassSelectionManager.GetClass();
+                    Debug.Log($"PlayerClassManager: LobbyManager not found, using persistent ClassSelectionManager: {persistentClass}");
+                    classToLoad = persistentClass;
+                    
+                    // request server to set the class
+                    RequestSetClassServerRpc(classToLoad);
                 }
                 
                 Debug.Log($"PlayerClassManager: Owner {OwnerClientId} loading class {classToLoad}");

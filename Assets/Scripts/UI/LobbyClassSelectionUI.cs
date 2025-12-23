@@ -123,6 +123,9 @@ namespace Category5.UI
             
             PlayerClassType selectedClass = (PlayerClassType)index;
             
+            // save to persistent ClassSelectionManager (creates it if needed)
+            ClassSelectionManager.SetClass(selectedClass);
+            
             // send to server
             if (NetworkManager.Singleton.IsServer)
             {

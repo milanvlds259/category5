@@ -72,7 +72,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.FighterR
   ShowTopMostFoldoutHeaderGroup: 1
   abilityData: {fileID: 11400000, guid: a8b39f299685d884c9d460bc3cc3675e, type: 2}
-  tauntAuraPrefab: {fileID: 0}
+  tauntAuraPrefab: {fileID: 53412344211962831, guid: 8232dc4d3377cc34da50e4598d21bd38, type: 3}
   auraDuration: 10
   damageBoost: 0.5
   speedBoost: 0.4

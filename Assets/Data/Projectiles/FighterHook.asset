@@ -10,22 +10,22 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e11b2e2571d430647bd885838e4d6511, type: 3}
-  m_Name: Arrow
+  m_Name: FighterHook
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.ProjectileData
-  projectilePrefab: {fileID: 773458864881063007, guid: 0400c2597c8e3294684fcc2971317ae6, type: 3}
-  speed: 40
-  damage: 8
+  projectilePrefab: {fileID: 773458864881063007, guid: 16d5e15a2b6bce74a8718b4eb5153e4c, type: 3}
+  speed: 25
+  damage: 5
   lifetime: 5
   trailVfxPrefab: {fileID: 0}
   impactVfxPrefab: {fileID: 0}
   fireSound: {fileID: 0}
   impactSound: {fileID: 0}
-  maxChargeTime: 1
-  maxDamageMultiplier: 3
-  maxSpeedMultiplier: 3
-  chargeMovementSpeedMultiplier: 0.33
-  baseAimRange: 200
-  chargedAimRangeBonus: 100
+  maxChargeTime: 0
+  maxDamageMultiplier: 1
+  maxSpeedMultiplier: 1
+  chargeMovementSpeedMultiplier: 1
+  baseAimRange: 100
+  chargedAimRangeBonus: 50
   spawnForwardOffset: 0.15
   aimLayers:
     serializedVersion: 2
