@@ -83,6 +83,13 @@ namespace Category5.Player
             ? arrowData.ChargeMovementSpeedMultiplier 
             : 0.5f;
         
+        // set combat class based on loaded player class
+        public void SetCombatClass(CombatClass newCombatClass)
+        {
+            combatClass = newCombatClass;
+            Debug.Log($"PlayerCombat: Combat class set to {combatClass}");
+        }
+        
         // static events for vfx/sfx to hook into
         public static event Action<Vector3> OnChargeStarted;
         public static event Action<float, Vector3> OnChargeProgress;

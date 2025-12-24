@@ -128,6 +128,12 @@ namespace Category5.Player
             Debug.Log($"PlayerClassManager: Calling FindAbilitiesAfterClassLoad");
             abilityManager.FindAbilitiesAfterClassLoad();
             
+            // set combat class based on class data
+            if (playerCombat != null)
+            {
+                playerCombat.SetCombatClass(classData.combatClass);
+            }
+            
             Debug.Log($"Loaded class: {classData.className}");
         }        private void ClearAbilities()
         {
