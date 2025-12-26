@@ -110,7 +110,7 @@ namespace Category5.Boss
             else
             {
                 // UIManager not ready yet, it will find us when it initializes
-                Debug.Log("BossBase: UIManager not ready, waiting for it to register us");
+                // Debug.Log("BossBase: UIManager not ready, waiting for it to register us");
             }
         }
 
@@ -388,12 +388,12 @@ namespace Category5.Boss
         // idamageable implementation
         public void TakeDamage(int damage)
         {
-            Debug.Log($"BossBase.TakeDamage called: damage={damage}, isServer={IsServer}");
+            // Debug.Log($"BossBase.TakeDamage called: damage={damage}, isServer={IsServer}");
             
             if (!IsServer) return;
 
             CurrentHealth.Value -= damage;
-            Debug.Log($"boss took {damage} damage. health: {CurrentHealth.Value}");
+            // Debug.Log($"boss took {damage} damage. health: {CurrentHealth.Value}");
             
             // fire audio event for boss hurt on all clients
             NotifyBossHurtClientRpc(transform.position, damage);
@@ -414,7 +414,7 @@ namespace Category5.Boss
             if (_isDead) return; // prevent multiple death calls
             _isDead = true;
             
-            Debug.Log("BossBase: Boss died!");
+            // Debug.Log("BossBase: Boss died!");
             
             // fire audio event for boss death on all clients
             NotifyBossDeathClientRpc(transform.position);
@@ -422,7 +422,7 @@ namespace Category5.Boss
             // notify power-up manager instead of despawning immediately
             if (PowerUpManager.Instance != null)
             {
-                Debug.Log("BossBase: Notifying PowerUpManager of boss death");
+                // Debug.Log("BossBase: Notifying PowerUpManager of boss death");
                 
                 // hide boss visually during power-up selection
                 HideBossClientRpc();
@@ -457,7 +457,7 @@ namespace Category5.Boss
         {
             if (!IsServer) return;
             
-            Debug.Log($"BossBase: Resetting boss with {newMaxHealth} HP");
+            // Debug.Log($"BossBase: Resetting boss with {newMaxHealth} HP");
             
             maxHealth = newMaxHealth;
             CurrentHealth.Value = maxHealth;

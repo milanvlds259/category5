@@ -67,6 +67,15 @@ namespace Category5
             }
         }
         
+        // called by PlayerClassManager to clear ability references when switching classes
+        public void ClearAbilityReferences()
+        {
+            ability1 = null;
+            ability2 = null;
+            ability3 = null;
+            Debug.Log("PlayerAbilityManager: Cleared ability references");
+        }
+        
         // called by PlayerClassManager after abilities are instantiated
         public void FindAbilitiesAfterClassLoad()
         {

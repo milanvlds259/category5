@@ -27,7 +27,7 @@ namespace Category5.Player
             // subscribe to class changes
             SelectedClass.OnValueChanged += OnSelectedClassChanged;
             
-            // if owner, try to get the class selection from the lobby or persistent selection
+            // if owner, request the class selection from lobby or persistent selection
             if (IsOwner)
             {
                 PlayerClassType classToLoad = SelectedClass.Value;
@@ -49,12 +49,19 @@ namespace Category5.Player
                     Debug.Log($"PlayerClassManager: LobbyManager not found, using persistent ClassSelectionManager: {persistentClass}");
                     classToLoad = persistentClass;
                     
-                    // request server to set the class
-                    RequestSetClassServerRpc(classToLoad);
+                    // if the class is different, request it via RPC
+                    if (classToLoad != SelectedClass.Value)
+                    {
+                        Debug.Log($"PlayerClassManager: Owner {OwnerClientId} requested class {classToLoad}");
+                        RequestSetClassServerRpc(classToLoad);
+                    }
+                    else
+                    {
+                        // class is already correct, load it directly (since OnValueChanged won't fire)
+                        Debug.Log($"PlayerClassManager: Owner {OwnerClientId} class already {classToLoad}, loading directly");
+                        LoadClassLocally(classToLoad);
+                    }
                 }
-                
-                Debug.Log($"PlayerClassManager: Owner {OwnerClientId} loading class {classToLoad}");
-                LoadClassLocally(classToLoad);
             }
             else
             {
@@ -99,7 +106,7 @@ namespace Category5.Player
             Debug.Log($"  - Ability2Prefab: {(classData.ability2Prefab != null ? classData.ability2Prefab.name : "null")}");
             Debug.Log($"  - Ability3Prefab: {(classData.ability3Prefab != null ? classData.ability3Prefab.name : "null")}");
             
-            // clear existing abilities
+            // clear existing abilities and reset ability manager references
             ClearAbilities();
             
             // spawn new abilities locally
@@ -135,14 +142,24 @@ namespace Category5.Player
             }
             
             Debug.Log($"Loaded class: {classData.className}");
-        }        private void ClearAbilities()
+        }        
+        
+        private void ClearAbilities()
         {
-            // destroy existing ability children
+            // destroy existing ability children immediately so they don't conflict with new instantiation
+            // use DestroyImmediate since this is in gameplay and we need immediate cleanup
             foreach (Transform child in transform)
             {
                 if (child.name.StartsWith("Ability"))
                 {
-                    Destroy(child.gameObject);
+                    if (Application.isPlaying)
+                    {
+                        Destroy(child.gameObject);
+                    }
+                    else
+                    {
+                        DestroyImmediate(child.gameObject);
+                    }
                 }
             }
         }

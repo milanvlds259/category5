@@ -52,7 +52,7 @@ namespace Category5.PowerUps
                 PowerUpManager.Instance.OnGameOver += OnGameOver;
                 PowerUpManager.Instance.OnRoundChanged += UpdateRoundDisplay;
                 _isSubscribed = true;
-                Debug.Log("PowerUpSelectionUI: Subscribed to PowerUpManager events");
+                // Debug.Log("PowerUpSelectionUI: Subscribed to PowerUpManager events");
             }
         }
 
@@ -71,7 +71,7 @@ namespace Category5.PowerUps
         {
             if (selectionPanel == null) return;
 
-            Debug.Log($"PowerUpSelectionUI: Showing selection with {powerUpIndices.Length} choices");
+            // Debug.Log($"PowerUpSelectionUI: Showing selection with {powerUpIndices.Length} choices");
             
             _currentChoices = powerUpIndices;
             _hasSelected = false;
@@ -139,7 +139,7 @@ namespace Category5.PowerUps
             if (_hasSelected) return;
 
             _hasSelected = true;
-            Debug.Log($"PowerUpSelectionUI: Selected power-up index {powerUpIndex}");
+            // Debug.Log($"PowerUpSelectionUI: Selected power-up index {powerUpIndex}");
 
             // disable all cards
             foreach (var card in powerUpCards)
