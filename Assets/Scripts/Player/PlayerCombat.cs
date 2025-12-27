@@ -83,6 +83,13 @@ namespace Category5.Player
             ? arrowData.ChargeMovementSpeedMultiplier 
             : 0.5f;
         
+        // set combat class based on loaded player class
+        public void SetCombatClass(CombatClass newCombatClass)
+        {
+            combatClass = newCombatClass;
+            Debug.Log($"PlayerCombat: Combat class set to {combatClass}");
+        }
+        
         // static events for vfx/sfx to hook into
         public static event Action<Vector3> OnChargeStarted;
         public static event Action<float, Vector3> OnChargeProgress;
@@ -219,7 +226,7 @@ namespace Category5.Player
             _lastChargePercent = 0f;
             
             OnChargeStarted?.Invoke(transform.position);
-            Debug.Log("Started charging arrow...");
+            // Debug.Log("Started charging arrow...");
         }
         
         // releases a charged ranged attack
@@ -229,7 +236,7 @@ namespace Category5.Player
             _isCharging = false;
             
             OnChargeReleased?.Invoke(chargePercent, transform.position);
-            Debug.Log($"Released arrow with {chargePercent:P0} charge!");
+            // Debug.Log($"Released arrow with {chargePercent:P0} charge!");
             
             PerformChargedRangedAttack(chargePercent);
         }
@@ -241,7 +248,7 @@ namespace Category5.Player
             
             _isCharging = false;
             OnChargeCanceled?.Invoke(transform.position);
-            Debug.Log("Charge canceled!");
+            // Debug.Log("Charge canceled!");
         }
 
         private void PerformMeleeAttack()
@@ -267,7 +274,7 @@ namespace Category5.Player
             }
 
             // visuals (Placeholder)
-            Debug.Log($"Player Melee Attack! Combo: {_comboCounter-1} | Damage: {damage}");
+            // Debug.Log($"Player Melee Attack! Combo: {_comboCounter-1} | Damage: {damage}");
 
             // networked attack logic
             RequestMeleeAttackServerRpc(damage, transform.position, transform.forward);
@@ -325,7 +332,7 @@ namespace Category5.Player
             // use raycast-based aiming (accounts for crosshair position)
             Vector3 direction = GetAimDirection(chargePercent, speedMultiplier);
             
-            Debug.Log($"Charged Ranged Attack! Charge: {chargePercent:P0}, Damage x{damageMultiplier:F2}, Speed x{speedMultiplier:F2}");
+            // Debug.Log($"Charged Ranged Attack! Charge: {chargePercent:P0}, Damage x{damageMultiplier:F2}, Speed x{speedMultiplier:F2}");
             
             // request server to spawn charged projectile
             RequestChargedRangedAttackServerRpc(spawnPos, direction, damageMultiplier, speedMultiplier);
@@ -610,7 +617,7 @@ namespace Category5.Player
         {
             // fire audio event for healing
             PlayerEvents.InvokeHeal(position, healAmount);
-            Debug.Log($"Lifesteal healed {healAmount} HP!");
+            // Debug.Log($"Lifesteal healed {healAmount} HP!");
         }
         
         [ClientRpc]
@@ -763,7 +770,7 @@ namespace Category5.Player
             _quickbowBurstInterval = burstInterval;
             _quickbowBurstDamageMult = burstDamageMult;
             
-            Debug.Log("Quickbow buff applied! Attack speed and charge speed increased, burst fire enabled.");
+            // Debug.Log("Quickbow buff applied! Attack speed and charge speed increased, burst fire enabled.");
         }
         
         public void RemoveQuickbowBuff()
@@ -775,7 +782,7 @@ namespace Category5.Player
             _quickbowBurstInterval = 0.1f;
             _quickbowBurstDamageMult = 1f;
             
-            Debug.Log("Quickbow buff removed.");
+            // Debug.Log("Quickbow buff removed.");
         }
     }
 }

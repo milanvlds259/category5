@@ -1,6 +1,7 @@
 using Unity.Netcode;
 using UnityEngine;
 using Category5.PowerUps;
+using Category5.Core;
 
 namespace Category5.Player
 {
@@ -9,8 +10,6 @@ namespace Category5.Player
     {
         [Header("Class Selection")]
         public NetworkVariable<PlayerClassType> SelectedClass = new NetworkVariable<PlayerClassType>(PlayerClassType.Ranger);
-        
-        [SerializeField] private PlayerClass[] availableClasses = new PlayerClass[5]; // one for each class type
         
         private PlayerAbilityManager abilityManager;
         private PlayerCombat playerCombat;
@@ -28,11 +27,41 @@ namespace Category5.Player
             // subscribe to class changes
             SelectedClass.OnValueChanged += OnSelectedClassChanged;
             
-            // each client/owner loads their own player's abilities when they spawn
+            // if owner, request the class selection from lobby or persistent selection
             if (IsOwner)
             {
-                Debug.Log($"PlayerClassManager: Owner {OwnerClientId} loading class {SelectedClass.Value}");
-                LoadClassLocally(SelectedClass.Value);
+                PlayerClassType classToLoad = SelectedClass.Value;
+                
+                // check if LobbyManager has a selected class for this player
+                if (LobbyManager.Instance != null)
+                {
+                    PlayerClassType lobbySelectedClass = LobbyManager.Instance.GetPlayerClass(OwnerClientId);
+                    Debug.Log($"PlayerClassManager: Found lobby selection {lobbySelectedClass} for player {OwnerClientId}");
+                    classToLoad = lobbySelectedClass;
+                    
+                    // request server to set the class from lobby
+                    RequestSetClassServerRpc(classToLoad);
+                }
+                else
+                {
+                    // LobbyManager is gone (cleaned up during scene load), use persistent ClassSelectionManager
+                    PlayerClassType persistentClass = ClassSelectionManager.GetClass();
+                    Debug.Log($"PlayerClassManager: LobbyManager not found, using persistent ClassSelectionManager: {persistentClass}");
+                    classToLoad = persistentClass;
+                    
+                    // if the class is different, request it via RPC
+                    if (classToLoad != SelectedClass.Value)
+                    {
+                        Debug.Log($"PlayerClassManager: Owner {OwnerClientId} requested class {classToLoad}");
+                        RequestSetClassServerRpc(classToLoad);
+                    }
+                    else
+                    {
+                        // class is already correct, load it directly (since OnValueChanged won't fire)
+                        Debug.Log($"PlayerClassManager: Owner {OwnerClientId} class already {classToLoad}, loading directly");
+                        LoadClassLocally(classToLoad);
+                    }
+                }
             }
             else
             {
@@ -77,7 +106,7 @@ namespace Category5.Player
             Debug.Log($"  - Ability2Prefab: {(classData.ability2Prefab != null ? classData.ability2Prefab.name : "null")}");
             Debug.Log($"  - Ability3Prefab: {(classData.ability3Prefab != null ? classData.ability3Prefab.name : "null")}");
             
-            // clear existing abilities
+            // clear existing abilities and reset ability manager references
             ClearAbilities();
             
             // spawn new abilities locally
@@ -106,34 +135,53 @@ namespace Category5.Player
             Debug.Log($"PlayerClassManager: Calling FindAbilitiesAfterClassLoad");
             abilityManager.FindAbilitiesAfterClassLoad();
             
+            // set combat class based on class data
+            if (playerCombat != null)
+            {
+                playerCombat.SetCombatClass(classData.combatClass);
+            }
+            
             Debug.Log($"Loaded class: {classData.className}");
-        }        private void ClearAbilities()
+        }        
+        
+        private void ClearAbilities()
         {
-            // destroy existing ability children
+            // destroy existing ability children immediately so they don't conflict with new instantiation
+            // use DestroyImmediate since this is in gameplay and we need immediate cleanup
             foreach (Transform child in transform)
             {
                 if (child.name.StartsWith("Ability"))
                 {
-                    Destroy(child.gameObject);
+                    if (Application.isPlaying)
+                    {
+                        Destroy(child.gameObject);
+                    }
+                    else
+                    {
+                        DestroyImmediate(child.gameObject);
+                    }
                 }
             }
         }
         
         private PlayerClass GetClassData(PlayerClassType classType)
         {
-            // search for the class by matching classType enum, not by array index
-            // this is safer and doesn't require array ordering to match enum order
-            foreach (var classData in availableClasses)
+            // get class definition from the registry (single source of truth)
+            if (ClassRegistry.Instance == null)
             {
-                if (classData != null && classData.classType == classType)
-                {
-                    Debug.Log($"PlayerClassManager.GetClassData: Found {classType} -> {classData.className}");
-                    return classData;
-                }
+                Debug.LogError("PlayerClassManager.GetClassData: ClassRegistry not found!");
+                return null;
             }
             
-            Debug.LogError($"PlayerClassManager.GetClassData: No class data found for {classType}!");
-            return null;
+            PlayerClass classData = ClassRegistry.Instance.GetClass(classType);
+            if (classData == null)
+            {
+                Debug.LogError($"PlayerClassManager.GetClassData: No class data found for {classType}!");
+                return null;
+            }
+            
+            Debug.Log($"PlayerClassManager.GetClassData: Found {classType} -> {classData.className}");
+            return classData;
         }
         
         // public method to set class (call before spawning or during lobby)

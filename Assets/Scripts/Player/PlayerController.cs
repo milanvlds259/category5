@@ -731,6 +731,21 @@ namespace Category5.Player
                 // Debug.Log($"Ouch! Health: {newHealth}");
             }
         }
+        
+        // get the aim direction (forward direction the player is facing)
+        public Vector3 GetAimDirection()
+        {
+            return transform.forward;
+        }
+        
+        // apply knockback to the player (used by abilities like grappling hook)
+        public void ApplyKnockback(Vector3 knockbackForce)
+        {
+            if (_controller == null) return;
+            
+            // apply the knockback
+            _controller.Move(knockbackForce * Time.deltaTime);
+        }
 
         private void OnDrawGizmosSelected()
         {

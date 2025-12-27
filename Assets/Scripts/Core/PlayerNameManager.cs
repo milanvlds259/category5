@@ -31,7 +31,7 @@ namespace Category5.Core
             
             // load saved name or use default
             LocalPlayerName = PlayerPrefs.GetString(PLAYER_NAME_PREF_KEY, DEFAULT_PLAYER_NAME);
-            Debug.Log($"PlayerNameManager: Loaded player name '{LocalPlayerName}'");
+            // Debug.Log($"PlayerNameManager: Loaded player name '{LocalPlayerName}'");
         }
         
         // set the local player name (called from menu input field)
@@ -53,7 +53,7 @@ namespace Category5.Core
             PlayerPrefs.SetString(PLAYER_NAME_PREF_KEY, name);
             PlayerPrefs.Save();
             
-            Debug.Log($"PlayerNameManager: Set player name to '{name}'");
+            // Debug.Log($"PlayerNameManager: Set player name to '{name}'");
             OnLocalNameChanged?.Invoke(name);
         }
         

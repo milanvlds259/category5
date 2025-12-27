@@ -16,7 +16,7 @@ MonoBehaviour:
   className: Fighter
   classDescription: 
   classIcon: {fileID: 0}
-  ability1Prefab: {fileID: 0}
-  ability2Prefab: {fileID: 0}
-  ability3Prefab: {fileID: 0}
+  ability1Prefab: {fileID: 53412344211962831, guid: 9a663376fbbe20a48bcf1f52ee2b9f73, type: 3}
+  ability2Prefab: {fileID: 53412344211962831, guid: 9c25bf68f3796d84ca13bec80cee6fe3, type: 3}
+  ability3Prefab: {fileID: 53412344211962831, guid: 2f0a00e59aca9184d855076457dc183e, type: 3}
   combatClass: 0

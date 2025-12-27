@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da4b3cd86bfbb504fbfa4e92f8d91186, type: 3}
+  m_Name: FighterR
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.AbilityData
+  abilityName: Come Get Me!
+  description: summons a large AoE around the player that taunts enemies toward you
+    and grants you a large temporary stat boost
+  abilityIcon: {fileID: 0}
+  cooldownDuration: 8
+  baseDamage: 45
+  castTime: 0
+  manaCost: 0
+  vfxPrefab: {fileID: 0}
+  sfxClip: {fileID: 0}

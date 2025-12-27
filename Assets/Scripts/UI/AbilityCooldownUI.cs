@@ -61,18 +61,18 @@ namespace Category5.UI
         private void FindLocalPlayerAbilityManagerDelayed()
         {
             var players = FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
-            Debug.Log($"[AbilityCooldownUI] FindLocalPlayerAbilityManagerDelayed attempt {_retryCount + 1}: Found {players.Length} players");
+            // Debug.Log($"[AbilityCooldownUI] FindLocalPlayerAbilityManagerDelayed attempt {_retryCount + 1}: Found {players.Length} players");
             
             foreach (var player in players)
             {
-                Debug.Log($"[AbilityCooldownUI] Checking player {player.gameObject.name}: IsOwner={player.IsOwner}, HasAbilityManager={player.GetComponent<PlayerAbilityManager>() != null}");
+                // Debug.Log($"[AbilityCooldownUI] Checking player {player.gameObject.name}: IsOwner={player.IsOwner}, HasAbilityManager={player.GetComponent<PlayerAbilityManager>() != null}");
                 
                 if (player.IsOwner)
                 {
                     abilityManager = player.GetComponent<PlayerAbilityManager>();
                     if (abilityManager != null)
                     {
-                        Debug.Log($"[AbilityCooldownUI] Found local player ability manager on attempt {_retryCount + 1}");
+                        // Debug.Log($"[AbilityCooldownUI] Found local player ability manager on attempt {_retryCount + 1}");
                         InitializeSlots();
                         _retryCount = 0;
                         return;
@@ -84,7 +84,7 @@ namespace Category5.UI
             _retryCount++;
             if (_retryCount < _maxRetries)
             {
-                Debug.Log($"[AbilityCooldownUI] Ability manager not found, retrying... ({_retryCount}/{_maxRetries})");
+                // Debug.Log($"[AbilityCooldownUI] Ability manager not found, retrying... ({_retryCount}/{_maxRetries})");
                 Invoke(nameof(FindLocalPlayerAbilityManagerDelayed), 0.3f);
             }
             else
@@ -121,7 +121,7 @@ namespace Category5.UI
         
         private void HandleCooldownChanged(PlayerAbilityManager source, AbilitySlot slot, float current, float max)
         {
-            Debug.Log($"[AbilityCooldownUI] HandleCooldownChanged: source={source.gameObject.name}, slot={slot}, current={current}, max={max}");
+            // Debug.Log($"[AbilityCooldownUI] HandleCooldownChanged: source={source.gameObject.name}, slot={slot}, current={current}, max={max}");
             
             // only update if this is for OUR local player's ability manager
             if (abilityManager == null)
@@ -133,7 +133,7 @@ namespace Category5.UI
             // filter: only handle events from our ability manager
             if (source != abilityManager)
             {
-                Debug.Log($"[AbilityCooldownUI] Ignoring cooldown change from different player");
+                // Debug.Log($"[AbilityCooldownUI] Ignoring cooldown change from different player");
                 return;
             }
             
@@ -147,7 +147,7 @@ namespace Category5.UI
             
             if (targetSlot != null)
             {
-                Debug.Log($"[AbilityCooldownUI] Found target slot for {slot}");
+                // Debug.Log($"[AbilityCooldownUI] Found target slot for {slot}");
                 targetSlot.UpdateCooldown(current, max);
             }
             else
@@ -234,7 +234,7 @@ namespace Category5.UI
         
         public void UpdateCooldown(float currentCooldown, float maxCooldown)
         {
-            Debug.Log($"[AbilitySlotUI] UpdateCooldown called: current={currentCooldown}, max={maxCooldown}, cooldownText={cooldownText}, fillImage={fillImage}");
+            // Debug.Log($"[AbilitySlotUI] UpdateCooldown called: current={currentCooldown}, max={maxCooldown}, cooldownText={cooldownText}, fillImage={fillImage}");
             
             remainingCooldown = currentCooldown;
             this.maxCooldown = maxCooldown;
@@ -262,13 +262,13 @@ namespace Category5.UI
             {
                 if (currentCooldown > 0f)
                 {
-                    Debug.Log($"[AbilitySlotUI] Showing cooldown text, setting to {currentCooldown.ToString("F1")}");
+                    // Debug.Log($"[AbilitySlotUI] Showing cooldown text, setting to {currentCooldown.ToString("F1")}");
                     cooldownText.gameObject.SetActive(true);
                     cooldownText.text = Mathf.Max(0f, currentCooldown).ToString("F1");
                 }
                 else
                 {
-                    Debug.Log($"[AbilitySlotUI] Hiding cooldown text (cooldown ready)");
+                    // Debug.Log($"[AbilitySlotUI] Hiding cooldown text (cooldown ready)");
                     cooldownText.gameObject.SetActive(false);
                 }
             }

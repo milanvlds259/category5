@@ -66,7 +66,7 @@ namespace Category5.UI
             {
                 PowerUpManager.Instance.OnVictory += ShowVictory;
                 _isSubscribed = true;
-                Debug.Log("VictoryUI: Subscribed to PowerUpManager events");
+                // Debug.Log("VictoryUI: Subscribed to PowerUpManager events");
             }
         }
         
@@ -92,7 +92,7 @@ namespace Category5.UI
         {
             if (victoryPanel == null) return;
             
-            Debug.Log("VictoryUI: Showing victory screen");
+            // Debug.Log("VictoryUI: Showing victory screen");
             
             // show panel
             victoryPanel.SetActive(true);
@@ -141,7 +141,7 @@ namespace Category5.UI
         
         private void OnReturnToMenuClicked()
         {
-            Debug.Log("VictoryUI: Returning to menu");
+            // Debug.Log("VictoryUI: Returning to menu");
             
             // ensure cursor is unlocked before scene transition
             Cursor.lockState = CursorLockMode.None;
@@ -159,7 +159,7 @@ namespace Category5.UI
         
         private void OnPlayAgainClicked()
         {
-            Debug.Log("VictoryUI: Playing again");
+            // Debug.Log("VictoryUI: Playing again");
             
             // only host can restart
             if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsHost) return;

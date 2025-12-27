@@ -43,7 +43,7 @@ namespace Category5.Core
                 networkManager.NetworkConfig.PlayerPrefab = null;
             }
             
-            Debug.Log("NetworkManagerBootstrap: NetworkManager initialized, manual player spawning enabled");
+            // Debug.Log("NetworkManagerBootstrap: NetworkManager initialized, manual player spawning enabled");
         }
         
         private void Start()
@@ -62,7 +62,7 @@ namespace Category5.Core
             // this is needed when restarting the host after returning from a game
             if (networkManager != null && networkManager.NetworkConfig.PlayerPrefab != null)
             {
-                Debug.Log("NetworkManagerBootstrap: Clearing PlayerPrefab to prevent auto-spawning");
+                // Debug.Log("NetworkManagerBootstrap: Clearing PlayerPrefab to prevent auto-spawning");
                 networkManager.NetworkConfig.PlayerPrefab = null;
             }
             
@@ -94,7 +94,7 @@ namespace Category5.Core
             // don't spawn players in the menu scene
             if (sceneName == menuSceneName) return;
             
-            Debug.Log($"NetworkManagerBootstrap: Scene '{sceneName}' loaded, spawning players");
+            // Debug.Log($"NetworkManagerBootstrap: Scene '{sceneName}' loaded, spawning players");
             
             // reset spawn index for fresh spawning
             PlayerSpawnPoint.ResetSpawnIndex();
@@ -113,7 +113,7 @@ namespace Category5.Core
             {
                 if (client.PlayerObject != null)
                 {
-                    Debug.Log($"NetworkManagerBootstrap: Player {clientId} already has a player object, repositioning");
+                    // Debug.Log($"NetworkManagerBootstrap: Player {clientId} already has a player object, repositioning");
                     RepositionPlayer(client.PlayerObject);
                     return;
                 }
@@ -137,7 +137,7 @@ namespace Category5.Core
             if (networkObject != null)
             {
                 networkObject.SpawnAsPlayerObject(clientId);
-                Debug.Log($"NetworkManagerBootstrap: Spawned player for client {clientId} at {spawnPos}");
+                // Debug.Log($"NetworkManagerBootstrap: Spawned player for client {clientId} at {spawnPos}");
             }
             else
             {

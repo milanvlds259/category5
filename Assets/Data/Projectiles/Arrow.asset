@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e11b2e2571d430647bd885838e4d6511, type: 3}
   m_Name: Arrow
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.ProjectileData
-  projectilePrefab: {fileID: 773458864881063007, guid: 16d5e15a2b6bce74a8718b4eb5153e4c, type: 3}
+  projectilePrefab: {fileID: 773458864881063007, guid: 0400c2597c8e3294684fcc2971317ae6, type: 3}
   speed: 40
   damage: 8
   lifetime: 5

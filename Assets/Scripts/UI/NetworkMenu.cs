@@ -34,6 +34,7 @@ namespace Category5.UI
         [SerializeField] private TextMeshProUGUI playerCountText;
         [SerializeField] private Transform playerListContainer; // parent for player entries
         [SerializeField] private LobbyPlayerEntry playerEntryPrefab; // prefab for each player entry
+        [SerializeField] private LobbyClassSelectionUI classSelectionUI; // class selection dropdown
         
         [Header("status display")]
         [SerializeField] private TextMeshProUGUI statusText;
@@ -169,7 +170,7 @@ namespace Category5.UI
             if (PlayerNameManager.Instance != null)
             {
                 PlayerNameManager.Instance.SetLocalPlayerName(newName);
-                Debug.Log($"NetworkMenu: Player name changed to '{newName}'");
+                // Debug.Log($"NetworkMenu: Player name changed to '{newName}'");
             }
         }
         
@@ -268,7 +269,7 @@ namespace Category5.UI
                     ushort.TryParse(portInputField.text, out port);
                 }
                 transport.SetConnectionData("0.0.0.0", port);
-                Debug.Log($"NetworkMenu: Host binding to 0.0.0.0:{port}");
+                // Debug.Log($"NetworkMenu: Host binding to 0.0.0.0:{port}");
             }
             
             UpdateStatus("Starting host...");
@@ -297,7 +298,7 @@ namespace Category5.UI
                 return;
             }
             
-            Debug.Log("NetworkMenu: Host starting the game");
+            // Debug.Log("NetworkMenu: Host starting the game");
             UpdateStatus("Loading game...");
             
             // load the game scene for all clients
@@ -315,7 +316,7 @@ namespace Category5.UI
         // called when leave lobby button is clicked
         public void OnLeaveLobbyClicked()
         {
-            Debug.Log("NetworkMenu: Leaving lobby");
+            // Debug.Log("NetworkMenu: Leaving lobby");
             
             if (NetworkManager.Singleton != null)
             {
@@ -357,7 +358,7 @@ namespace Category5.UI
             if (transport != null)
             {
                 transport.SetConnectionData(ip, port);
-                Debug.Log($"NetworkMenu: Connecting to {ip}:{port}");
+                // Debug.Log($"NetworkMenu: Connecting to {ip}:{port}");
             }
             
             UpdateStatus($"Connecting to {ip}:{port}...");
@@ -414,7 +415,7 @@ namespace Category5.UI
             // if still connecting after timeout, cancel
             if (isConnecting)
             {
-                Debug.Log("NetworkMenu: Connection timed out");
+                // Debug.Log("NetworkMenu: Connection timed out");
                 CancelConnection("Connection timed out. Check the IP address and port.");
             }
         }
@@ -424,7 +425,7 @@ namespace Category5.UI
         {
             if (!isConnecting) return;
             
-            Debug.Log("NetworkMenu: Connection cancelled by user");
+            // Debug.Log("NetworkMenu: Connection cancelled by user");
             CancelConnection("Connection cancelled");
         }
         
@@ -464,7 +465,7 @@ namespace Category5.UI
         
         private void OnServerStarted()
         {
-            Debug.Log("NetworkMenu: Server started successfully, entering lobby");
+            // Debug.Log("NetworkMenu: Server started successfully, entering lobby");
             NetworkManager.Singleton.OnServerStarted -= OnServerStarted;
             
             // subscribe to client connect/disconnect for player count updates
@@ -487,7 +488,7 @@ namespace Category5.UI
             // only care about local client connection
             if (clientId == NetworkManager.Singleton.LocalClientId)
             {
-                Debug.Log($"NetworkMenu: Connected to server as client {clientId}");
+                // Debug.Log($"NetworkMenu: Connected to server as client {clientId}");
                 
                 // stop timeout coroutine - we connected successfully
                 isConnecting = false;
@@ -517,13 +518,13 @@ namespace Category5.UI
         
         private void OnLobbyClientConnected(ulong clientId)
         {
-            Debug.Log($"NetworkMenu: Player {clientId} joined the lobby");
+            // Debug.Log($"NetworkMenu: Player {clientId} joined the lobby");
             UpdatePlayerCount();
         }
         
         private void OnLobbyClientDisconnected(ulong clientId)
         {
-            Debug.Log($"NetworkMenu: Player {clientId} left the lobby");
+            // Debug.Log($"NetworkMenu: Player {clientId} left the lobby");
             UpdatePlayerCount();
         }
         
@@ -532,7 +533,7 @@ namespace Category5.UI
             // only care about local client disconnection
             if (clientId == NetworkManager.Singleton.LocalClientId)
             {
-                Debug.Log("NetworkMenu: Disconnected from server");
+                // Debug.Log("NetworkMenu: Disconnected from server");
                 
                 // if we were still trying to connect, this is a connection failure
                 if (isConnecting)
@@ -565,7 +566,7 @@ namespace Category5.UI
             {
                 statusText.text = message;
             }
-            Debug.Log($"NetworkMenu: {message}");
+            // Debug.Log($"NetworkMenu: {message}");
         }
         
         private void SetButtonsInteractable(bool interactable)
@@ -639,6 +640,12 @@ namespace Category5.UI
                 LobbyManager.Instance.Cleanup();
             }
             
+            // hide class selection
+            if (classSelectionUI != null)
+            {
+                classSelectionUI.HideSelection();
+            }
+            
             // clear player list
             ClearPlayerList();
             
@@ -688,14 +695,14 @@ namespace Category5.UI
         // placeholder for settings button
         public void OnSettingsButtonClicked()
         {
-            Debug.Log("NetworkMenu: Settings button clicked - coming soon");
+            // Debug.Log("NetworkMenu: Settings button clicked - coming soon");
             // todo: implement settings panel
         }
         
         // placeholder for credits button
         public void OnCreditsButtonClicked()
         {
-            Debug.Log("NetworkMenu: Credits button clicked - coming soon");
+            // Debug.Log("NetworkMenu: Credits button clicked - coming soon");
             // todo: implement credits panel
         }
         
@@ -711,6 +718,13 @@ namespace Category5.UI
             if (lobbyPanel != null)
             {
                 lobbyPanel.SetActive(true);
+            }
+            
+            // initialize and show class selection UI
+            if (classSelectionUI != null)
+            {
+                classSelectionUI.Initialize();
+                classSelectionUI.ShowSelection();
             }
             
             // only the host can start the game
@@ -759,7 +773,7 @@ namespace Category5.UI
             var players = LobbyManager.Instance.GetLobbyPlayers();
             ulong localClientId = NetworkManager.Singleton?.LocalClientId ?? 0;
             
-            Debug.Log($"NetworkMenu: Refreshing player list with {players.Length} players");
+            // Debug.Log($"NetworkMenu: Refreshing player list with {players.Length} players");
             
             foreach (var player in players)
             {
@@ -776,7 +790,7 @@ namespace Category5.UI
                 if (entry != null)
                 {
                     string playerName = player.PlayerName.ToString();
-                    Debug.Log($"NetworkMenu: Setting up entry for '{playerName}' (host: {player.IsHost}, local: {player.ClientId == localClientId})");
+                    // Debug.Log($"NetworkMenu: Setting up entry for '{playerName}' (host: {player.IsHost}, local: {player.ClientId == localClientId})");
                     entry.Setup(playerName, player.IsHost, player.ClientId == localClientId);
                 }
                 else

@@ -17,13 +17,13 @@ namespace Category5.UI
         
         public void Setup(string playerName, bool isHost, bool isLocalPlayer)
         {
-            Debug.Log($"LobbyPlayerEntry.Setup called: name='{playerName}', isHost={isHost}, isLocal={isLocalPlayer}, nameText={playerNameText != null}");
+            // Debug.Log($"LobbyPlayerEntry.Setup called: name='{playerName}', isHost={isHost}, isLocal={isLocalPlayer}, nameText={playerNameText != null}");
             
             if (playerNameText != null)
             {
                 playerNameText.text = playerName;
                 playerNameText.color = isHost ? hostColor : normalColor;
-                Debug.Log($"LobbyPlayerEntry: Set text to '{playerName}'");
+                // Debug.Log($"LobbyPlayerEntry: Set text to '{playerName}'");
             }
             else
             {

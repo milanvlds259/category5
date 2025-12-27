@@ -8,7 +8,7 @@ namespace Category5.Enemies
 {
     // basic melee enemy that chases and attacks players
     // uses EnemyData for all stats - designers can create variants via ScriptableObjects
-    public class BasicEnemy : EnemyBase
+    public class BasicEnemy : EnemyBase, ICanBeTaunted
     {
         [Header("attack settings")]
         [SerializeField] private float attackDuration = 0.5f;
@@ -20,6 +20,10 @@ namespace Category5.Enemies
         private Color _originalColor;
         private bool _hasDealtDamageThisAttack;
         private float _damageDelayTimer;
+        
+        // taunt system
+        private Transform tauntSourceTransform;
+        private float tauntEndTime;
         
         protected override void Awake()
         {
@@ -147,6 +151,34 @@ namespace Category5.Enemies
                 Gizmos.color = Color.red;
                 Gizmos.DrawLine(transform.position, transform.position + transform.forward * attackRange);
             }
+        }
+        
+        // =====================================
+        // taunt system (ICanBeTaunted)
+        // =====================================
+        
+        public void SetTauntTarget(Transform target)
+        {
+            tauntSourceTransform = target;
+            tauntEndTime = Time.time + 4f; // taunt for 4 seconds
+        }
+        
+        public void ClearTauntTarget()
+        {
+            tauntSourceTransform = null;
+        }
+        
+        // override GetEffectiveTarget to prioritize taunt
+        protected override Transform GetEffectiveTarget()
+        {
+            // if taunted and taunt is still active, return taunt source
+            if (tauntSourceTransform != null && Time.time < tauntEndTime)
+            {
+                return tauntSourceTransform;
+            }
+            
+            // otherwise return the normal target
+            return currentTarget;
         }
     }
 }

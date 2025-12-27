@@ -96,7 +96,7 @@ namespace Category5.Boss
                 _currentAttackIndex = 0;
             }
             
-            Debug.Log($"TestBoss: Selected attack '{_currentAttack.attackName}'");
+            // Debug.Log($"TestBoss: Selected attack '{_currentAttack.attackName}'");
             
             // override telegraph duration based on attack
             stateTimer = _currentAttack.telegraphDuration;
@@ -247,7 +247,7 @@ namespace Category5.Boss
                 return;
             }
             
-            Debug.Log($"TestBoss: Executing attack '{_currentAttack.attackName}'");
+            // Debug.Log($"TestBoss: Executing attack '{_currentAttack.attackName}'");
             
             // set attack duration
             stateTimer = _currentAttack.attackDuration;

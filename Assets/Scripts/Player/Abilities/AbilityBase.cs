@@ -1,4 +1,3 @@
-using Unity.Netcode;
 using UnityEngine;
 using Category5.Player;
 using Category5.PowerUps;
@@ -6,7 +5,8 @@ using Category5.PowerUps;
 namespace Category5
 {
     // abstract base class for all player abilities
-    public abstract class AbilityBase : NetworkBehaviour
+    // inherits from MonoBehaviour (not NetworkBehaviour) since abilities call RPCs on the player, not on themselves
+    public abstract class AbilityBase : MonoBehaviour
     {
         [SerializeField] protected AbilityData abilityData;
 
@@ -18,6 +18,11 @@ namespace Category5
         public bool IsInitialized => _isInitialized;
 
         public AbilityData Data => abilityData;
+
+        // delegate to ability manager for network checks
+        protected bool IsServer => abilityManager != null && abilityManager.IsServer;
+        protected bool IsOwner => abilityManager != null && abilityManager.IsOwner;
+        protected ulong OwnerClientId => abilityManager != null ? abilityManager.OwnerClientId : 0;
 
         public virtual void Initialize(PlayerController player, PlayerStats stats, PlayerAbilityManager manager)
         {
