@@ -45,3 +45,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.FighterQ
   abilityData: {fileID: 11400000, guid: 411a3a61ad6b3864d81810ac3cbeee15, type: 2}
+  forwardDistance: 2.5
+  aoeRadius: 5
+  stunDuration: 0.75
+  enemyLayers:
+    serializedVersion: 2
+    m_Bits: 64

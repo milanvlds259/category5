@@ -7,6 +7,9 @@ using Category5.Player;
 using Category5.PowerUps;
 using Category5.UI;
 using Category5.Audio;
+using Category5.Enemies;
+using Category5.Core;
+using Category5.Boss;
 
 namespace Category5
 {
@@ -427,6 +430,137 @@ namespace Category5
             netObj.Spawn();
             
             Debug.Log($"Critshot fired for client {OwnerClientId}! Piercing arrow with {damageMultiplier}x damage!");
+        }
+
+        [Rpc(SendTo.Server)]
+        public void ExecuteFighterQSmashServerRpc(Vector3 executePosition, int adjustedDamage, float aoeRadius, float stunDuration, int enemyLayerMask)
+        {
+            if (!IsServer) return;
+            
+            Debug.Log($"[FighterQ Server] Executing smash at {executePosition}, damage={adjustedDamage}, radius={aoeRadius}, layerMask={enemyLayerMask}");
+            
+            // always trigger execute telegraph/vfx (even with 0 hits)
+            TriggerFighterQExecuteClientRpc(executePosition);
+            
+            // find enemies in aoe using layermask
+            Collider[] hitColliders = Physics.OverlapSphere(executePosition, aoeRadius, enemyLayerMask);
+            Debug.Log($"[FighterQ Server] Found {hitColliders.Length} colliders with layerMask");
+            
+            // also try without layermask to see all colliders
+            Collider[] allColliders = Physics.OverlapSphere(executePosition, aoeRadius);
+            Debug.Log($"[FighterQ Server] Found {allColliders.Length} total colliders (no mask)");
+            
+            foreach (Collider col in allColliders)
+            {
+                Debug.Log($"  - Collider: {col.gameObject.name}, Layer: {col.gameObject.layer} ({LayerMask.LayerToName(col.gameObject.layer)}), Has EnemyBase: {col.GetComponent<EnemyBase>() != null}, Has BossBase: {col.GetComponent<BossBase>() != null}");
+            }
+            
+            int enemiesHit = 0;
+            foreach (Collider collider in hitColliders)
+            {
+                // try enemy base first
+                if (collider.TryGetComponent<EnemyBase>(out var enemy) && !enemy.IsDead)
+                {
+                    Debug.Log($"[FighterQ Server] Hitting enemy: {collider.gameObject.name}");
+                    enemy.ApplyStun(stunDuration);
+                    enemy.TakeDamage(adjustedDamage);
+                    
+                    // show damage number to the attacking player
+                    ShowFighterQDamageNumberClientRpc(adjustedDamage, enemy.transform.position, new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams
+                        {
+                            TargetClientIds = new ulong[] { OwnerClientId }
+                        }
+                    });
+                    
+                    enemiesHit++;
+                }
+                // also check for boss base (bosses inherit from BossBase which implements IDamageable)
+                else if (collider.TryGetComponent<BossBase>(out var boss))
+                {
+                    Debug.Log($"[FighterQ Server] Hitting boss: {collider.gameObject.name}");
+                    boss.TakeDamage(adjustedDamage);
+                    
+                    // show damage number to the attacking player
+                    ShowFighterQDamageNumberClientRpc(adjustedDamage, boss.transform.position, new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams
+                        {
+                            TargetClientIds = new ulong[] { OwnerClientId }
+                        }
+                    });
+                    
+                    enemiesHit++;
+                }
+            }
+            
+            Debug.Log($"[FighterQ Server] Total enemies hit: {enemiesHit}");
+            
+            // notify clients for hit effects only if we hit something
+            if (enemiesHit > 0)
+            {
+                TriggerFighterQHitClientRpc(executePosition, enemiesHit);
+            }
+        }
+        
+        [Rpc(SendTo.Everyone)]
+        private void TriggerFighterQExecuteClientRpc(Vector3 position)
+        {
+            // fire execute event for vfx/sfx (telegraph/impact)
+            FighterQ.InvokeSmashExecute(position, 0);
+            
+            // temporary debug visualization - create a red sphere at impact location
+            GameObject debugSphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            debugSphere.transform.position = position;
+            debugSphere.transform.localScale = Vector3.one * 10f; // 5m radius = 10m diameter
+            
+            // make it semi-transparent red
+            Renderer renderer = debugSphere.GetComponent<Renderer>();
+            if (renderer != null)
+            {
+                Material mat = new Material(Shader.Find("Standard"));
+                mat.color = new Color(1f, 0f, 0f, 0.3f); // red with alpha
+                mat.SetFloat("_Mode", 3); // transparent rendering mode
+                mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                mat.SetInt("_ZWrite", 0);
+                mat.DisableKeyword("_ALPHATEST_ON");
+                mat.EnableKeyword("_ALPHABLEND_ON");
+                mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+                mat.renderQueue = 3000;
+                renderer.material = mat;
+            }
+            
+            // remove collider so it doesn't interfere with gameplay
+            Collider col = debugSphere.GetComponent<Collider>();
+            if (col != null) Destroy(col);
+            
+            // destroy after 1 second
+            Destroy(debugSphere, 1f);
+        }
+        
+        [Rpc(SendTo.Everyone)]
+        private void TriggerFighterQHitClientRpc(Vector3 position, int enemiesHit)
+        {
+            // fire hit event for vfx/sfx
+            FighterQ.InvokeSmashHit(position);
+            
+            // trigger hit feedback for the owner only
+            if (IsOwner && HitFeedbackManager.Instance != null)
+            {
+                HitFeedbackManager.Instance.TriggerHeavyHit(position);
+            }
+        }
+        
+        [ClientRpc]
+        private void ShowFighterQDamageNumberClientRpc(int damage, Vector3 position, ClientRpcParams clientRpcParams = default)
+        {
+            // only the attacking player sees their damage numbers
+            if (Category5.UI.UIManager.Instance != null)
+            {
+                Category5.UI.UIManager.Instance.ShowDamageNumber(damage, position);
+            }
         }
 
     }

@@ -424,7 +424,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 1432883955
+  GlobalObjectIdHash: 2528484781
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -666,12 +666,6 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   SelectedClass:
     m_InternalValue: 1
-  availableClasses:
-  - {fileID: 11400000, guid: 4031365e67c9a1342b642c0e229c004a, type: 2}
-  - {fileID: 11400000, guid: d0bf17c0eadd40a4e9701be026247c41, type: 2}
-  - {fileID: 11400000, guid: 9b367dd7810d9154791130879fac4fa7, type: 2}
-  - {fileID: 11400000, guid: 8ab7e8aa71bf6e140a71e7cac1e2e8dc, type: 2}
-  - {fileID: 11400000, guid: ec38eb8764ff7c744aa59805cd5da5d6, type: 2}
 --- !u!1 &8085112078672293956
 GameObject:
   m_ObjectHideFlags: 0
