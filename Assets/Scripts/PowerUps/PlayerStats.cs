@@ -137,7 +137,9 @@ namespace Category5.PowerUps
         // calculates final damage output given base damage
         public int CalculateDamage(int baseDamage)
         {
-            float modified = baseDamage * _damageMultiplier + _flatDamageBonus;
+            // use effective multiplier which includes temporary boosts
+            float effectiveMultiplier = GetEffectiveDamageMultiplier();
+            float modified = baseDamage * effectiveMultiplier + _flatDamageBonus;
             return Mathf.RoundToInt(modified);
         }
 
@@ -194,6 +196,17 @@ namespace Category5.PowerUps
         {
             float effective = _damageMultiplier;
             if (_temporaryMultipliers.TryGetValue("damage", out var boost))
+            {
+                effective += boost.multiplier;
+            }
+            return effective;
+        }
+        
+        // get effective speed multiplier including temporary boosts
+        public float GetEffectiveSpeedMultiplier()
+        {
+            float effective = 1f; // base speed multiplier is 1
+            if (_temporaryMultipliers.TryGetValue("speed", out var boost))
             {
                 effective += boost.multiplier;
             }

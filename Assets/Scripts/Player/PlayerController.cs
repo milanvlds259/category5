@@ -415,6 +415,13 @@ namespace Category5.Player
             {
                 // apply charge movement speed reduction if charging
                 float effectiveSpeed = moveSpeed;
+                
+                // apply speed multiplier from stats (like fighter r ability)
+                if (_playerStats != null)
+                {
+                    effectiveSpeed *= _playerStats.GetEffectiveSpeedMultiplier();
+                }
+                
                 if (_playerCombat != null && _playerCombat.IsCharging)
                 {
                     effectiveSpeed *= _playerCombat.ChargeMovementMultiplier;

@@ -27,6 +27,9 @@ namespace Category5
         {
             if (playerOwner == null) return;
             
+            // follow player position (aura moves with player)
+            transform.position = playerOwner.transform.position;
+            
             detectionTimer -= Time.deltaTime;
             if (detectionTimer <= 0)
             {
