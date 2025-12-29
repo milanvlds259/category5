@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 875271482742695299}
   - component: {fileID: 3424588919724753312}
   - component: {fileID: 5610915027061594424}
-  - component: {fileID: 2836764853507850256}
+  - component: {fileID: 6448858814911644001}
   m_Layer: 7
   m_Name: FighterHook
   m_TagString: Untagged
@@ -75,7 +75,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 4131532235
+  GlobalObjectIdHash: 3056330483
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -134,7 +134,7 @@ MonoBehaviour:
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
   SlerpPosition: 0
---- !u!114 &2836764853507850256
+--- !u!114 &6448858814911644001
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -143,13 +143,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 773458864881063007}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 425f8a7360aacb34888b59dbceb1bdb0, type: 3}
+  m_Script: {fileID: 11500000, guid: ec85933e146bc0d4d8d8dc6711fc92c8, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.NetworkedProjectile
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.Abilities.HookProjectile
   ShowTopMostFoldoutHeaderGroup: 1
-  speed: 20
-  damage: 15
-  lifetime: 5
+  defaultSpeed: 20
+  defaultLifetime: 3
+  ignoreLayers:
+    serializedVersion: 2
+    m_Bits: 136
 --- !u!1 &1460827159874419459
 GameObject:
   m_ObjectHideFlags: 0

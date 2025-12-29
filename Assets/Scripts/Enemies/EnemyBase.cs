@@ -244,6 +244,9 @@ namespace Category5.Enemies
             UpdateTargetTimer();
             UpdateCooldowns();
             HandleStateMachine();
+            
+            // handle grapple pulling
+            HandleGrapplePull();
 
             // after state updates apply vertical displacement so enemies fall when not grounded
             ApplyVerticalDisplacement();
@@ -525,6 +528,12 @@ namespace Category5.Enemies
         
         protected virtual void MoveTowardTarget()
         {
+            // don't move if being grappled
+            if (_isBeingGrappled)
+            {
+                return;
+            }
+            
             if (currentTarget == null) return;
             
             Vector3 direction = GetDirectionToTarget();
@@ -749,6 +758,98 @@ namespace Category5.Enemies
             {
                 rb.linearVelocity += knockbackForce;
             }
+        }
+        
+        // grapple state for continuous pulling (used by fighter e grappling hook)
+        private bool _isBeingGrappled;
+        private Transform _grappleTargetTransform; // track the player transform instead of fixed position
+        private float _grapplePullSpeed;
+        
+        // start continuous grapple pull toward a target transform
+        public void StartGrapple(Transform targetTransform, float pullSpeed)
+        {
+            if (!IsServer) return;
+            
+            _isBeingGrappled = true;
+            _grappleTargetTransform = targetTransform;
+            _grapplePullSpeed = pullSpeed;
+            
+            Debug.Log($"EnemyBase: {gameObject.name} starting grapple to {targetTransform.gameObject.name}");
+        }
+        
+        // stop grapple pull
+        public void StopGrapple()
+        {
+            if (!IsServer) return;
+            
+            if (_isBeingGrappled)
+            {
+                Debug.Log($"EnemyBase: {gameObject.name} stopping grapple");
+            }
+            
+            _isBeingGrappled = false;
+            _grappleTargetTransform = null;
+        }
+        
+        // check if currently being grappled
+        public bool IsBeingGrappled => _isBeingGrappled;
+        
+        // handle continuous grapple pull movement
+        private void HandleGrapplePull()
+        {
+            if (!_isBeingGrappled) return;
+            
+            // check if target is still valid
+            if (_grappleTargetTransform == null)
+            {
+                Debug.Log($"EnemyBase: {gameObject.name} grapple target destroyed, stopping grapple");
+                StopGrapple();
+                return;
+            }
+            
+            Vector3 currentPos = transform.position;
+            Vector3 targetPos = _grappleTargetTransform.position; // get current player position each frame
+            float distanceToTarget = Vector3.Distance(currentPos, targetPos);
+            Vector3 pullDirection = (targetPos - currentPos).normalized;
+            float pullAmount = _grapplePullSpeed * Time.deltaTime;
+            
+            Debug.Log($"EnemyBase: {gameObject.name} grapple pull - distance: {distanceToTarget:F2}, pullAmount: {pullAmount:F2}, target: {_grappleTargetTransform.gameObject.name}");
+            
+            // check if we've reached the target (within 1.5 units)
+            if (distanceToTarget <= 1.5f)
+            {
+                Debug.Log($"EnemyBase: {gameObject.name} reached grapple target (distance: {distanceToTarget:F2}), stopping grapple");
+                StopGrapple();
+                return;
+            }
+            
+            // for grapple, use direct transform movement for maximum speed and reliability
+            // physics-based movement is too slow and gets interrupted
+            Vector3 newPosition = transform.position + pullDirection * pullAmount;
+            transform.position = newPosition;
+            
+            Debug.Log($"EnemyBase: Moved from {currentPos} to {newPosition}");
+        }
+        
+        // detect collisions during grapple
+        private void OnCollisionEnter(Collision collision)
+        {
+            if (!IsServer) return;
+            if (!_isBeingGrappled) return;
+            
+            Debug.Log($"EnemyBase: {gameObject.name} OnCollisionEnter with {collision.gameObject.name} while grappling");
+            
+            // only stop grapple if we hit the player (the grapple target)
+            var player = collision.gameObject.GetComponentInParent<PlayerController>();
+            if (player != null)
+            {
+                Debug.Log($"EnemyBase: {gameObject.name} collided with player, stopping grapple");
+                StopGrapple();
+                return;
+            }
+            
+            // ignore all other collisions (terrain, other enemies, etc.) - let the grapple continue
+            Debug.Log($"EnemyBase: {gameObject.name} hit {collision.gameObject.name} but it's not the player, continuing grapple");
         }
         
         [ClientRpc]
