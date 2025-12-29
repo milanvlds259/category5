@@ -275,10 +275,10 @@ namespace Category5
             var enemy = networkObject.GetComponent<EnemyBase>();
             if (enemy != null && !enemy.IsDead)
             {
-                // start continuous grapple pull toward player
-                Vector3 playerPosition = playerController.transform.position;
-                Debug.Log($"FighterE: Starting enemy grapple pull from {enemy.transform.position} to {playerPosition}");
-                enemy.StartGrapple(playerPosition, grapplePullForce);
+                // start continuous grapple pull toward player's current transform
+                // this will track the player's movement in real-time
+                Debug.Log($"FighterE: Starting enemy grapple pull to player {playerController.gameObject.name}");
+                enemy.StartGrapple(playerController.transform, grapplePullForce);
             }
         }
         

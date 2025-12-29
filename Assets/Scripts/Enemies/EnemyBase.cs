@@ -762,19 +762,19 @@ namespace Category5.Enemies
         
         // grapple state for continuous pulling (used by fighter e grappling hook)
         private bool _isBeingGrappled;
-        private Vector3 _grappleTargetPosition;
+        private Transform _grappleTargetTransform; // track the player transform instead of fixed position
         private float _grapplePullSpeed;
         
-        // start continuous grapple pull toward a position
-        public void StartGrapple(Vector3 targetPosition, float pullSpeed)
+        // start continuous grapple pull toward a target transform
+        public void StartGrapple(Transform targetTransform, float pullSpeed)
         {
             if (!IsServer) return;
             
             _isBeingGrappled = true;
-            _grappleTargetPosition = targetPosition;
+            _grappleTargetTransform = targetTransform;
             _grapplePullSpeed = pullSpeed;
             
-            Debug.Log($"EnemyBase: {gameObject.name} starting grapple to {targetPosition}");
+            Debug.Log($"EnemyBase: {gameObject.name} starting grapple to {targetTransform.gameObject.name}");
         }
         
         // stop grapple pull
@@ -788,6 +788,7 @@ namespace Category5.Enemies
             }
             
             _isBeingGrappled = false;
+            _grappleTargetTransform = null;
         }
         
         // check if currently being grappled
@@ -798,12 +799,21 @@ namespace Category5.Enemies
         {
             if (!_isBeingGrappled) return;
             
+            // check if target is still valid
+            if (_grappleTargetTransform == null)
+            {
+                Debug.Log($"EnemyBase: {gameObject.name} grapple target destroyed, stopping grapple");
+                StopGrapple();
+                return;
+            }
+            
             Vector3 currentPos = transform.position;
-            float distanceToTarget = Vector3.Distance(currentPos, _grappleTargetPosition);
-            Vector3 pullDirection = (_grappleTargetPosition - currentPos).normalized;
+            Vector3 targetPos = _grappleTargetTransform.position; // get current player position each frame
+            float distanceToTarget = Vector3.Distance(currentPos, targetPos);
+            Vector3 pullDirection = (targetPos - currentPos).normalized;
             float pullAmount = _grapplePullSpeed * Time.deltaTime;
             
-            Debug.Log($"EnemyBase: {gameObject.name} grapple pull - distance: {distanceToTarget:F2}, pullAmount: {pullAmount:F2}, speed: {_grapplePullSpeed}");
+            Debug.Log($"EnemyBase: {gameObject.name} grapple pull - distance: {distanceToTarget:F2}, pullAmount: {pullAmount:F2}, target: {_grappleTargetTransform.gameObject.name}");
             
             // check if we've reached the target (within 1.5 units)
             if (distanceToTarget <= 1.5f)

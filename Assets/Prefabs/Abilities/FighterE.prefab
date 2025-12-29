@@ -49,4 +49,4 @@ MonoBehaviour:
   hookSpeed: 20
   hookLifetime: 3
   grapplePullForce: 15
-  playerPullSpeed: 10000
+  playerPullSpeed: 15
