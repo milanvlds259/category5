@@ -805,6 +805,14 @@ namespace Category5.Enemies
             
             Debug.Log($"EnemyBase: {gameObject.name} grapple pull - distance: {distanceToTarget:F2}, pullAmount: {pullAmount:F2}, speed: {_grapplePullSpeed}");
             
+            // check if we've reached the target (within 1.5 units)
+            if (distanceToTarget <= 1.5f)
+            {
+                Debug.Log($"EnemyBase: {gameObject.name} reached grapple target (distance: {distanceToTarget:F2}), stopping grapple");
+                StopGrapple();
+                return;
+            }
+            
             // for grapple, use direct transform movement for maximum speed and reliability
             // physics-based movement is too slow and gets interrupted
             Vector3 newPosition = transform.position + pullDirection * pullAmount;
