@@ -244,6 +244,9 @@ namespace Category5.Enemies
             UpdateTargetTimer();
             UpdateCooldowns();
             HandleStateMachine();
+            
+            // handle grapple pulling
+            HandleGrapplePull();
 
             // after state updates apply vertical displacement so enemies fall when not grounded
             ApplyVerticalDisplacement();
@@ -749,6 +752,84 @@ namespace Category5.Enemies
             {
                 rb.linearVelocity += knockbackForce;
             }
+        }
+        
+        // grapple state for continuous pulling (used by fighter e grappling hook)
+        private bool _isBeingGrappled;
+        private Vector3 _grappleTargetPosition;
+        private float _grapplePullSpeed;
+        
+        // start continuous grapple pull toward a position
+        public void StartGrapple(Vector3 targetPosition, float pullSpeed)
+        {
+            if (!IsServer) return;
+            
+            _isBeingGrappled = true;
+            _grappleTargetPosition = targetPosition;
+            _grapplePullSpeed = pullSpeed;
+            
+            Debug.Log($"EnemyBase: {gameObject.name} starting grapple to {targetPosition}");
+        }
+        
+        // stop grapple pull
+        public void StopGrapple()
+        {
+            if (!IsServer) return;
+            
+            if (_isBeingGrappled)
+            {
+                Debug.Log($"EnemyBase: {gameObject.name} stopping grapple");
+            }
+            
+            _isBeingGrappled = false;
+        }
+        
+        // check if currently being grappled
+        public bool IsBeingGrappled => _isBeingGrappled;
+        
+        // handle continuous grapple pull movement
+        private void HandleGrapplePull()
+        {
+            if (!_isBeingGrappled) return;
+            
+            Vector3 currentPos = transform.position;
+            Vector3 pullDirection = (_grappleTargetPosition - currentPos).normalized;
+            float pullAmount = _grapplePullSpeed * Time.deltaTime;
+            
+            // move toward target
+            if (TryGetComponent<CharacterController>(out var cc))
+            {
+                cc.Move(pullDirection * pullAmount);
+            }
+            else if (TryGetComponent<Rigidbody>(out var rb))
+            {
+                // set velocity directly for smoother pull
+                rb.linearVelocity = pullDirection * _grapplePullSpeed;
+            }
+            else
+            {
+                transform.position += pullDirection * pullAmount;
+            }
+        }
+        
+        // detect collisions during grapple
+        private void OnCollisionEnter(Collision collision)
+        {
+            if (!IsServer) return;
+            if (!_isBeingGrappled) return;
+            
+            // check if we hit a player (the grapple target)
+            var player = collision.gameObject.GetComponentInParent<PlayerController>();
+            if (player != null)
+            {
+                Debug.Log($"EnemyBase: {gameObject.name} collided with player, stopping grapple");
+                StopGrapple();
+                return;
+            }
+            
+            // hit an obstacle, stop grapple
+            Debug.Log($"EnemyBase: {gameObject.name} collided with obstacle ({collision.gameObject.name}), stopping grapple");
+            StopGrapple();
         }
         
         [ClientRpc]

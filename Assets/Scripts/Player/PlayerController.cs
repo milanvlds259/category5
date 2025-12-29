@@ -746,6 +746,34 @@ namespace Category5.Player
             // apply the knockback
             _controller.Move(knockbackForce * Time.deltaTime);
         }
+        
+        // called by Unity when CharacterController collides with something
+        private void OnControllerColliderHit(ControllerColliderHit hit)
+        {
+            // ignore ground collisions (normal pointing upward)
+            // dot product > 0.7 means the surface is mostly horizontal (ground/floor)
+            float upwardDot = Vector3.Dot(hit.normal, Vector3.up);
+            if (upwardDot > 0.7f)
+            {
+                // this is ground, ignore it
+                return;
+            }
+            
+            Debug.Log($"PlayerController: OnControllerColliderHit with {hit.gameObject.name} (normal: {hit.normal}, upwardDot: {upwardDot:F2})");
+            
+            // notify FighterE ability if it's grappling
+            if (GetComponent<PlayerAbilityManager>() != null)
+            {
+                var abilityManager = GetComponent<PlayerAbilityManager>();
+                // check if ability2 is FighterE and if it's grappling
+                var fighterE = abilityManager.GetComponentInChildren<FighterE>();
+                if (fighterE != null && fighterE.IsGrappling)
+                {
+                    Debug.Log("PlayerController: Notifying FighterE of collision");
+                    fighterE.OnPlayerCollision(hit.gameObject);
+                }
+            }
+        }
 
         private void OnDrawGizmosSelected()
         {

@@ -562,6 +562,37 @@ namespace Category5
                 Category5.UI.UIManager.Instance.ShowDamageNumber(damage, position);
             }
         }
+        
+        // =====================================
+        // hook projectile callback for fighter e
+        // =====================================
+        
+        // called by HookProjectile when it hits an enemy or boss
+        // routes the callback to the FighterE ability (ability2)
+        public void OnHookHitTarget(Vector3 hitPosition, ulong targetNetworkObjectId, bool isBoss)
+        {
+            Debug.Log($"PlayerAbilityManager: OnHookHitTarget called. IsServer: {IsServer}, ability2: {ability2 != null}");
+            
+            if (!IsServer) return;
+            
+            if (ability2 == null)
+            {
+                Debug.LogError("PlayerAbilityManager: ability2 is null, cannot route hook hit callback");
+                return;
+            }
+            
+            // check if ability2 is FighterE
+            var fighterE = ability2 as FighterE;
+            if (fighterE != null)
+            {
+                Debug.Log("PlayerAbilityManager: Routing to FighterE");
+                fighterE.OnHookHitTargetFromProjectile(hitPosition, targetNetworkObjectId, isBoss);
+            }
+            else
+            {
+                Debug.LogWarning($"PlayerAbilityManager: ability2 is not FighterE, it's {ability2.GetType().Name}");
+            }
+        }
 
     }
 }

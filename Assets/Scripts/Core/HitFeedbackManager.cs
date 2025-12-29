@@ -222,7 +222,7 @@ namespace Category5.Core
             
             if (debugHitFreeze)
             {
-                Debug.Log($"[HitFreeze] Triggering freeze: duration={duration}s, timeScale={timeScale}, method={freezeMethod}");
+                // Debug.Log($"[HitFreeze] Triggering freeze: duration={duration}s, timeScale={timeScale}, method={freezeMethod}");
             }
             
             _freezeCoroutine = StartCoroutine(FreezeCoroutine(duration, timeScale));
@@ -252,7 +252,7 @@ namespace Category5.Core
             
             if (debugHitFreeze)
             {
-                Debug.Log("[HitFreeze] Freeze ended");
+                // Debug.Log("[HitFreeze] Freeze ended");
             }
         }
         
@@ -287,7 +287,7 @@ namespace Category5.Core
             
             if (debugHitFreeze)
             {
-                Debug.Log($"[HitFreeze] Set {animators.Length} animator speeds to {speed}");
+                // Debug.Log($"[HitFreeze] Set {animators.Length} animator speeds to {speed}");
             }
         }
         
