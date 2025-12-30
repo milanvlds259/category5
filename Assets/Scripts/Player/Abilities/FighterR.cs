@@ -70,18 +70,8 @@ namespace Category5
                     if (tauntAuraPrefab != null)
                     {
                         // spawn at player feet position (not parented)
-                        // player position is at center, so we need to offset down to ground
                         Vector3 spawnPos = playerController.transform.position;
-                        
-                        // raycast down to find ground, or use a fixed offset
-                        if (Physics.Raycast(playerController.transform.position, Vector3.down, out RaycastHit hit, 10f))
-                        {
-                            spawnPos.y = hit.point.y + 0.05f; // slightly above ground
-                        }
-                        else
-                        {
-                            spawnPos.y = playerController.transform.position.y - 1f; // fallback: 1m below player center
-                        }
+                        spawnPos.y = playerController.transform.position.y + 0.1f; // slightly above ground
                         
                         var auraObj = Instantiate(tauntAuraPrefab, spawnPos, Quaternion.identity);
                         currentAura = auraObj.GetComponent<TauntAura>();
