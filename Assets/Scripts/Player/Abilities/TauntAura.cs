@@ -27,8 +27,11 @@ namespace Category5
         {
             if (playerOwner == null) return;
             
-            // follow player position (aura moves with player)
-            transform.position = playerOwner.transform.position;
+            // follow player horizontally only (x, z), keep y at ground level
+            Vector3 newPos = transform.position;
+            newPos.x = playerOwner.transform.position.x;
+            newPos.z = playerOwner.transform.position.z;
+            transform.position = newPos;
             
             detectionTimer -= Time.deltaTime;
             if (detectionTimer <= 0)
