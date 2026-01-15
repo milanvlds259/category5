@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 using Category5;
 using Category5.Core;
 using Category5.PowerUps;
+using Category5.Items;
 using Category5.Audio;
 
 namespace Category5.Player
@@ -30,11 +31,11 @@ namespace Category5.Player
         // death state synced across network
         public NetworkVariable<bool> IsDead = new NetworkVariable<bool>(false);
         
-        // reference to player stats for power-up modifiers
-        private PlayerStats _playerStats;
+        // reference to player inventory for item modifiers
+        private PlayerInventory _playerInventory;
         
-        // effective max health including power-up bonuses
-        public int MaxHealth => _playerStats != null ? _playerStats.TotalMaxHealth : baseMaxHealth;
+        // effective max health including item bonuses
+        public int MaxHealth => _playerInventory != null ? _playerInventory.TotalMaxHealth : baseMaxHealth;
         
         [Header("Death Settings")]
         [SerializeField] private GameObject[] visualsToHideOnDeath; // optional: specific objects to hide
@@ -84,7 +85,7 @@ namespace Category5.Player
         {
             _controller = GetComponent<CharacterController>();
             _inputActions = new InputSystem_Actions();
-            _playerStats = GetComponent<PlayerStats>();
+            _playerInventory = GetComponent<PlayerInventory>();
             _playerCombat = GetComponent<PlayerCombat>();
             
             // cache all renderers for death visibility toggle
@@ -112,10 +113,10 @@ namespace Category5.Player
         {
             _isOffline = false; // we are definitely networked now
             
-            // cache stats reference
-            if (_playerStats == null)
+            // cache inventory reference
+            if (_playerInventory == null)
             {
-                _playerStats = GetComponent<PlayerStats>();
+                _playerInventory = GetComponent<PlayerInventory>();
             }
 
             if (IsServer)
@@ -126,10 +127,10 @@ namespace Category5.Player
             IsDead.OnValueChanged += OnDeadStateChanged;
             PlayerName.OnValueChanged += OnPlayerNameChangedCallback;
             
-            // subscribe to stats changes to update max health
-            if (_playerStats != null)
+            // subscribe to inventory changes to update max health
+            if (_playerInventory != null)
             {
-                _playerStats.OnStatsChanged += OnStatsChanged;
+                _playerInventory.OnStatsChanged += OnStatsChanged;
             }
 
             // Register with UI
@@ -193,9 +194,9 @@ namespace Category5.Player
             IsDead.OnValueChanged -= OnDeadStateChanged;
             PlayerName.OnValueChanged -= OnPlayerNameChangedCallback;
             
-            if (_playerStats != null)
+            if (_playerInventory != null)
             {
-                _playerStats.OnStatsChanged -= OnStatsChanged;
+                _playerInventory.OnStatsChanged -= OnStatsChanged;
             }
         }
         
@@ -279,7 +280,7 @@ namespace Category5.Player
             }
         }
         
-        // called when power-ups change player stats
+        // called when items change player stats
         private void OnStatsChanged()
         {
             if (IsServer)
@@ -289,7 +290,7 @@ namespace Category5.Player
                 if (CurrentHealth.Value < newMax)
                 {
                     // heal the difference when getting max hp bonus
-                    int oldMax = baseMaxHealth + (_playerStats != null ? _playerStats.MaxHealthBonus - 30 : 0); // rough estimate
+                    int oldMax = baseMaxHealth + (_playerInventory != null ? _playerInventory.MaxHealthBonus - 30 : 0); // rough estimate
                     int hpGain = newMax - oldMax;
                     if (hpGain > 0)
                     {
@@ -416,10 +417,10 @@ namespace Category5.Player
                 // apply charge movement speed reduction if charging
                 float effectiveSpeed = moveSpeed;
                 
-                // apply speed multiplier from stats (like fighter r ability)
-                if (_playerStats != null)
+                // apply speed multiplier from inventory (items and abilities)
+                if (_playerInventory != null)
                 {
-                    effectiveSpeed *= _playerStats.GetEffectiveSpeedMultiplier();
+                    effectiveSpeed *= _playerInventory.GetEffectiveSpeedMultiplier();
                 }
                 
                 if (_playerCombat != null && _playerCombat.IsCharging)
@@ -482,8 +483,8 @@ namespace Category5.Player
             
             if (_isDodging || !_isGrounded) return;
             
-            // use effective cooldown from player stats if available
-            float effectiveCooldown = _playerStats != null ? _playerStats.EffectiveDodgeCooldown : dodgeCooldown;
+            // use effective cooldown from player inventory if available
+            float effectiveCooldown = _playerInventory != null ? _playerInventory.EffectiveDodgeCooldown : dodgeCooldown;
             if (Time.time < _lastDodgeTime + effectiveCooldown) return;
 
             StartDodge();

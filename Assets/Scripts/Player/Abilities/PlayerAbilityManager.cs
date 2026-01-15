@@ -5,6 +5,7 @@ using System;
 using System.Linq;
 using Category5.Player;
 using Category5.PowerUps;
+using Category5.Items;
 using Category5.UI;
 using Category5.Audio;
 using Category5.Enemies;
@@ -36,7 +37,7 @@ namespace Category5
         public NetworkVariable<float> ability3Cooldown = new NetworkVariable<float>(0f);
 
         private PlayerController playerController;
-        private PlayerStats playerStats;
+        private PlayerInventory playerInventory;
         private PlayerCombat playerCombat;
         private InputSystem_Actions inputActions;
 
@@ -49,7 +50,7 @@ namespace Category5
         private void Awake()
         {
             playerController = GetComponent<PlayerController>();
-            playerStats = GetComponent<PlayerStats>();
+            playerInventory = GetComponent<PlayerInventory>();
             playerCombat = GetComponent<PlayerCombat>();
             inputActions = new InputSystem_Actions();
         }
@@ -87,15 +88,15 @@ namespace Category5
             // initialize them if we just found them
             if (ability1 != null && ability1.gameObject.activeSelf && ability1.enabled)
             {
-                ability1.Initialize(playerController, playerStats, this);
+                ability1.Initialize(playerController, playerInventory, this);
             }
             if (ability2 != null && ability2.gameObject.activeSelf && ability2.enabled)
             {
-                ability2.Initialize(playerController, playerStats, this);
+                ability2.Initialize(playerController, playerInventory, this);
             }
             if (ability3 != null && ability3.gameObject.activeSelf && ability3.enabled)
             {
-                ability3.Initialize(playerController, playerStats, this);
+                ability3.Initialize(playerController, playerInventory, this);
             }
         }
         
@@ -122,7 +123,7 @@ namespace Category5
             {
                 if (ability != null && !ability.IsInitialized)
                 {
-                    ability.Initialize(playerController, playerStats, this);
+                    ability.Initialize(playerController, playerInventory, this);
                 }
             }
         }
@@ -398,9 +399,9 @@ namespace Category5
                 return;
             }
             
-            if (playerStats == null)
+            if (playerInventory == null)
             {
-                Debug.LogError("PlayerAbilityManager: playerStats is null!");
+                Debug.LogError("PlayerAbilityManager: playerInventory is null!");
                 return;
             }
             
@@ -420,7 +421,7 @@ namespace Category5
             projectile.InitializePiercing(
                 critshotArrowData,
                 OwnerClientId,
-                playerStats,
+                playerInventory,
                 damageMultiplier,
                 ignoreEnemies: true,
                 ignoreEnvironment: true

@@ -82,7 +82,7 @@ namespace Category5
                     }
                     
                     // apply temporary stat boost
-                    if (playerStats != null)
+                    if (playerInventory != null)
                     {
                         // create a temporary power-up effect
                         ApplyStatBoost();
@@ -108,11 +108,11 @@ namespace Category5
         
         private void ApplyStatBoost()
         {
-            // apply temporary stat boosts via PlayerStats
-            if (playerStats != null)
+            // apply temporary stat boosts via PlayerInventory
+            if (playerInventory != null)
             {
-                playerStats.ApplyTemporaryMultiplier("damage", damageBoost, auraDuration);
-                playerStats.ApplyTemporaryMultiplier("speed", speedBoost, auraDuration);
+                playerInventory.ApplyTemporaryMultiplier("damage", damageBoost, auraDuration);
+                playerInventory.ApplyTemporaryMultiplier("speed", speedBoost, auraDuration);
                 
                 Debug.Log($"FighterR: Applied damage boost {damageBoost:P0} and speed boost {speedBoost:P0} for {auraDuration}s");
             }

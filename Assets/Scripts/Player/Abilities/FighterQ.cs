@@ -52,8 +52,8 @@ namespace Category5
             Vector3 targetPosition = GetGroundTargetPosition(forwardDistance);
             lastTargetPosition = targetPosition;
             
-            // apply damage modifier from player stats
-            int adjustedDamage = playerStats.CalculateDamage((int)abilityData.baseDamage);
+            // apply damage modifier from player inventory
+            int adjustedDamage = playerInventory.CalculateDamage((int)abilityData.baseDamage);
             
             // request server to execute through ability manager (networkbehaviour)
             abilityManager.ExecuteFighterQSmashServerRpc(targetPosition, adjustedDamage, aoeRadius, stunDuration, enemyLayers.value);

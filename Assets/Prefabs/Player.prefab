@@ -362,6 +362,7 @@ GameObject:
   - component: {fileID: 8551464889604397006}
   - component: {fileID: 4670924441742465071}
   - component: {fileID: 7004229516117512557}
+  - component: {fileID: 646622970475066457}
   m_Layer: 3
   m_Name: Player
   m_TagString: Untagged
@@ -666,6 +667,23 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   SelectedClass:
     m_InternalValue: 1
+--- !u!114 &646622970475066457
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7487642310209406333}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c6532f9f2222d94ab9913330fb6ad67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Items.PlayerInventory
+  ShowTopMostFoldoutHeaderGroup: 1
+  maxSlots: 5
+  baseMaxHealth: 100
+  baseDodgeCooldown: 2
+  baseMoveSpeed: 7
 --- !u!1 &8085112078672293956
 GameObject:
   m_ObjectHideFlags: 0

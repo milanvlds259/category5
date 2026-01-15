@@ -3734,8 +3734,9 @@ GameObject:
   m_Component:
   - component: {fileID: 791250117}
   - component: {fileID: 791250116}
+  - component: {fileID: 791250118}
   m_Layer: 0
-  m_Name: PowerupRegistry
+  m_Name: ItemRegistry
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3774,6 +3775,29 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &791250118
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 791250115}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f279db951c6c2f24c9fac093ae3ec659, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Items.ItemRegistry
+  allItems:
+  - {fileID: 11400000, guid: 6818c0d61f1c97740add7756682d5e7f, type: 2}
+  - {fileID: 11400000, guid: 9cc4eef61fd0ca94ba2b67fe7f5311b7, type: 2}
+  - {fileID: 11400000, guid: 55a5e8bb29639854880a2f4269c7f001, type: 2}
+  - {fileID: 11400000, guid: b39f8d0844027cb49aef3bb4163ae612, type: 2}
+  - {fileID: 11400000, guid: 770889b0fb2321d428659f1761a41621, type: 2}
+  - {fileID: 11400000, guid: 3a22d2bbe7945484e9087ab326afb214, type: 2}
+  - {fileID: 11400000, guid: a8fb431f7b9cb174b8ba99a2ad455a05, type: 2}
+  - {fileID: 11400000, guid: c03f79853e5e0b14c8572b1c4cdf324b, type: 2}
+  useWeightedSelection: 0
+  allowDuplicateChoices: 0
 --- !u!1 &820791430
 GameObject:
   m_ObjectHideFlags: 0

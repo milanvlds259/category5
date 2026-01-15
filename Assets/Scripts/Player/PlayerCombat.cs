@@ -5,6 +5,7 @@ using Unity.Netcode;
 using UnityEngine.InputSystem;
 using Category5.Core;
 using Category5.PowerUps;
+using Category5.Items;
 using Category5.Audio;
 
 namespace Category5.Player
@@ -55,8 +56,8 @@ namespace Category5.Player
         private float _lastAttackTime;
         private bool _isAttacking;
         
-        // reference to player stats for power-up modifiers
-        private PlayerStats _playerStats;
+        // reference to player inventory for item modifiers
+        private PlayerInventory _playerInventory;
         
         // charging state
         private bool _isCharging;
@@ -99,7 +100,7 @@ namespace Category5.Player
         private void Awake()
         {
             _inputActions = new InputSystem_Actions();
-            _playerStats = GetComponent<PlayerStats>();
+            _playerInventory = GetComponent<PlayerInventory>();
         }
 
         public override void OnNetworkSpawn()
@@ -110,10 +111,10 @@ namespace Category5.Player
                 return;
             }
             
-            // cache stats reference if not found in awake
-            if (_playerStats == null)
+            // cache inventory reference if not found in awake
+            if (_playerInventory == null)
             {
-                _playerStats = GetComponent<PlayerStats>();
+                _playerInventory = GetComponent<PlayerInventory>();
             }
         }
 
@@ -489,10 +490,10 @@ namespace Category5.Player
             damageMultiplier = Mathf.Clamp(damageMultiplier, 1f, arrowData.MaxDamageMultiplier);
             speedMultiplier = Mathf.Clamp(speedMultiplier, 1f, arrowData.MaxSpeedMultiplier);
             
-            // get player stats for damage modifiers
-            if (_playerStats == null)
+            // get player inventory for damage modifiers
+            if (_playerInventory == null)
             {
-                _playerStats = GetComponent<PlayerStats>();
+                _playerInventory = GetComponent<PlayerInventory>();
             }
             
             // spawn the projectile on the server
@@ -505,7 +506,7 @@ namespace Category5.Player
             // initialize projectile with charged multipliers
             if (projectileObj.TryGetComponent<NetworkedProjectile>(out var projectile))
             {
-                projectile.InitializeCharged(arrowData, OwnerClientId, _playerStats, damageMultiplier, speedMultiplier);
+                projectile.InitializeCharged(arrowData, OwnerClientId, _playerInventory, damageMultiplier, speedMultiplier);
             }
             
             // spawn on network
@@ -537,18 +538,18 @@ namespace Category5.Player
             Vector3 attackPoint = position + direction * attackOffset;
             Collider[] hitEnemies = Physics.OverlapSphere(attackPoint, attackRange, enemyLayers);
 
-            // get player stats for damage modifiers
-            if (_playerStats == null)
+            // get player inventory for damage modifiers
+            if (_playerInventory == null)
             {
-                _playerStats = GetComponent<PlayerStats>();
+                _playerInventory = GetComponent<PlayerInventory>();
             }
             
-            // calculate final damage with power-up modifiers
-            int finalDamage = _playerStats != null 
-                ? _playerStats.CalculateDamage(baseDamage) 
+            // calculate final damage with item modifiers
+            int finalDamage = _playerInventory != null 
+                ? _playerInventory.CalculateDamage(baseDamage) 
                 : baseDamage;
             
-            int lifestealAmount = _playerStats != null ? _playerStats.LifestealAmount : 0;
+            int lifestealAmount = _playerInventory != null ? _playerInventory.LifestealAmount : 0;
 
             // determine if this is a heavy hit (combo finisher)
             bool isHeavyHit = baseDamage >= heavyDamage;

@@ -1,6 +1,7 @@
 using UnityEngine;
 using Category5.Player;
 using Category5.PowerUps;
+using Category5.Items;
 
 namespace Category5
 {
@@ -11,7 +12,7 @@ namespace Category5
         [SerializeField] protected AbilityData abilityData;
 
         protected PlayerController playerController;
-        protected PlayerStats playerStats;
+        protected PlayerInventory playerInventory;
         protected PlayerAbilityManager abilityManager;
         
         private bool _isInitialized = false;
@@ -24,10 +25,10 @@ namespace Category5
         protected bool IsOwner => abilityManager != null && abilityManager.IsOwner;
         protected ulong OwnerClientId => abilityManager != null ? abilityManager.OwnerClientId : 0;
 
-        public virtual void Initialize(PlayerController player, PlayerStats stats, PlayerAbilityManager manager)
+        public virtual void Initialize(PlayerController player, PlayerInventory inventory, PlayerAbilityManager manager)
         {
             playerController = player;
-            playerStats = stats;
+            playerInventory = inventory;
             abilityManager = manager;
             _isInitialized = true;
         }
@@ -45,12 +46,12 @@ namespace Category5
         // execute the ability (server-side logic)
         public abstract void Execute();
 
-        // calculate damage with power-up scaling
+        // calculate damage with item scaling
         protected float CalculateDamage()
         {
-            if (playerStats != null)
+            if (playerInventory != null)
             {
-                return playerStats.CalculateDamage((int)abilityData.baseDamage);
+                return playerInventory.CalculateDamage((int)abilityData.baseDamage);
             }
             return abilityData.baseDamage;
         }

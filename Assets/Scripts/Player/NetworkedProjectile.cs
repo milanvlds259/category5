@@ -2,6 +2,7 @@
 using Unity.Netcode;
 using Category5.Core;
 using Category5.PowerUps;
+using Category5.Items;
 using Category5.Boss;
 
 namespace Category5.Player
@@ -28,8 +29,8 @@ namespace Category5.Player
         // the client who fired this projectile (for damage feedback)
         private ulong _ownerClientId;
         
-        // reference to owner's player stats for damage modifiers
-        private PlayerStats _ownerStats;
+        // reference to owner's player inventory for damage modifiers
+        private PlayerInventory _ownerInventory;
         
         // track if we've already hit something to prevent double damage
         private bool _hasHit = false;
@@ -81,13 +82,13 @@ namespace Category5.Player
         /// <summary>
         /// initialize projectile with data from the spawner (called on server before spawn)
         /// </summary>
-        public void Initialize(ProjectileData data, ulong ownerClientId, PlayerStats ownerStats)
+        public void Initialize(ProjectileData data, ulong ownerClientId, PlayerInventory ownerInventory)
         {
             speed = data.Speed;
             damage = data.Damage;
             lifetime = data.Lifetime;
             _ownerClientId = ownerClientId;
-            _ownerStats = ownerStats;
+            _ownerInventory = ownerInventory;
             _impactVfxPrefab = data.ImpactVfxPrefab;
             _isPiercing = false;
             _ignoreEnemies = false;
@@ -95,14 +96,14 @@ namespace Category5.Player
         }
         
         // initialize projectile with charged multipliers (called on server before spawn)
-        public void InitializeCharged(ProjectileData data, ulong ownerClientId, PlayerStats ownerStats, float damageMultiplier, float speedMultiplier)
+        public void InitializeCharged(ProjectileData data, ulong ownerClientId, PlayerInventory ownerInventory, float damageMultiplier, float speedMultiplier)
         {
             // apply multipliers to base values
             speed = data.Speed * speedMultiplier;
             damage = Mathf.RoundToInt(data.Damage * damageMultiplier);
             lifetime = data.Lifetime;
             _ownerClientId = ownerClientId;
-            _ownerStats = ownerStats;
+            _ownerInventory = ownerInventory;
             _impactVfxPrefab = data.ImpactVfxPrefab;
             _isPiercing = false;
             _ignoreEnemies = false;
@@ -110,13 +111,13 @@ namespace Category5.Player
         }
         
         // initialize piercing projectile (for critshot ultimate)
-        public void InitializePiercing(ProjectileData data, ulong ownerClientId, PlayerStats ownerStats, float damageMultiplier, bool ignoreEnemies = true, bool ignoreEnvironment = true)
+        public void InitializePiercing(ProjectileData data, ulong ownerClientId, PlayerInventory ownerInventory, float damageMultiplier, bool ignoreEnemies = true, bool ignoreEnvironment = true)
         {
             speed = data.Speed;
             damage = Mathf.RoundToInt(data.Damage * damageMultiplier);
             lifetime = data.Lifetime;
             _ownerClientId = ownerClientId;
-            _ownerStats = ownerStats;
+            _ownerInventory = ownerInventory;
             _impactVfxPrefab = data.ImpactVfxPrefab;
             _isPiercing = true;
             _ignoreEnemies = ignoreEnemies;
@@ -200,16 +201,16 @@ namespace Category5.Player
         // helper method to apply damage and all effects
         private void ApplyDamageAndEffects(IDamageable damageable, Vector3 hitPosition)
         {
-            // calculate final damage with power-up modifiers
-            int finalDamage = _ownerStats != null 
-                ? _ownerStats.CalculateDamage(damage) 
+            // calculate final damage with item modifiers
+            int finalDamage = _ownerInventory != null 
+                ? _ownerInventory.CalculateDamage(damage) 
                 : damage;
                 
             // deal damage
             damageable.TakeDamage(finalDamage);
             
             // apply lifesteal if owner has it
-            int lifestealAmount = _ownerStats != null ? _ownerStats.LifestealAmount : 0;
+            int lifestealAmount = _ownerInventory != null ? _ownerInventory.LifestealAmount : 0;
             if (lifestealAmount > 0)
             {
                 ApplyLifestealToOwner(lifestealAmount);

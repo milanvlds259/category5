@@ -5,6 +5,7 @@ using Category5.Core;
 using Category5.Enemies;
 using Category5.Player;
 using Category5.PowerUps;
+using Category5.Items;
 using Category5.Boss;
 
 namespace Category5
@@ -22,9 +23,9 @@ namespace Category5
         
         private PlayerCombat playerCombat;
         
-        public override void Initialize(PlayerController player, PlayerStats stats, PlayerAbilityManager manager)
+        public override void Initialize(PlayerController player, PlayerInventory inventory, PlayerAbilityManager manager)
         {
-            base.Initialize(player, stats, manager);
+            base.Initialize(player, inventory, manager);
             playerCombat = player.GetComponent<PlayerCombat>();
         }
         
@@ -118,7 +119,7 @@ namespace Category5
             
             // add tracker component
             TrackerArrow tracker = arrow.AddComponent<TrackerArrow>();
-            tracker.Initialize(zoneDuration, zoneRadius, damageTickInterval, slowMultiplier, abilityData.baseDamage, playerStats, OwnerClientId);
+            tracker.Initialize(zoneDuration, zoneRadius, damageTickInterval, slowMultiplier, abilityData.baseDamage, playerInventory, OwnerClientId);
             
             // manually move the arrow
             tracker.SetVelocity(direction * arrowSpeed);
@@ -136,19 +137,19 @@ namespace Category5
         private float damageTickInterval;
         private float slowMultiplier;
         private float baseDamage;
-        private PlayerStats ownerStats;
+        private PlayerInventory ownerInventory;
         private ulong ownerClientId;
         private bool hasImpacted = false;
         private Vector3 velocity;
         
-        public void Initialize(float duration, float radius, float tickInterval, float slow, float damage, PlayerStats stats, ulong clientId)
+        public void Initialize(float duration, float radius, float tickInterval, float slow, float damage, PlayerInventory inventory, ulong clientId)
         {
             zoneDuration = duration;
             zoneRadius = radius;
             damageTickInterval = tickInterval;
             slowMultiplier = slow;
             baseDamage = damage;
-            ownerStats = stats;
+            ownerInventory = inventory;
             ownerClientId = clientId;
         }
         
@@ -261,7 +262,7 @@ namespace Category5
             
             // add dot zone component to HITBOX (where the collider is), not the visual
             SpiralbowDotZone dotZone = hitbox.AddComponent<SpiralbowDotZone>();
-            dotZone.Initialize(zoneDuration, zoneRadius, damageTickInterval, slowMultiplier, baseDamage, ownerStats, ownerClientId);
+            dotZone.Initialize(zoneDuration, zoneRadius, damageTickInterval, slowMultiplier, baseDamage, ownerInventory, ownerClientId);
             
             // destroy the visual cylinder after duration (which also destroys the hitbox child)
             Destroy(visualCylinder, zoneDuration);
@@ -276,20 +277,20 @@ namespace Category5
         private float damageTickInterval;
         private float slowMultiplier;
         private float baseDamage;
-        private PlayerStats ownerStats;
+        private PlayerInventory ownerInventory;
         private ulong ownerClientId;
         
         private float tickTimer;
         private HashSet<IDamageable> enemiesInZone = new HashSet<IDamageable>();
         
-        public void Initialize(float duration, float radius, float tickInterval, float slow, float damage, PlayerStats stats, ulong clientId)
+        public void Initialize(float duration, float radius, float tickInterval, float slow, float damage, PlayerInventory inventory, ulong clientId)
         {
             zoneDuration = duration;
             zoneRadius = radius;
             damageTickInterval = tickInterval;
             slowMultiplier = slow;
             baseDamage = damage;
-            ownerStats = stats;
+            ownerInventory = inventory;
             ownerClientId = clientId;
             tickTimer = 0f;
         }
@@ -365,9 +366,9 @@ namespace Category5
             
             foreach (IDamageable target in enemiesInZone)
             {
-                // calculate damage with power-up modifiers
-                int finalDamage = ownerStats != null 
-                    ? ownerStats.CalculateDamage((int)baseDamage) 
+                // calculate damage with item modifiers
+                int finalDamage = ownerInventory != null 
+                    ? ownerInventory.CalculateDamage((int)baseDamage) 
                     : (int)baseDamage;
                 
                 // deal damage directly - boss/enemy TakeDamage will handle server authority

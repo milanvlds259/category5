@@ -7,6 +7,7 @@ using Category5.Boss;
 using Category5.Player;
 using Category5.Player.Abilities;
 using Category5.PowerUps;
+using Category5.Items;
 using System.Linq;
 
 namespace Category5
@@ -36,9 +37,9 @@ namespace Category5
         public static event System.Action<Vector3> OnHookHit;
         public static event System.Action<Vector3, Vector3> OnPlayerPulled; // start pos, end pos
         
-        public override void Initialize(PlayerController player, PlayerStats stats, PlayerAbilityManager manager)
+        public override void Initialize(PlayerController player, PlayerInventory inventory, PlayerAbilityManager manager)
         {
-            base.Initialize(player, stats, manager);
+            base.Initialize(player, inventory, manager);
             
             // cache character controller reference
             if (playerController != null)

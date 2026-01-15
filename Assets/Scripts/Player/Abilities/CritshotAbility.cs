@@ -2,6 +2,7 @@ using UnityEngine;
 using Unity.Netcode;
 using Category5.Player;
 using Category5.PowerUps;
+using Category5.Items;
 
 namespace Category5
 {
@@ -16,9 +17,9 @@ namespace Category5
         private PlayerCombat playerCombat;
         private PlayerController playerControllerRef;
         
-        public override void Initialize(PlayerController player, PlayerStats stats, PlayerAbilityManager manager)
+        public override void Initialize(PlayerController player, PlayerInventory inventory, PlayerAbilityManager manager)
         {
-            base.Initialize(player, stats, manager);
+            base.Initialize(player, inventory, manager);
             playerCombat = player.GetComponent<PlayerCombat>();
             playerControllerRef = player;
             
