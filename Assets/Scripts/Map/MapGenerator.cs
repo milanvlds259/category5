@@ -53,10 +53,10 @@ public class MapGenerator : MonoBehaviour
 
     void GenerateMap()
     {
-        // Create arenas at random positions for storm eyes
+        // Create arenas at random positions between 0,0,0 and 500,30,500 for storm eyes
         for (int i = 0; i < numberOfEyes; i++)
         {
-            CreateArena(new Vector3(Random.Range(0, 500), Random.Range(0, 0), Random.Range(0, 500)), i.ToString());
+            CreateArena(Vector3.zero, new Vector3(500,30,500), i.ToString());
         }
 
         // Create paths between arenas
@@ -72,6 +72,8 @@ public class MapGenerator : MonoBehaviour
 
     }
 
+    // Creates an arena at the specified location, specific version!
+    // Overload below that does a random position
     void CreateArena(Vector3 inputPos, String numberforname = "")
     {
         // TEMPORARY! Replace cylinders with prefabs of premade arenas and stuff
@@ -124,6 +126,16 @@ public class MapGenerator : MonoBehaviour
         }
     }
 
+    // Overload of CreateArena that takes in Vector3 min and max for a random position,
+    // Then calls the original version on a random position within the box created by the min and max
+    void CreateArena(Vector3 min, Vector3 max, String numberForName)
+    {
+        CreateArena(
+            new Vector3(Random.Range(min.x, max.x), Random.Range(min.y, max.y), Random.Range(min.z, max.z)),
+            numberForName
+            );
+    }
+
     void CreatePath(GameObject arenaA, GameObject arenaB, String numberforname = "")
     {
         // Store a vector between the two arenas
@@ -163,7 +175,6 @@ public class MapGenerator : MonoBehaviour
                         continue; // It's one of the connected arenas, so it's fine
                     }
                     
-                    Debug.Log("AAAHAHAHAHA");
                     Destroy(path); // Remove the overlapping path
                     return; // Exit the function, this path is invalid
                 }
