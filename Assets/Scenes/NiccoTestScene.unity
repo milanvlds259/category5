@@ -744,6 +744,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MapGenerator
   numberOfEyes: 5
+  minimumPosition: {x: -150, y: -40, z: -150}
+  maximumPosition: {x: 150, y: 40, z: 150}
 --- !u!4 &1317563980
 Transform:
   m_ObjectHideFlags: 0

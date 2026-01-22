@@ -6,7 +6,13 @@ using Random = UnityEngine.Random;
 
 public class MapGenerator : MonoBehaviour
 {
+    // Number of storm eyes or arenas that will be created
     public int numberOfEyes;
+
+    // min and max positions, all arenas will be spawned at random
+    // positions between these Vector3s
+    public Vector3 minimumPosition;
+    public Vector3 maximumPosition;
 
     // List to hold references to created arenas/eyes
     private List<StormEye> arenas = new List<StormEye>();
@@ -58,7 +64,7 @@ public class MapGenerator : MonoBehaviour
         for (int i = 0; i < numberOfEyes; i++)
         {
             // Store a boolean for if an arena was successfully created and create an arena
-            bool arenaCreated = CreateArena(Vector3.zero, new Vector3(300,100,300), i.ToString());
+            bool arenaCreated = CreateArena(minimumPosition, maximumPosition, i.ToString());
 
             int maxIterations = 100; // Prevent infinite loops
             // As long as the arena wasn't created (overlaps), try again
@@ -73,7 +79,7 @@ public class MapGenerator : MonoBehaviour
                 }
 
                 // Try creating the arena again at another random pos
-                arenaCreated = CreateArena(Vector3.zero, new Vector3(500,30,500), i.ToString());
+                arenaCreated = CreateArena(minimumPosition, maximumPosition, i.ToString());
             }
         }
 
