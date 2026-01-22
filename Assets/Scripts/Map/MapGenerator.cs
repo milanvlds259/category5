@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -53,10 +54,27 @@ public class MapGenerator : MonoBehaviour
 
     void GenerateMap()
     {
-        // Create arenas at random positions between 0,0,0 and 500,30,500 for storm eyes
+        // Create arenas at random positions between the input Vector3s for storm eyes
         for (int i = 0; i < numberOfEyes; i++)
         {
-            CreateArena(Vector3.zero, new Vector3(500,30,500), i.ToString());
+            // Store a boolean for if an arena was successfully created and create an arena
+            bool arenaCreated = CreateArena(Vector3.zero, new Vector3(300,100,300), i.ToString());
+
+            int maxIterations = 100; // Prevent infinite loops
+            // As long as the arena wasn't created (overlaps), try again
+            while (!arenaCreated)
+            {
+                // (will only try this 100 times before giving up)
+                maxIterations--;
+                if (maxIterations <= 0)
+                {
+                    Debug.LogWarning("Max iterations reached while trying to place an arena. Some arenas may overlap.");
+                    break; // break out of the while loop
+                }
+
+                // Try creating the arena again at another random pos
+                arenaCreated = CreateArena(Vector3.zero, new Vector3(500,30,500), i.ToString());
+            }
         }
 
         // Create paths between arenas
@@ -72,68 +90,65 @@ public class MapGenerator : MonoBehaviour
 
     }
 
-    // Creates an arena at the specified location, specific version!
+    // Creates an arena at the specified location, specific location version!
     // Overload below that does a random position
-    void CreateArena(Vector3 inputPos, String numberforname = "")
+    bool CreateArena(Vector3 inputPos, String numberforname = "")
     {
-        // TEMPORARY! Replace cylinders with prefabs of premade arenas and stuff
+        // TEMPORARY! Replace basic shapes with prefabs of premade arenas and stuff
         
+        // Create a new arena as a cube primitive GameObject
+        GameObject arena = GameObject.CreatePrimitive(PrimitiveType.Cube);
 
-        // Make sure the arena does not overlap with existing arenas
-        int maxIterations = 100; // Prevent infinite loops
-        while (true) {
-            // Create a new arena as a cube primitive GameObject
-            GameObject arena = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        // Set transform
+        arena.transform.position = inputPos;
+        arena.transform.localScale = new Vector3(30, 1, 30);
+        
+        // Add a Rigidbody to make it interact with physics
+        arena.AddComponent<Rigidbody>();
+        arena.GetComponent<Rigidbody>().isKinematic = true;
+        
+        // Check if the new arena is too close to a previous one
+        // Use an OverlapBox to detect collisions
+        // Do not let arenas spawn on top of each other
+        Collider[] colliders = Physics.OverlapBox(arena.transform.position, new Vector3(arena.transform.localScale.x, arena.transform.localScale.y * 100, arena.transform.localScale.z), arena.transform.rotation);
+        if (colliders.Length > 1) // More than one collider means overlap
+        {
+            Destroy(arena); // Remove the overlapping arena
 
-            // Set transform
-            arena.transform.position = inputPos;
-            arena.transform.localScale = new Vector3(30, 1, 30);
-            
-            // Add a Rigidbody to make it interact with physics
-            arena.AddComponent<Rigidbody>();
-            arena.GetComponent<Rigidbody>().isKinematic = true;
-            
-            // Check if the new arena is too close to a previous one
-            // Use an OverlapBox to detect collisions
-            // Do not let arenas spawn on top of each other
-            Collider[] colliders = Physics.OverlapBox(arena.transform.position, new Vector3(arena.transform.localScale.x, arena.transform.localScale.y * 100, arena.transform.localScale.z), arena.transform.rotation);
-            if (colliders.Length > 1) // More than one collider means overlap
+            // Return false, the arena wasn't created
+            return false;
+        }
+        else
+        {
+            if (!string.IsNullOrEmpty(numberforname))
             {
-                Destroy(arena); // Remove the overlapping arena
-                // Generate a new random position
-                inputPos = new Vector3(Random.Range(0, 500), Random.Range(0, 0), Random.Range(0, 500));
-
-                maxIterations--;
-                if (maxIterations <= 0)
-                {
-                    Debug.LogWarning("Max iterations reached while trying to place an arena. Some arenas may overlap.");
-                    return;
-                }
-                
-                continue; // Retry with the new position
+                arena.name = "Arena_" + numberforname;
             }
-            else
-            {
-                if (!string.IsNullOrEmpty(numberforname))
-                {
-                    arena.name = "Arena_" + numberforname;
-                }
-                // Create a StormEye instance to hold the arena's data
-                StormEye arenaData = new StormEye(arena.transform.position, arena);
-                arenas.Add(arenaData); // Store reference to the created arena
-                return; // No overlap, exit the function
-            }
+            // Create a StormEye instance to hold the arena's data
+            StormEye arenaData = new StormEye(arena.transform.position, arena);
+            arenas.Add(arenaData); // Store reference to the created arena
+            return true; // No overlap, return true
         }
     }
 
     // Overload of CreateArena that takes in Vector3 min and max for a random position,
     // Then calls the original version on a random position within the box created by the min and max
-    void CreateArena(Vector3 min, Vector3 max, String numberForName)
+    bool CreateArena(Vector3 min, Vector3 max, String numberForName)
     {
-        CreateArena(
+        // Create the arena, and check if the arena was successfully created
+        if ( CreateArena(
             new Vector3(Random.Range(min.x, max.x), Random.Range(min.y, max.y), Random.Range(min.z, max.z)),
             numberForName
-            );
+            ) )
+        {
+            // If it was return true
+            return true;
+        }
+        else
+        {
+            // If not return false
+            return false;
+        }
     }
 
     void CreatePath(GameObject arenaA, GameObject arenaB, String numberforname = "")
