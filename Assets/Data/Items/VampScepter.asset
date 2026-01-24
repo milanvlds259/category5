@@ -10,16 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3a5fd3245b27c2c419efd63766ca013e, type: 3}
-  m_Name: VampireTouch
+  m_Name: VampScepter
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Items.ItemData
-  itemName: VampireTouch
+  itemName: Vamp Scepter
   description: Heals 5 HP per hit
   icon: {fileID: 0}
   category: 0
   allowDuplicates: 1
   effects:
   - effectType: 4
-    value: 5
+    value: 3
   glowColor: {r: 0.6, g: 0.1, b: 0.3, a: 1}
   visualEffectPrefab: {fileID: 0}
   goldCost: 0

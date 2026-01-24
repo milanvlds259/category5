@@ -21,9 +21,9 @@ namespace Category5
         private PlayerCombat playerCombat;
         private Coroutine buffCoroutine;
         
-        public override void Initialize(PlayerController player, PlayerInventory inventory, PlayerAbilityManager manager)
+        public override void Initialize(PlayerController player, PlayerStats stats, PlayerAbilityManager manager)
         {
-            base.Initialize(player, inventory, manager);
+            base.Initialize(player, stats, manager);
             playerCombat = player.GetComponent<PlayerCombat>();
         }
         

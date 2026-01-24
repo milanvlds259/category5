@@ -10,17 +10,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3a5fd3245b27c2c419efd63766ca013e, type: 3}
-  m_Name: StoneSkin
+  m_Name: Pickaxe
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Items.ItemData
-  itemName: StoneSkin
-  description: Increases max health by 30
+  itemName: Pickaxe
+  description: Adds 10 flat damage to all attacks
   icon: {fileID: 0}
   category: 0
   allowDuplicates: 1
   effects:
-  - effectType: 1
-    value: 30
-  glowColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  - effectType: 3
+    value: 10
+  glowColor: {r: 0.8, g: 0.5, b: 0.1, a: 1}
   visualEffectPrefab: {fileID: 0}
   goldCost: 0
   tier: 1

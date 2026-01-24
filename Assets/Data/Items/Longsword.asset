@@ -10,17 +10,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3a5fd3245b27c2c419efd63766ca013e, type: 3}
-  m_Name: SwiftStrike
+  m_Name: Longsword
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Items.ItemData
-  itemName: SwiftStrike
-  description: Increases attack speed by 15%
+  itemName: Longsword
+  description: Increases damage by 15%
   icon: {fileID: 0}
   category: 0
   allowDuplicates: 1
   effects:
-  - effectType: 6
+  - effectType: 0
     value: 0.15
-  glowColor: {r: 0.9, g: 0.7, b: 0.1, a: 1}
+  glowColor: {r: 0.9, g: 0.2, b: 0.1, a: 1}
   visualEffectPrefab: {fileID: 0}
   goldCost: 0
   tier: 1

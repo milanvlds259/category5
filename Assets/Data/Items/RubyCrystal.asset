@@ -9,13 +9,18 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f285c4ce326f5a6489f5512b052b4c3d, type: 3}
-  m_Name: StoneSkin
-  m_EditorClassIdentifier: Assembly-CSharp::Category5.PowerUps.PowerUpData
-  powerUpName: Stone Skin
-  description: +30 max HP
+  m_Script: {fileID: 11500000, guid: 3a5fd3245b27c2c419efd63766ca013e, type: 3}
+  m_Name: RubyCrystal
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Items.ItemData
+  itemName: Ruby Crystal
+  description: Increases max health by 30
   icon: {fileID: 0}
-  effectType: 1
-  effectValue: 30
+  category: 0
+  allowDuplicates: 1
+  effects:
+  - effectType: 1
+    value: 30
   glowColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
   visualEffectPrefab: {fileID: 0}
+  goldCost: 0
+  tier: 1

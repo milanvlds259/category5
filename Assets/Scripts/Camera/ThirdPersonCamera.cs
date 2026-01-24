@@ -213,15 +213,22 @@ namespace Category5
         // check if power-up selection is active
         private bool IsInPowerUpSelection()
         {
-            return PowerUpManager.Instance != null && 
-                   PowerUpManager.Instance.CurrentPhase.Value == GamePhase.PowerUpSelection;
+            if (Category5.Items.ItemManager.Instance != null)
+            {
+                return Category5.Items.ItemManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection;
+            }
+            return false;
         }
         
         // check if game is over
         private bool IsGameOver()
         {
-            return PowerUpManager.Instance != null && 
-                   PowerUpManager.Instance.CurrentPhase.Value == GamePhase.GameOver;
+            if (Category5.Items.ItemManager.Instance != null)
+            {
+                return Category5.Items.ItemManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.GameOver ||
+                       Category5.Items.ItemManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.Victory;
+            }
+            return false;
         }
         
         // check if our original player (the one we belong to) is dead

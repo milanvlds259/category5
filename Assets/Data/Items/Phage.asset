@@ -10,17 +10,19 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3a5fd3245b27c2c419efd63766ca013e, type: 3}
-  m_Name: BerserkerRage
+  m_Name: Phage
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Items.ItemData
-  itemName: BerserkerRage
-  description: Increases damage by 15%
+  itemName: Phage
+  description: Increases damage by 10% and max health by 20
   icon: {fileID: 0}
   category: 0
   allowDuplicates: 1
   effects:
   - effectType: 0
-    value: 0.15
-  glowColor: {r: 0.9, g: 0.2, b: 0.1, a: 1}
+    value: 0.1
+  - effectType: 1
+    value: 20
+  glowColor: {r: 0.7, g: 0.3, b: 0.1, a: 1}
   visualEffectPrefab: {fileID: 0}
   goldCost: 0
-  tier: 1
+  tier: 2

@@ -1,30 +1,23 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
+using Unity.Collections;
 using Category5.Boss;
 using Category5.Player;
 using Category5.Audio;
+using Category5.Core;
 
-namespace Category5.PowerUps
+namespace Category5.Items
 {
-    // game state phases
-    public enum GamePhase
+    // manages the item selection flow and round progression
+    public class ItemManager : NetworkBehaviour
     {
-        Fighting,       // normal gameplay, fighting boss
-        PowerUpSelection, // boss died, players selecting power-ups
-        Victory,        // all rounds complete
-        GameOver        // all players died
-    }
-
-    // manages the power-up selection flow and round progression
-    public class PowerUpManager : NetworkBehaviour
-    {
-        public static PowerUpManager Instance { get; private set; }
+        public static ItemManager Instance { get; private set; }
 
         [Header("round settings")]
         [SerializeField] private int totalRounds = 3;
         [SerializeField] private int[] bossHealthPerRound = { 500, 800, 1200 };
-        [SerializeField] private int powerUpChoicesPerPlayer = 3;
+        [SerializeField] private int itemChoicesPerPlayer = 3;
 
         [Header("references")]
         [SerializeField] private GameObject bossSpawnPoint;
@@ -36,14 +29,14 @@ namespace Category5.PowerUps
 
         // track which players have made their selection (server only)
         private Dictionary<ulong, bool> _playerSelections = new Dictionary<ulong, bool>();
-        private Dictionary<ulong, int[]> _playerPowerUpChoices = new Dictionary<ulong, int[]>();
+        private Dictionary<ulong, string[]> _playerItemChoices = new Dictionary<ulong, string[]>(); // item ids
 
         // current boss reference
         private BossBase _currentBoss;
 
         // events for ui
-        public event System.Action<int[]> OnShowPowerUpSelection; // indices of power-ups to show
-        public event System.Action OnHidePowerUpSelection;
+        public event System.Action<string[]> OnShowItemSelection; // item ids to show
+        public event System.Action OnHideItemSelection;
         public event System.Action OnVictory;
         public event System.Action OnGameOver;
         public event System.Action<int> OnRoundChanged;
@@ -71,7 +64,7 @@ namespace Category5.PowerUps
                 _currentBoss = FindFirstObjectByType<BossBase>();
                 if (_currentBoss == null)
                 {
-                    Debug.LogWarning("PowerUpManager: No boss found in scene");
+                    Debug.LogWarning("ItemManager: No boss found in scene");
                 }
             }
         }
@@ -83,14 +76,14 @@ namespace Category5.PowerUps
 
         private void OnPhaseChanged(GamePhase oldPhase, GamePhase newPhase)
         {
-            Debug.Log($"PowerUpManager: Phase changed from {oldPhase} to {newPhase}");
+            Debug.Log($"ItemManager: Phase changed from {oldPhase} to {newPhase}");
 
             switch (newPhase)
             {
                 case GamePhase.Fighting:
-                    OnHidePowerUpSelection?.Invoke();
+                    OnHideItemSelection?.Invoke();
                     break;
-                case GamePhase.PowerUpSelection:
+                case GamePhase.PowerUpSelection: // reusing same phase enum for item selection
                     // ui will be triggered by client rpc with choices
                     break;
                 case GamePhase.Victory:
@@ -107,7 +100,7 @@ namespace Category5.PowerUps
         {
             if (!IsServer) return;
 
-            Debug.Log($"PowerUpManager: Boss died on round {CurrentRound.Value}");
+            Debug.Log($"ItemManager: Boss died on round {CurrentRound.Value}");
 
             // check if this was the final round
             if (CurrentRound.Value >= totalRounds)
@@ -117,35 +110,52 @@ namespace Category5.PowerUps
                 return;
             }
 
-            // enter power-up selection phase
-            StartPowerUpSelection();
+            // enter item selection phase
+            StartItemSelection();
         }
 
-        private void StartPowerUpSelection()
+        private void StartItemSelection()
         {
-            Debug.Log("PowerUpManager: Starting power-up selection phase");
-            CurrentPhase.Value = GamePhase.PowerUpSelection;
+            Debug.Log("ItemManager: Starting item selection phase");
+            CurrentPhase.Value = GamePhase.PowerUpSelection; // reusing enum value
             _playerSelections.Clear();
-            _playerPowerUpChoices.Clear();
+            _playerItemChoices.Clear();
 
-            // generate random power-up choices for each player
-            var registry = PowerUpRegistry.Instance;
+            // generate random item choices for each player
+            var registry = ItemRegistry.Instance;
             if (registry == null)
             {
-                Debug.LogError("PowerUpManager: PowerUpRegistry not found! Make sure PowerUpRegistry is in the scene with power-ups assigned.");
+                Debug.LogError("ItemManager: ItemRegistry not found! Make sure ItemRegistry is in the scene with items assigned.");
                 return;
             }
 
             foreach (var clientId in NetworkManager.Singleton.ConnectedClientsIds)
             {
                 _playerSelections[clientId] = false;
-                
+
+                // get player inventory to check for duplicates
+                PlayerInventory playerInventory = null;
+                if (NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out var client))
+                {
+                    playerInventory = client.PlayerObject?.GetComponent<PlayerInventory>();
+                }
+
                 // generate random choices for this player
-                int[] choices = registry.GetRandomPowerUpIndices(powerUpChoicesPerPlayer);
-                _playerPowerUpChoices[clientId] = choices;
+                var choices = registry.GetRandomItems(itemChoicesPerPlayer, playerInventory);
+                FixedString64Bytes[] choiceIds = new FixedString64Bytes[choices.Count];
+                string[] choiceIdStrings = new string[choices.Count];
+                for (int i = 0; i < choices.Count; i++)
+                {
+                    choiceIds[i] = choices[i].UniqueId;
+                    choiceIdStrings[i] = choices[i].UniqueId;
+                }
+                _playerItemChoices[clientId] = choiceIdStrings;
+
+                // check if player inventory is full
+                bool inventoryFull = playerInventory != null && playerInventory.IsFull;
 
                 // send choices to the specific client
-                SendPowerUpChoicesClientRpc(choices, new ClientRpcParams
+                SendItemChoicesClientRpc(choiceIds, inventoryFull, new ClientRpcParams
                 {
                     Send = new ClientRpcSendParams
                     {
@@ -156,14 +166,21 @@ namespace Category5.PowerUps
         }
 
         [ClientRpc]
-        private void SendPowerUpChoicesClientRpc(int[] powerUpIndices, ClientRpcParams clientRpcParams = default)
+        private void SendItemChoicesClientRpc(FixedString64Bytes[] itemIds, bool inventoryFull, ClientRpcParams clientRpcParams = default)
         {
-            Debug.Log($"PowerUpManager: Received {powerUpIndices.Length} power-up choices");
+            // convert FixedString64Bytes[] to string[] for event
+            string[] itemIdStrings = new string[itemIds.Length];
+            for (int i = 0; i < itemIds.Length; i++)
+            {
+                itemIdStrings[i] = itemIds[i].ToString();
+            }
             
-            // fire audio event for power-up selection start
-            GameEvents.InvokePowerUpSelectionStart();
-            
-            OnShowPowerUpSelection?.Invoke(powerUpIndices); // aaaa
+            Debug.Log($"ItemManager: Received {itemIdStrings.Length} item choices, inventory full: {inventoryFull}");
+
+            // fire audio event for item selection start
+            GameEvents.InvokePowerUpSelectionStart(); // reusing power-up event
+
+            OnShowItemSelection?.Invoke(itemIdStrings);
         }
 
         [ClientRpc]
@@ -171,36 +188,70 @@ namespace Category5.PowerUps
         {
             // fire audio event for victory
             GameEvents.InvokeVictory();
-            
+
             OnVictory?.Invoke();
         }
 
-        // called by client ui when player makes a selection
-        public void SelectPowerUp(int powerUpIndex)
+        // called by client ui when player selects an item (inventory not full)
+        public void SelectItem(string itemId)
         {
             if (!IsOwner && !IsClient) return;
-            
-            Debug.Log($"PowerUpManager: Local player selected power-up index {powerUpIndex}");
-            SubmitSelectionServerRpc(powerUpIndex);
+
+            Debug.Log($"ItemManager: Local player selected item {itemId}");
+            SubmitItemSelectionServerRpc(itemId, -1); // -1 means no replacement
+        }
+
+        // called by client ui when player selects an item to replace (inventory full)
+        public void SelectItemWithReplacement(string itemId, int slotToReplace)
+        {
+            if (!IsOwner && !IsClient) return;
+
+            Debug.Log($"ItemManager: Local player selected item {itemId} to replace slot {slotToReplace}");
+            SubmitItemSelectionServerRpc(itemId, slotToReplace);
+        }
+
+        // called by client ui when player skips selection (inventory full and doesn't want to replace)
+        public void SkipSelection()
+        {
+            if (!IsOwner && !IsClient) return;
+
+            Debug.Log("ItemManager: Local player skipped item selection");
+            SubmitItemSelectionServerRpc("", -1); // empty string means skip
         }
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-        private void SubmitSelectionServerRpc(int powerUpIndex, RpcParams rpcParams = default)
+        private void SubmitItemSelectionServerRpc(string itemId, int slotToReplace, RpcParams rpcParams = default)
         {
             ulong clientId = rpcParams.Receive.SenderClientId;
-            
+
             // validate the selection
-            if (!_playerPowerUpChoices.TryGetValue(clientId, out int[] validChoices))
+            if (!_playerItemChoices.TryGetValue(clientId, out string[] validChoices))
             {
-                Debug.LogWarning($"PowerUpManager: Client {clientId} has no valid choices");
+                Debug.LogWarning($"ItemManager: Client {clientId} has no valid choices");
                 return;
             }
 
-            // check if this index was in their choices
-            bool validSelection = false;
-            foreach (int choice in validChoices)
+            // handle skip
+            if (string.IsNullOrEmpty(itemId))
             {
-                if (choice == powerUpIndex)
+                Debug.Log($"ItemManager: Client {clientId} skipped selection");
+                _playerSelections[clientId] = true;
+                AcknowledgeSelectionClientRpc(new ClientRpcParams
+                {
+                    Send = new ClientRpcSendParams
+                    {
+                        TargetClientIds = new ulong[] { clientId }
+                    }
+                });
+                CheckAllPlayersSelected();
+                return;
+            }
+
+            // check if this item id was in their choices
+            bool validSelection = false;
+            foreach (string choice in validChoices)
+            {
+                if (choice == itemId)
                 {
                     validSelection = true;
                     break;
@@ -209,15 +260,15 @@ namespace Category5.PowerUps
 
             if (!validSelection)
             {
-                Debug.LogWarning($"PowerUpManager: Client {clientId} selected invalid index {powerUpIndex}");
+                Debug.LogWarning($"ItemManager: Client {clientId} selected invalid item {itemId}");
                 return;
             }
 
             // mark player as having selected
             _playerSelections[clientId] = true;
 
-            // apply the power-up to the player
-            ApplyPowerUpToPlayer(clientId, powerUpIndex);
+            // apply the item to the player
+            ApplyItemToPlayer(clientId, itemId, slotToReplace);
 
             // notify the client their selection was received
             AcknowledgeSelectionClientRpc(new ClientRpcParams
@@ -232,46 +283,64 @@ namespace Category5.PowerUps
             CheckAllPlayersSelected();
         }
 
-        private void ApplyPowerUpToPlayer(ulong clientId, int powerUpIndex)
+        private void ApplyItemToPlayer(ulong clientId, string itemId, int slotToReplace)
         {
-            var registry = PowerUpRegistry.Instance;
+            var registry = ItemRegistry.Instance;
             if (registry == null) return;
 
-            var powerUp = registry.GetPowerUpByIndex(powerUpIndex);
-            if (powerUp == null) return;
+            var item = registry.GetItemById(itemId);
+            if (item == null)
+            {
+                Debug.LogWarning($"ItemManager: Item {itemId} not found in registry");
+                return;
+            }
 
-            // find the player's PlayerStats component
+            // find the player's PlayerInventory component
             if (NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out var client))
             {
-                var playerStats = client.PlayerObject?.GetComponent<PlayerStats>();
-                if (playerStats != null)
+                var playerInventory = client.PlayerObject?.GetComponent<PlayerInventory>();
+                if (playerInventory != null)
                 {
-                    playerStats.AddPowerUp(powerUp.UniqueId);
-                    Debug.Log($"PowerUpManager: Applied {powerUp.PowerUpName} to player {clientId}");
-                    
-                    // fire audio event for power-up selected (to the specific client)
-                    NotifyPowerUpSelectedClientRpc(powerUp.PowerUpName, new ClientRpcParams
+                    bool success;
+                    if (slotToReplace >= 0)
                     {
-                        Send = new ClientRpcSendParams
+                        // replace existing item
+                        success = playerInventory.ReplaceItem(slotToReplace, itemId);
+                        Debug.Log($"ItemManager: Replaced slot {slotToReplace} with {item.ItemName} for player {clientId}, success: {success}");
+                    }
+                    else
+                    {
+                        // add to inventory
+                        success = playerInventory.AddItem(itemId);
+                        Debug.Log($"ItemManager: Added {item.ItemName} to player {clientId}, success: {success}");
+                    }
+
+                    if (success)
+                    {
+                        // fire audio event for item selected (to the specific client)
+                        NotifyItemSelectedClientRpc(item.ItemName, new ClientRpcParams
                         {
-                            TargetClientIds = new ulong[] { clientId }
-                        }
-                    });
+                            Send = new ClientRpcSendParams
+                            {
+                                TargetClientIds = new ulong[] { clientId }
+                            }
+                        });
+                    }
                 }
             }
         }
-        
+
         [ClientRpc]
-        private void NotifyPowerUpSelectedClientRpc(string powerUpName, ClientRpcParams clientRpcParams = default)
+        private void NotifyItemSelectedClientRpc(string itemName, ClientRpcParams clientRpcParams = default)
         {
-            GameEvents.InvokePowerUpSelected(powerUpName);
+            GameEvents.InvokePowerUpSelected(itemName); // reusing power-up event
         }
 
         [ClientRpc]
         private void AcknowledgeSelectionClientRpc(ClientRpcParams clientRpcParams = default)
         {
-            Debug.Log("PowerUpManager: Selection acknowledged, waiting for other players...");
-            // ui can show "waiting for other player" state or something
+            Debug.Log("ItemManager: Selection acknowledged, waiting for other players...");
+            // ui can show "waiting for other players" state
         }
 
         private void CheckAllPlayersSelected()
@@ -280,12 +349,12 @@ namespace Category5.PowerUps
             {
                 if (!kvp.Value)
                 {
-                    Debug.Log($"PowerUpManager: Still waiting for player {kvp.Key}");
+                    Debug.Log($"ItemManager: Still waiting for player {kvp.Key}");
                     return;
                 }
             }
 
-            Debug.Log("PowerUpManager: All players selected, starting next round");
+            Debug.Log("ItemManager: All players selected, starting next round");
             StartNextRound();
         }
 
@@ -309,16 +378,16 @@ namespace Category5.PowerUps
         {
             // fire audio event for round start
             GameEvents.InvokeRoundStart(CurrentRound.Value);
-            
-            OnHidePowerUpSelection?.Invoke();
+
+            OnHideItemSelection?.Invoke();
         }
 
         private void RespawnBoss()
         {
             // get hp for current round
             int roundIndex = CurrentRound.Value - 1;
-            int bossHp = roundIndex < bossHealthPerRound.Length 
-                ? bossHealthPerRound[roundIndex] 
+            int bossHp = roundIndex < bossHealthPerRound.Length
+                ? bossHealthPerRound[roundIndex]
                 : bossHealthPerRound[bossHealthPerRound.Length - 1];
 
             if (_currentBoss != null && _currentBoss.IsSpawned)
@@ -343,7 +412,7 @@ namespace Category5.PowerUps
             }
             else
             {
-                Debug.LogError("PowerUpManager: Cannot respawn boss, no prefab or existing boss");
+                Debug.LogError("ItemManager: Cannot respawn boss, no prefab or existing boss");
             }
         }
 
@@ -352,29 +421,29 @@ namespace Category5.PowerUps
         {
             _currentBoss = boss;
         }
-        
+
         // called when a player dies (server only)
         public void OnPlayerDied(ulong clientId)
         {
             if (!IsServer) return;
-            
-            Debug.Log($"PowerUpManager: Player {clientId} died, checking for game over");
-            
-            // don't trigger game over during power-up selection or if already game over
-            if (CurrentPhase.Value == GamePhase.PowerUpSelection || 
+
+            Debug.Log($"ItemManager: Player {clientId} died, checking for game over");
+
+            // don't trigger game over during item selection or if already game over
+            if (CurrentPhase.Value == GamePhase.PowerUpSelection ||
                 CurrentPhase.Value == GamePhase.GameOver ||
                 CurrentPhase.Value == GamePhase.Victory)
             {
                 return;
             }
-            
+
             // check if all players are dead
             if (AreAllPlayersDead())
             {
                 TriggerGameOver();
             }
         }
-        
+
         // checks if all connected players are dead
         private bool AreAllPlayersDead()
         {
@@ -392,37 +461,36 @@ namespace Category5.PowerUps
             }
             return true;
         }
-        
+
         // triggers game over state
         private void TriggerGameOver()
         {
-            Debug.Log($"PowerUpManager: Game Over on round {CurrentRound.Value}");
+            Debug.Log($"ItemManager: Game Over on round {CurrentRound.Value}");
             CurrentPhase.Value = GamePhase.GameOver;
             TriggerGameOverClientRpc(CurrentRound.Value);
         }
-        
+
         [ClientRpc]
         private void TriggerGameOverClientRpc(int roundReached)
         {
             Debug.Log($"Game Over! Reached round {roundReached}");
-            
+
             // fire audio event for game over
             GameEvents.InvokeGameOver();
-            
+
             OnGameOver?.Invoke();
         }
-        
+
         // respawns all players to spawn positions (server only) - called at round transitions
-        // repositions all players (alive or dead) so boss doesnt spawn on top of them
         public void RespawnAllPlayers()
         {
             if (!IsServer) return;
-            
-            Debug.Log("PowerUpManager: Respawning all players to spawn positions");
-            
+
+            Debug.Log("ItemManager: Respawning all players to spawn positions");
+
             // reset spawn index for consistent spawning
             Category5.Core.PlayerSpawnPoint.ResetSpawnIndex();
-            
+
             foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
             {
                 if (NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out var client))
@@ -430,13 +498,12 @@ namespace Category5.PowerUps
                     var player = client.PlayerObject?.GetComponent<PlayerController>();
                     if (player != null)
                     {
-                        // respawn handles both dead players (revives them) and alive players (repositions them)
                         player.Respawn();
                     }
                 }
             }
         }
-        
+
         // gets count of alive players
         public int GetAlivePlayerCount()
         {
@@ -454,33 +521,33 @@ namespace Category5.PowerUps
             }
             return count;
         }
-        
+
         // =====================================
         // disconnect handling
         // =====================================
-        
+
         // called by NetworkSessionManager when a player disconnects mid-game
-        public void OnPlayerDisconnected(ulong clientId)
+        public void HandlePlayerDisconnected(ulong clientId)
         {
             if (!IsServer) return;
-            
-            Debug.Log($"PowerUpManager: Handling disconnect for player {clientId}");
-            
-            // if we're in power-up selection, mark them as selected so we don't wait forever
+
+            Debug.Log($"ItemManager: Handling disconnect for player {clientId}");
+
+            // if we're in item selection, mark them as selected so we don't wait forever
             if (CurrentPhase.Value == GamePhase.PowerUpSelection)
             {
                 if (_playerSelections.ContainsKey(clientId))
                 {
                     _playerSelections[clientId] = true; // mark as "selected" so we don't wait
-                    _playerPowerUpChoices.Remove(clientId);
-                    
-                    Debug.Log($"PowerUpManager: Marked disconnected player {clientId} as selected");
-                    
+                    _playerItemChoices.Remove(clientId);
+
+                    Debug.Log($"ItemManager: Marked disconnected player {clientId} as selected");
+
                     // check if all remaining players have now selected
                     CheckAllPlayersSelected();
                 }
             }
-            
+
             // if we're fighting, check if all remaining players are dead (game over)
             if (CurrentPhase.Value == GamePhase.Fighting)
             {
@@ -488,19 +555,18 @@ namespace Category5.PowerUps
                 StartCoroutine(CheckGameOverAfterDisconnect());
             }
         }
-        
+
         private System.Collections.IEnumerator CheckGameOverAfterDisconnect()
         {
             yield return new WaitForSeconds(0.1f);
-            
+
             // check if any players remain
             if (NetworkManager.Singleton.ConnectedClientsIds.Count == 0)
             {
-                Debug.Log("PowerUpManager: All players disconnected");
-                // don't trigger game over, just end the session
+                Debug.Log("ItemManager: All players disconnected");
                 yield break;
             }
-            
+
             // check if all remaining players are dead
             if (AreAllPlayersDead())
             {

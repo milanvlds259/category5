@@ -37,9 +37,9 @@ namespace Category5
         public static event System.Action<Vector3> OnHookHit;
         public static event System.Action<Vector3, Vector3> OnPlayerPulled; // start pos, end pos
         
-        public override void Initialize(PlayerController player, PlayerInventory inventory, PlayerAbilityManager manager)
+        public override void Initialize(PlayerController player, PlayerStats stats, PlayerAbilityManager manager)
         {
-            base.Initialize(player, inventory, manager);
+            base.Initialize(player, stats, manager);
             
             // cache character controller reference
             if (playerController != null)

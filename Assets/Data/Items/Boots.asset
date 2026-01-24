@@ -10,17 +10,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3a5fd3245b27c2c419efd63766ca013e, type: 3}
-  m_Name: LightningStep
+  m_Name: Boots
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Items.ItemData
-  itemName: LightningStep
-  description: Reduces dodge cooldown by 0.5 seconds
+  itemName: Boots
+  description: Increases movement speed by 20%
   icon: {fileID: 0}
   category: 0
   allowDuplicates: 1
   effects:
-  - effectType: 2
-    value: 0.5
-  glowColor: {r: 0.2, g: 0.6, b: 0.9, a: 1}
+  - effectType: 5
+    value: 0.2
+  glowColor: {r: 0.4, g: 0.9, b: 0.7, a: 1}
   visualEffectPrefab: {fileID: 0}
   goldCost: 0
   tier: 1

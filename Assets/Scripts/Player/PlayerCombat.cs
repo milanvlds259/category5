@@ -56,8 +56,8 @@ namespace Category5.Player
         private float _lastAttackTime;
         private bool _isAttacking;
         
-        // reference to player inventory for item modifiers
-        private PlayerInventory _playerInventory;
+        // reference to player stats for damage modifiers
+        private PlayerStats _playerStats;
         
         // charging state
         private bool _isCharging;
@@ -100,7 +100,7 @@ namespace Category5.Player
         private void Awake()
         {
             _inputActions = new InputSystem_Actions();
-            _playerInventory = GetComponent<PlayerInventory>();
+            _playerStats = GetComponent<PlayerStats>();
         }
 
         public override void OnNetworkSpawn()
@@ -111,10 +111,10 @@ namespace Category5.Player
                 return;
             }
             
-            // cache inventory reference if not found in awake
-            if (_playerInventory == null)
+            // cache stats reference if not found in awake
+            if (_playerStats == null)
             {
-                _playerInventory = GetComponent<PlayerInventory>();
+                _playerStats = GetComponent<PlayerStats>();
             }
         }
 
@@ -202,8 +202,8 @@ namespace Category5.Player
             if (Category5.UI.PauseMenu.GameIsPaused) return false;
             
             // prevent attack input during power-up selection
-            if (PowerUpManager.Instance != null && 
-                PowerUpManager.Instance.CurrentPhase.Value == GamePhase.PowerUpSelection) return false;
+            if (Category5.Items.ItemManager.Instance != null && 
+                Category5.Items.ItemManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection) return false;
             
             // prevent attack input when dead
             var playerController = GetComponent<PlayerController>();
@@ -490,10 +490,10 @@ namespace Category5.Player
             damageMultiplier = Mathf.Clamp(damageMultiplier, 1f, arrowData.MaxDamageMultiplier);
             speedMultiplier = Mathf.Clamp(speedMultiplier, 1f, arrowData.MaxSpeedMultiplier);
             
-            // get player inventory for damage modifiers
-            if (_playerInventory == null)
+            // get player stats for damage modifiers
+            if (_playerStats == null)
             {
-                _playerInventory = GetComponent<PlayerInventory>();
+                _playerStats = GetComponent<PlayerStats>();
             }
             
             // spawn the projectile on the server
@@ -506,7 +506,7 @@ namespace Category5.Player
             // initialize projectile with charged multipliers
             if (projectileObj.TryGetComponent<NetworkedProjectile>(out var projectile))
             {
-                projectile.InitializeCharged(arrowData, OwnerClientId, _playerInventory, damageMultiplier, speedMultiplier);
+                projectile.InitializeCharged(arrowData, OwnerClientId, _playerStats, damageMultiplier, speedMultiplier);
             }
             
             // spawn on network
@@ -538,18 +538,18 @@ namespace Category5.Player
             Vector3 attackPoint = position + direction * attackOffset;
             Collider[] hitEnemies = Physics.OverlapSphere(attackPoint, attackRange, enemyLayers);
 
-            // get player inventory for damage modifiers
-            if (_playerInventory == null)
+            // get player stats for damage modifiers
+            if (_playerStats == null)
             {
-                _playerInventory = GetComponent<PlayerInventory>();
+                _playerStats = GetComponent<PlayerStats>();
             }
             
             // calculate final damage with item modifiers
-            int finalDamage = _playerInventory != null 
-                ? _playerInventory.CalculateDamage(baseDamage) 
+            int finalDamage = _playerStats != null 
+                ? _playerStats.CalculateDamage(baseDamage) 
                 : baseDamage;
             
-            int lifestealAmount = _playerInventory != null ? _playerInventory.LifestealAmount : 0;
+            int lifestealAmount = _playerStats != null ? _playerStats.LifestealAmount : 0;
 
             // determine if this is a heavy hit (combo finisher)
             bool isHeavyHit = baseDamage >= heavyDamage;

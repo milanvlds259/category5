@@ -2,18 +2,21 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 using System;
+using Category5.Items;
 
 namespace Category5.PowerUps
 {
-    // component attached to player to track active power-ups and calculate modified stats
+    // component attached to player to calculate all stat modifications
+    // reads from PlayerInventory (items) and manages temporary stat buffs
     public class PlayerStats : NetworkBehaviour
     {
         [Header("base stats (reference only)")]
         [SerializeField] private int baseMaxHealth = 100;
         [SerializeField] private float baseDodgeCooldown = 2f;
-
-        // networked list of power-up ids the player has acquired
-        private NetworkList<Unity.Collections.FixedString64Bytes> acquiredPowerUpIds;
+        [SerializeField] private float baseMoveSpeed = 5f;
+        
+        // reference to player inventory (for reading items)
+        private PlayerInventory _playerInventory;
 
         // cached calculated stats
         private float _damageMultiplier = 1f;
@@ -21,8 +24,10 @@ namespace Category5.PowerUps
         private int _maxHealthBonus = 0;
         private float _dodgeCooldownReduction = 0f;
         private int _lifestealAmount = 0;
+        private float _moveSpeedMultiplier = 1f;
+        private float _attackSpeedMultiplier = 1f;
 
-        // public accessors for other systems to usee
+        // public accessors for other systems to use
         public float DamageMultiplier => _damageMultiplier;
         public int FlatDamageBonus => _flatDamageBonus;
         public int MaxHealthBonus => _maxHealthBonus;
@@ -30,48 +35,35 @@ namespace Category5.PowerUps
         public float DodgeCooldownReduction => _dodgeCooldownReduction;
         public float EffectiveDodgeCooldown => Mathf.Max(0.5f, baseDodgeCooldown - _dodgeCooldownReduction);
         public int LifestealAmount => _lifestealAmount;
+        public float MoveSpeedMultiplier => _moveSpeedMultiplier;
+        public float AttackSpeedMultiplier => _attackSpeedMultiplier;
+        public float EffectiveMoveSpeed => baseMoveSpeed * _moveSpeedMultiplier;
 
         // event for when stats change
         public event System.Action OnStatsChanged;
 
-        private void Awake()
-        {
-            acquiredPowerUpIds = new NetworkList<Unity.Collections.FixedString64Bytes>();
-        }
-
         public override void OnNetworkSpawn()
         {
-            // subscribe to list changes
-            acquiredPowerUpIds.OnListChanged += OnPowerUpListChanged;
+            // get reference to player inventory
+            _playerInventory = GetComponent<PlayerInventory>();
+            if (_playerInventory != null)
+            {
+                _playerInventory.OnInventoryChanged += RecalculateStats;
+            }
             
-            // recalculate stats on spawn in case we have power-ups
+            // recalculate stats on spawn
             RecalculateStats();
         }
 
         public override void OnNetworkDespawn()
         {
-            acquiredPowerUpIds.OnListChanged -= OnPowerUpListChanged;
-        }
-
-        private void OnPowerUpListChanged(NetworkListEvent<Unity.Collections.FixedString64Bytes> changeEvent)
-        {
-            RecalculateStats();
-        }
-
-        // called by server to add a power-up to this player
-        public void AddPowerUp(string powerUpId)
-        {
-            if (!IsServer)
+            if (_playerInventory != null)
             {
-                Debug.LogWarning("PlayerStats.AddPowerUp should only be called on server");
-                return;
+                _playerInventory.OnInventoryChanged -= RecalculateStats;
             }
-
-            acquiredPowerUpIds.Add(new Unity.Collections.FixedString64Bytes(powerUpId));
-            Debug.Log($"PlayerStats: Added power-up {powerUpId} to player {OwnerClientId}");
         }
 
-        // recalculates all stats from the list of acquired power-ups
+        // recalculates all stats from items
         private void RecalculateStats()
         {
             // reset to base values
@@ -80,57 +72,63 @@ namespace Category5.PowerUps
             _maxHealthBonus = 0;
             _dodgeCooldownReduction = 0f;
             _lifestealAmount = 0;
-
-            // get power-up registry
-            var registry = PowerUpRegistry.Instance;
-            if (registry == null)
+            _moveSpeedMultiplier = 1f;
+            _attackSpeedMultiplier = 1f;
+            
+            // apply items from inventory
+            if (_playerInventory != null)
             {
-                Debug.LogWarning("PlayerStats: PowerUpRegistry not found, cannot recalculate stats");
-                return;
-            }
-
-            // apply each power-up's effect
-            foreach (var powerUpId in acquiredPowerUpIds)
-            {
-                var powerUp = registry.GetPowerUpById(powerUpId.ToString());
-                if (powerUp == null)
+                var items = _playerInventory.GetAllItems();
+                foreach (var item in items)
                 {
-                    Debug.LogWarning($"PlayerStats: Power-up '{powerUpId}' not found in registry");
-                    continue;
+                    ApplyItemEffects(item);
                 }
-
-                ApplyPowerUpEffect(powerUp);
             }
 
-            Debug.Log($"PlayerStats recalculated: DamageMult={_damageMultiplier}, FlatDmg={_flatDamageBonus}, MaxHP+={_maxHealthBonus}, DodgeCD-={_dodgeCooldownReduction}, Lifesteal={_lifestealAmount}");
+            Debug.Log($"PlayerStats recalculated: DamageMult={_damageMultiplier:F2}, FlatDmg={_flatDamageBonus}, MaxHP+={_maxHealthBonus}, DodgeCD-={_dodgeCooldownReduction:F2}, Lifesteal={_lifestealAmount}, MoveSpeed*={_moveSpeedMultiplier:F2}");
 
             OnStatsChanged?.Invoke();
         }
-
-        private void ApplyPowerUpEffect(PowerUpData powerUp)
+        
+        // applies item effects to stats
+        private void ApplyItemEffects(ItemData item)
         {
-            switch (powerUp.EffectType)
+            foreach (var effect in item.Effects)
             {
-                case PowerUpEffectType.DamageMultiplier:
-                    // additive instead of multiplicative cuz im too lazy to figure it out rn
-                    _damageMultiplier += powerUp.EffectValue;
-                    break;
+                switch (effect.effectType)
+                {
+                    case ItemEffectType.DamageMultiplier:
+                        _damageMultiplier += effect.value;
+                        break;
 
-                case PowerUpEffectType.MaxHealthBonus:
-                    _maxHealthBonus += Mathf.RoundToInt(powerUp.EffectValue);
-                    break;
+                    case ItemEffectType.MaxHealthBonus:
+                        _maxHealthBonus += Mathf.RoundToInt(effect.value);
+                        break;
 
-                case PowerUpEffectType.DodgeCooldownReduction:
-                    _dodgeCooldownReduction += powerUp.EffectValue;
-                    break;
+                    case ItemEffectType.DodgeCooldownReduction:
+                        _dodgeCooldownReduction += effect.value;
+                        break;
 
-                case PowerUpEffectType.FlatDamageBonus:
-                    _flatDamageBonus += Mathf.RoundToInt(powerUp.EffectValue);
-                    break;
+                    case ItemEffectType.FlatDamageBonus:
+                        _flatDamageBonus += Mathf.RoundToInt(effect.value);
+                        break;
 
-                case PowerUpEffectType.Lifesteal:
-                    _lifestealAmount += Mathf.RoundToInt(powerUp.EffectValue);
-                    break;
+                    case ItemEffectType.Lifesteal:
+                        _lifestealAmount += Mathf.RoundToInt(effect.value);
+                        break;
+
+                    case ItemEffectType.MoveSpeedMultiplier:
+                        _moveSpeedMultiplier += effect.value;
+                        break;
+
+                    case ItemEffectType.AttackSpeedMultiplier:
+                        _attackSpeedMultiplier += effect.value;
+                        break;
+
+                    default:
+                        Debug.LogWarning($"PlayerStats: Unhandled item effect type {effect.effectType}");
+                        break;
+                }
             }
         }
 
@@ -141,24 +139,6 @@ namespace Category5.PowerUps
             float effectiveMultiplier = GetEffectiveDamageMultiplier();
             float modified = baseDamage * effectiveMultiplier + _flatDamageBonus;
             return Mathf.RoundToInt(modified);
-        }
-
-        // returns a list of power-up ids for ui display
-        public List<string> GetAcquiredPowerUpIds()
-        {
-            var list = new List<string>();
-            foreach (var id in acquiredPowerUpIds)
-            {
-                list.Add(id.ToString());
-            }
-            return list;
-        }
-
-        // clears all power-ups (for game reset)
-        public void ClearPowerUps()
-        {
-            if (!IsServer) return;
-            acquiredPowerUpIds.Clear();
         }
         
         // apply a temporary stat multiplier (used by abilities like Fighter R)
@@ -205,7 +185,7 @@ namespace Category5.PowerUps
         // get effective speed multiplier including temporary boosts
         public float GetEffectiveSpeedMultiplier()
         {
-            float effective = 1f; // base speed multiplier is 1
+            float effective = _moveSpeedMultiplier;
             if (_temporaryMultipliers.TryGetValue("speed", out var boost))
             {
                 effective += boost.multiplier;

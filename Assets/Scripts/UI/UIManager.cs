@@ -40,18 +40,18 @@ namespace Category5.UI
             FindAndRegisterBoss();
             
             // subscribe to round changes
-            if (PowerUpManager.Instance != null)
+            if (Category5.Items.ItemManager.Instance != null)
             {
-                PowerUpManager.Instance.OnRoundChanged += UpdateRoundDisplay;
-                UpdateRoundDisplay(PowerUpManager.Instance.CurrentRound.Value);
+                Category5.Items.ItemManager.Instance.OnRoundChanged += UpdateRoundDisplay;
+                UpdateRoundDisplay(Category5.Items.ItemManager.Instance.CurrentRound.Value);
             }
         }
         
         private void OnDestroy()
         {
-            if (PowerUpManager.Instance != null)
+            if (Category5.Items.ItemManager.Instance != null)
             {
-                PowerUpManager.Instance.OnRoundChanged -= UpdateRoundDisplay;
+                Category5.Items.ItemManager.Instance.OnRoundChanged -= UpdateRoundDisplay;
             }
         }
         
@@ -59,7 +59,7 @@ namespace Category5.UI
         {
             if (roundText != null)
             {
-                roundText.text = $"Round {round}";
+                roundText.text = $"Category {round}";
             }
         }
         

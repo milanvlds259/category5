@@ -2,7 +2,6 @@ using UnityEngine;
 using Unity.Netcode;
 using Unity.Netcode.Components;
 using Category5.Core;
-using Category5.PowerUps;
 using Category5.Player;
 using Category5.Audio;
 using System.Collections.Generic;
@@ -94,10 +93,10 @@ namespace Category5.Boss
             // try to register with ui, it may not be ready yet on scene load
             TryRegisterWithUI();
             
-            // register with power-up manager
-            if (IsServer && PowerUpManager.Instance != null)
+            // register with item manager
+            if (IsServer && Category5.Items.ItemManager.Instance != null)
             {
-                PowerUpManager.Instance.RegisterBoss(this);
+                Category5.Items.ItemManager.Instance.RegisterBoss(this);
             }
         }
         
@@ -419,21 +418,21 @@ namespace Category5.Boss
             // fire audio event for boss death on all clients
             NotifyBossDeathClientRpc(transform.position);
             
-            // notify power-up manager instead of despawning immediately
-            if (PowerUpManager.Instance != null)
+            // notify item manager instead of despawning immediately
+            if (Category5.Items.ItemManager.Instance != null)
             {
-                // Debug.Log("BossBase: Notifying PowerUpManager of boss death");
+                // Debug.Log("BossBase: Notifying ItemManager of boss death");
                 
-                // hide boss visually during power-up selection
+                // hide boss visually during item selection
                 HideBossClientRpc();
                 
-                PowerUpManager.Instance.OnBossDied();
-                // boss will be reset by PowerUpManager.RespawnBoss()
+                Category5.Items.ItemManager.Instance.OnBossDied();
+                // boss will be reset by ItemManager when item selection completes
             }
             else
             {
-                Debug.LogWarning("BossBase: PowerUpManager.Instance is null! Make sure PowerUpManager is in the scene.");
-                // fallback if no power-up manager - just despawn
+                Debug.LogWarning("BossBase: ItemManager not found! Make sure ItemManager is in the scene.");
+                // fallback if no manager - just despawn
                 GetComponent<NetworkObject>().Despawn();
             }
         }

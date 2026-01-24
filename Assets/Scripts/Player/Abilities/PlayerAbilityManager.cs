@@ -37,7 +37,7 @@ namespace Category5
         public NetworkVariable<float> ability3Cooldown = new NetworkVariable<float>(0f);
 
         private PlayerController playerController;
-        private PlayerInventory playerInventory;
+        private PlayerStats playerStats;
         private PlayerCombat playerCombat;
         private InputSystem_Actions inputActions;
 
@@ -50,7 +50,7 @@ namespace Category5
         private void Awake()
         {
             playerController = GetComponent<PlayerController>();
-            playerInventory = GetComponent<PlayerInventory>();
+            playerStats = GetComponent<PlayerStats>();
             playerCombat = GetComponent<PlayerCombat>();
             inputActions = new InputSystem_Actions();
         }
@@ -88,15 +88,15 @@ namespace Category5
             // initialize them if we just found them
             if (ability1 != null && ability1.gameObject.activeSelf && ability1.enabled)
             {
-                ability1.Initialize(playerController, playerInventory, this);
+                ability1.Initialize(playerController, playerStats, this);
             }
             if (ability2 != null && ability2.gameObject.activeSelf && ability2.enabled)
             {
-                ability2.Initialize(playerController, playerInventory, this);
+                ability2.Initialize(playerController, playerStats, this);
             }
             if (ability3 != null && ability3.gameObject.activeSelf && ability3.enabled)
             {
-                ability3.Initialize(playerController, playerInventory, this);
+                ability3.Initialize(playerController, playerStats, this);
             }
         }
         
@@ -123,7 +123,7 @@ namespace Category5
             {
                 if (ability != null && !ability.IsInitialized)
                 {
-                    ability.Initialize(playerController, playerInventory, this);
+                    ability.Initialize(playerController, playerStats, this);
                 }
             }
         }
@@ -271,7 +271,7 @@ namespace Category5
                 Debug.Log("  -> Blocked: Game paused");
                 return;
             }
-            if (PowerUpManager.Instance != null && PowerUpManager.Instance.CurrentPhase.Value == GamePhase.PowerUpSelection)
+            if (Category5.Items.ItemManager.Instance != null && Category5.Items.ItemManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection)
             {
                 Debug.Log("  -> Blocked: Power-up selection phase");
                 return;
@@ -399,9 +399,9 @@ namespace Category5
                 return;
             }
             
-            if (playerInventory == null)
+            if (playerStats == null)
             {
-                Debug.LogError("PlayerAbilityManager: playerInventory is null!");
+                Debug.LogError("PlayerAbilityManager: playerStats is null!");
                 return;
             }
             
@@ -421,7 +421,7 @@ namespace Category5
             projectile.InitializePiercing(
                 critshotArrowData,
                 OwnerClientId,
-                playerInventory,
+                playerStats,
                 damageMultiplier,
                 ignoreEnemies: true,
                 ignoreEnvironment: true

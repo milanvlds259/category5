@@ -31,11 +31,11 @@ namespace Category5.Player
         // death state synced across network
         public NetworkVariable<bool> IsDead = new NetworkVariable<bool>(false);
         
-        // reference to player inventory for item modifiers
-        private PlayerInventory _playerInventory;
+        // reference to player stats for stat modifiers
+        private PlayerStats _playerStats;
         
-        // effective max health including item bonuses
-        public int MaxHealth => _playerInventory != null ? _playerInventory.TotalMaxHealth : baseMaxHealth;
+        // effective max health including item/power-up bonuses
+        public int MaxHealth => _playerStats != null ? _playerStats.TotalMaxHealth : baseMaxHealth;
         
         [Header("Death Settings")]
         [SerializeField] private GameObject[] visualsToHideOnDeath; // optional: specific objects to hide
@@ -85,7 +85,7 @@ namespace Category5.Player
         {
             _controller = GetComponent<CharacterController>();
             _inputActions = new InputSystem_Actions();
-            _playerInventory = GetComponent<PlayerInventory>();
+            _playerStats = GetComponent<PlayerStats>();
             _playerCombat = GetComponent<PlayerCombat>();
             
             // cache all renderers for death visibility toggle
@@ -113,10 +113,10 @@ namespace Category5.Player
         {
             _isOffline = false; // we are definitely networked now
             
-            // cache inventory reference
-            if (_playerInventory == null)
+            // cache stats reference
+            if (_playerStats == null)
             {
-                _playerInventory = GetComponent<PlayerInventory>();
+                _playerStats = GetComponent<PlayerStats>();
             }
 
             if (IsServer)
@@ -127,10 +127,10 @@ namespace Category5.Player
             IsDead.OnValueChanged += OnDeadStateChanged;
             PlayerName.OnValueChanged += OnPlayerNameChangedCallback;
             
-            // subscribe to inventory changes to update max health
-            if (_playerInventory != null)
+            // subscribe to stat changes to update max health
+            if (_playerStats != null)
             {
-                _playerInventory.OnStatsChanged += OnStatsChanged;
+                _playerStats.OnStatsChanged += OnStatsChanged;
             }
 
             // Register with UI
@@ -194,9 +194,9 @@ namespace Category5.Player
             IsDead.OnValueChanged -= OnDeadStateChanged;
             PlayerName.OnValueChanged -= OnPlayerNameChangedCallback;
             
-            if (_playerInventory != null)
+            if (_playerStats != null)
             {
-                _playerInventory.OnStatsChanged -= OnStatsChanged;
+                _playerStats.OnStatsChanged -= OnStatsChanged;
             }
         }
         
@@ -290,7 +290,7 @@ namespace Category5.Player
                 if (CurrentHealth.Value < newMax)
                 {
                     // heal the difference when getting max hp bonus
-                    int oldMax = baseMaxHealth + (_playerInventory != null ? _playerInventory.MaxHealthBonus - 30 : 0); // rough estimate
+                    int oldMax = baseMaxHealth + (_playerStats != null ? _playerStats.MaxHealthBonus - 30 : 0); // rough estimate
                     int hpGain = newMax - oldMax;
                     if (hpGain > 0)
                     {
@@ -369,8 +369,12 @@ namespace Category5.Player
         // check if power-up selection is active
         private bool IsInPowerUpSelection()
         {
-            return PowerUpManager.Instance != null && 
-                   PowerUpManager.Instance.CurrentPhase.Value == GamePhase.PowerUpSelection;
+            // check ItemManager first (new system), fallback to PowerUpManager (legacy)
+            if (Category5.Items.ItemManager.Instance != null)
+            {
+                return Category5.Items.ItemManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection;
+            }
+            return false;
         }
 
         private void HandleMovement()
@@ -418,9 +422,9 @@ namespace Category5.Player
                 float effectiveSpeed = moveSpeed;
                 
                 // apply speed multiplier from inventory (items and abilities)
-                if (_playerInventory != null)
+                if (_playerStats != null)
                 {
-                    effectiveSpeed *= _playerInventory.GetEffectiveSpeedMultiplier();
+                    effectiveSpeed *= _playerStats.GetEffectiveSpeedMultiplier();
                 }
                 
                 if (_playerCombat != null && _playerCombat.IsCharging)
@@ -484,7 +488,7 @@ namespace Category5.Player
             if (_isDodging || !_isGrounded) return;
             
             // use effective cooldown from player inventory if available
-            float effectiveCooldown = _playerInventory != null ? _playerInventory.EffectiveDodgeCooldown : dodgeCooldown;
+            float effectiveCooldown = _playerStats != null ? _playerStats.EffectiveDodgeCooldown : dodgeCooldown;
             if (Time.time < _lastDodgeTime + effectiveCooldown) return;
 
             StartDodge();
@@ -633,9 +637,9 @@ namespace Category5.Player
             NotifyPlayerDeathClientRpc(transform.position);
             
             // notify power-up manager for game over check
-            if (PowerUpManager.Instance != null)
+            if (ItemManager.Instance != null)
             {
-                PowerUpManager.Instance.OnPlayerDied(OwnerClientId);
+                ItemManager.Instance.OnPlayerDied(OwnerClientId);
             }
         }
         

@@ -5,44 +5,16 @@ using System;
 
 namespace Category5.Items
 {
-    // component attached to player to manage inventory and calculate modified stats
+    // component attached to player to manage inventory only
+    // PlayerStats reads from this to calculate stat bonuses
     [RequireComponent(typeof(Unity.Netcode.NetworkObject))]
     public class PlayerInventory : NetworkBehaviour
     {
         [Header("inventory settings")]
         [SerializeField] private int maxSlots = 5;
 
-        [Header("base stats (reference only dont touch)")]
-        [SerializeField] private int baseMaxHealth = 100;
-        [SerializeField] private float baseDodgeCooldown = 2f;
-        [SerializeField] private float baseMoveSpeed = 5f;
-
         // networked inventory slots
         private NetworkList<InventorySlot> inventorySlots;
-
-        // cached calculated stats
-        private float _damageMultiplier = 1f;
-        private int _flatDamageBonus = 0;
-        private int _maxHealthBonus = 0;
-        private float _dodgeCooldownReduction = 0f;
-        private int _lifestealAmount = 0;
-        private float _moveSpeedMultiplier = 1f;
-        private float _attackSpeedMultiplier = 1f;
-        
-        // temporary stat multipliers (for abilities like Fighter R)
-        private Dictionary<string, (float multiplier, float remaining)> _temporaryMultipliers = new Dictionary<string, (float, float)>();
-
-        // public stat accessors
-        public float DamageMultiplier => _damageMultiplier;
-        public int FlatDamageBonus => _flatDamageBonus;
-        public int MaxHealthBonus => _maxHealthBonus;
-        public int TotalMaxHealth => baseMaxHealth + _maxHealthBonus;
-        public float DodgeCooldownReduction => _dodgeCooldownReduction;
-        public float EffectiveDodgeCooldown => Mathf.Max(0.5f, baseDodgeCooldown - _dodgeCooldownReduction);
-        public int LifestealAmount => _lifestealAmount;
-        public float MoveSpeedMultiplier => _moveSpeedMultiplier;
-        public float AttackSpeedMultiplier => _attackSpeedMultiplier;
-        public float EffectiveMoveSpeed => baseMoveSpeed * _moveSpeedMultiplier;
 
         // inventory accessors
         public int MaxSlots => maxSlots;
@@ -50,9 +22,8 @@ namespace Category5.Items
         public bool IsFull => UsedSlots >= maxSlots;
         public NetworkList<InventorySlot> InventorySlots => inventorySlots;
 
-        // events
+        // event fired when inventory changes (PlayerStats listens to this)
         public event Action OnInventoryChanged;
-        public event Action OnStatsChanged;
 
         private void Awake()
         {
@@ -72,9 +43,6 @@ namespace Category5.Items
 
             // subscribe to list changes
             inventorySlots.OnListChanged += OnInventoryListChanged;
-            
-            // recalculate stats on spawn
-            RecalculateStats();
         }
 
         public override void OnNetworkDespawn()
@@ -85,7 +53,6 @@ namespace Category5.Items
         private void OnInventoryListChanged(NetworkListEvent<InventorySlot> changeEvent)
         {
             UpdateUsedSlots();
-            RecalculateStats();
             OnInventoryChanged?.Invoke();
         }
 
@@ -272,146 +239,25 @@ namespace Category5.Items
             Debug.Log($"PlayerInventory: Cleared inventory for player {OwnerClientId}");
         }
 
-        // recalculates all stats from inventory
-        private void RecalculateStats()
+        // helper method to get all items as list (for PlayerStats to read)
+        public List<ItemData> GetAllItems()
         {
-            // reset to base values
-            _damageMultiplier = 1f;
-            _flatDamageBonus = 0;
-            _maxHealthBonus = 0;
-            _dodgeCooldownReduction = 0f;
-            _lifestealAmount = 0;
-            _moveSpeedMultiplier = 1f;
-            _attackSpeedMultiplier = 1f;
-
-            // get item registry
+            var items = new List<ItemData>();
             var registry = ItemRegistry.Instance;
-            if (registry == null)
-            {
-                Debug.LogWarning("PlayerInventory: ItemRegistry not found, cannot recalculate stats");
-                return;
-            }
+            if (registry == null) return items;
 
-            // apply each item's effects
             foreach (var slot in inventorySlots)
             {
-                if (slot.IsEmpty)
-                    continue;
-
-                var item = registry.GetItemById(slot.itemId.ToString());
-                if (item == null)
-                {
-                    Debug.LogWarning($"PlayerInventory: Item '{slot.itemId}' not found in registry");
-                    continue;
-                }
-
-                ApplyItemEffects(item);
-            }
-
-            Debug.Log($"PlayerInventory recalculated for player {OwnerClientId}: DamageMult={_damageMultiplier:F2}, FlatDmg={_flatDamageBonus}, MaxHP+={_maxHealthBonus}, DodgeCD-={_dodgeCooldownReduction:F2}, Lifesteal={_lifestealAmount}, MoveSpeed*={_moveSpeedMultiplier:F2}");
-
-            OnStatsChanged?.Invoke();
-        }
-
-        private void ApplyItemEffects(ItemData item)
-        {
-            foreach (var effect in item.Effects)
-            {
-                switch (effect.effectType)
-                {
-                    case ItemEffectType.DamageMultiplier:
-                        // additive stacking (e.g., +0.15 + +0.15 = +0.30)
-                        _damageMultiplier += effect.value;
-                        break;
-
-                    case ItemEffectType.MaxHealthBonus:
-                        _maxHealthBonus += Mathf.RoundToInt(effect.value);
-                        break;
-
-                    case ItemEffectType.DodgeCooldownReduction:
-                        _dodgeCooldownReduction += effect.value;
-                        break;
-
-                    case ItemEffectType.FlatDamageBonus:
-                        _flatDamageBonus += Mathf.RoundToInt(effect.value);
-                        break;
-
-                    case ItemEffectType.Lifesteal:
-                        _lifestealAmount += Mathf.RoundToInt(effect.value);
-                        break;
-
-                    case ItemEffectType.MoveSpeedMultiplier:
-                        _moveSpeedMultiplier += effect.value;
-                        break;
-
-                    case ItemEffectType.AttackSpeedMultiplier:
-                        _attackSpeedMultiplier += effect.value;
-                        break;
-
-                    default:
-                        Debug.LogWarning($"PlayerInventory: Unhandled effect type {effect.effectType}");
-                        break;
-                }
-            }
-        }
-
-        // helper to get total damage with all modifiers applied
-        public int CalculateDamage(int baseDamage)
-        {
-            float effectiveDamageMult = GetEffectiveDamageMultiplier();
-            float totalDamage = baseDamage * effectiveDamageMult;
-            totalDamage += _flatDamageBonus;
-            return Mathf.RoundToInt(totalDamage);
-        }
-        
-        // apply a temporary stat multiplier (used by abilities like Fighter R)
-        public void ApplyTemporaryMultiplier(string statName, float bonusMultiplier, float duration)
-        {
-            _temporaryMultipliers[statName] = (bonusMultiplier, duration);
-        }
-        
-        private void Update()
-        {
-            if (!IsSpawned) return;
-            
-            // update temporary multipliers
-            var keys = new List<string>(_temporaryMultipliers.Keys);
-            foreach (var key in keys)
-            {
-                var (multiplier, remaining) = _temporaryMultipliers[key];
-                remaining -= Time.deltaTime;
+                if (slot.IsEmpty) continue;
                 
-                if (remaining <= 0)
+                var item = registry.GetItemById(slot.itemId.ToString());
+                if (item != null)
                 {
-                    _temporaryMultipliers.Remove(key);
-                }
-                else
-                {
-                    _temporaryMultipliers[key] = (multiplier, remaining);
+                    items.Add(item);
                 }
             }
-        }
-        
-        // get effective damage multiplier including temporary boosts
-        public float GetEffectiveDamageMultiplier()
-        {
-            float effective = _damageMultiplier;
-            if (_temporaryMultipliers.TryGetValue("damage", out var boost))
-            {
-                effective += boost.multiplier;
-            }
-            return effective;
-        }
-        
-        // get effective speed multiplier including temporary boosts
-        public float GetEffectiveSpeedMultiplier()
-        {
-            float effective = _moveSpeedMultiplier;
-            if (_temporaryMultipliers.TryGetValue("speed", out var boost))
-            {
-                effective += boost.multiplier;
-            }
-            return effective;
+            
+            return items;
         }
     }
 }

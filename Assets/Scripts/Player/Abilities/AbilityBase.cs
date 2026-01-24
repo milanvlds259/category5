@@ -12,7 +12,7 @@ namespace Category5
         [SerializeField] protected AbilityData abilityData;
 
         protected PlayerController playerController;
-        protected PlayerInventory playerInventory;
+        protected PlayerStats playerStats;
         protected PlayerAbilityManager abilityManager;
         
         private bool _isInitialized = false;
@@ -25,10 +25,10 @@ namespace Category5
         protected bool IsOwner => abilityManager != null && abilityManager.IsOwner;
         protected ulong OwnerClientId => abilityManager != null ? abilityManager.OwnerClientId : 0;
 
-        public virtual void Initialize(PlayerController player, PlayerInventory inventory, PlayerAbilityManager manager)
+        public virtual void Initialize(PlayerController player, PlayerStats stats, PlayerAbilityManager manager)
         {
             playerController = player;
-            playerInventory = inventory;
+            playerStats = stats;
             abilityManager = manager;
             _isInitialized = true;
         }
@@ -49,9 +49,9 @@ namespace Category5
         // calculate damage with item scaling
         protected float CalculateDamage()
         {
-            if (playerInventory != null)
+            if (playerStats != null)
             {
-                return playerInventory.CalculateDamage((int)abilityData.baseDamage);
+                return playerStats.CalculateDamage((int)abilityData.baseDamage);
             }
             return abilityData.baseDamage;
         }
