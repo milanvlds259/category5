@@ -5,6 +5,7 @@ using Unity.Netcode;
 using UnityEngine.InputSystem;
 using Category5.Core;
 using Category5.PowerUps;
+using Category5.Items;
 using Category5.Audio;
 
 namespace Category5.Player
@@ -55,7 +56,7 @@ namespace Category5.Player
         private float _lastAttackTime;
         private bool _isAttacking;
         
-        // reference to player stats for power-up modifiers
+        // reference to player stats for damage modifiers
         private PlayerStats _playerStats;
         
         // charging state
@@ -201,8 +202,8 @@ namespace Category5.Player
             if (Category5.UI.PauseMenu.GameIsPaused) return false;
             
             // prevent attack input during power-up selection
-            if (PowerUpManager.Instance != null && 
-                PowerUpManager.Instance.CurrentPhase.Value == GamePhase.PowerUpSelection) return false;
+            if (Category5.Items.ItemManager.Instance != null && 
+                Category5.Items.ItemManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection) return false;
             
             // prevent attack input when dead
             var playerController = GetComponent<PlayerController>();
@@ -543,7 +544,7 @@ namespace Category5.Player
                 _playerStats = GetComponent<PlayerStats>();
             }
             
-            // calculate final damage with power-up modifiers
+            // calculate final damage with item modifiers
             int finalDamage = _playerStats != null 
                 ? _playerStats.CalculateDamage(baseDamage) 
                 : baseDamage;

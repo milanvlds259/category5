@@ -7,7 +7,7 @@ using Category5.Player;
 namespace Category5.UI
 {
     // displays cooldown indicators for the 3 player abilities (Q/E/R)
-    // positioned bottom-right per ui sketch
+    // positioned bottom-right per summer's ui sketch
     public class AbilityCooldownUI : MonoBehaviour
     {
         [Header("Ability Slot References")]
@@ -16,7 +16,7 @@ namespace Category5.UI
         [SerializeField] private AbilitySlotUI ability3Slot; // R
         
         [Header("Buff Indicator")]
-        [SerializeField] private GameObject buffIndicator; // shows when quickbow is active
+        [SerializeField] private GameObject buffIndicator; // shows when ranger q is active
         
         private PlayerAbilityManager abilityManager;
         private int _retryCount = 0;

@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 using Category5;
 using Category5.Core;
 using Category5.PowerUps;
+using Category5.Items;
 using Category5.Audio;
 
 namespace Category5.Player
@@ -30,10 +31,10 @@ namespace Category5.Player
         // death state synced across network
         public NetworkVariable<bool> IsDead = new NetworkVariable<bool>(false);
         
-        // reference to player stats for power-up modifiers
+        // reference to player stats for stat modifiers
         private PlayerStats _playerStats;
         
-        // effective max health including power-up bonuses
+        // effective max health including item/power-up bonuses
         public int MaxHealth => _playerStats != null ? _playerStats.TotalMaxHealth : baseMaxHealth;
         
         [Header("Death Settings")]
@@ -126,7 +127,7 @@ namespace Category5.Player
             IsDead.OnValueChanged += OnDeadStateChanged;
             PlayerName.OnValueChanged += OnPlayerNameChangedCallback;
             
-            // subscribe to stats changes to update max health
+            // subscribe to stat changes to update max health
             if (_playerStats != null)
             {
                 _playerStats.OnStatsChanged += OnStatsChanged;
@@ -279,7 +280,7 @@ namespace Category5.Player
             }
         }
         
-        // called when power-ups change player stats
+        // called when items change player stats
         private void OnStatsChanged()
         {
             if (IsServer)
@@ -368,8 +369,12 @@ namespace Category5.Player
         // check if power-up selection is active
         private bool IsInPowerUpSelection()
         {
-            return PowerUpManager.Instance != null && 
-                   PowerUpManager.Instance.CurrentPhase.Value == GamePhase.PowerUpSelection;
+            // check ItemManager first (new system), fallback to PowerUpManager (legacy)
+            if (Category5.Items.ItemManager.Instance != null)
+            {
+                return Category5.Items.ItemManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection;
+            }
+            return false;
         }
 
         private void HandleMovement()
@@ -415,6 +420,13 @@ namespace Category5.Player
             {
                 // apply charge movement speed reduction if charging
                 float effectiveSpeed = moveSpeed;
+                
+                // apply speed multiplier from inventory (items and abilities)
+                if (_playerStats != null)
+                {
+                    effectiveSpeed *= _playerStats.GetEffectiveSpeedMultiplier();
+                }
+                
                 if (_playerCombat != null && _playerCombat.IsCharging)
                 {
                     effectiveSpeed *= _playerCombat.ChargeMovementMultiplier;
@@ -475,7 +487,7 @@ namespace Category5.Player
             
             if (_isDodging || !_isGrounded) return;
             
-            // use effective cooldown from player stats if available
+            // use effective cooldown from player inventory if available
             float effectiveCooldown = _playerStats != null ? _playerStats.EffectiveDodgeCooldown : dodgeCooldown;
             if (Time.time < _lastDodgeTime + effectiveCooldown) return;
 
@@ -625,9 +637,9 @@ namespace Category5.Player
             NotifyPlayerDeathClientRpc(transform.position);
             
             // notify power-up manager for game over check
-            if (PowerUpManager.Instance != null)
+            if (ItemManager.Instance != null)
             {
-                PowerUpManager.Instance.OnPlayerDied(OwnerClientId);
+                ItemManager.Instance.OnPlayerDied(OwnerClientId);
             }
         }
         

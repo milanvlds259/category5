@@ -5,6 +5,7 @@ using System;
 using System.Linq;
 using Category5.Player;
 using Category5.PowerUps;
+using Category5.Items;
 using Category5.UI;
 using Category5.Audio;
 using Category5.Enemies;
@@ -270,7 +271,7 @@ namespace Category5
                 Debug.Log("  -> Blocked: Game paused");
                 return;
             }
-            if (PowerUpManager.Instance != null && PowerUpManager.Instance.CurrentPhase.Value == GamePhase.PowerUpSelection)
+            if (Category5.Items.ItemManager.Instance != null && Category5.Items.ItemManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection)
             {
                 Debug.Log("  -> Blocked: Power-up selection phase");
                 return;

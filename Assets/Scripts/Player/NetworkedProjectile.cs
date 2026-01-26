@@ -2,6 +2,7 @@
 using Unity.Netcode;
 using Category5.Core;
 using Category5.PowerUps;
+using Category5.Items;
 using Category5.Boss;
 
 namespace Category5.Player
@@ -29,7 +30,7 @@ namespace Category5.Player
         private ulong _ownerClientId;
         
         // reference to owner's player stats for damage modifiers
-        private PlayerStats _ownerStats;
+        private PlayerStats _ownerInventory;
         
         // track if we've already hit something to prevent double damage
         private bool _hasHit = false;
@@ -87,7 +88,7 @@ namespace Category5.Player
             damage = data.Damage;
             lifetime = data.Lifetime;
             _ownerClientId = ownerClientId;
-            _ownerStats = ownerStats;
+            _ownerInventory = ownerStats;
             _impactVfxPrefab = data.ImpactVfxPrefab;
             _isPiercing = false;
             _ignoreEnemies = false;
@@ -102,7 +103,7 @@ namespace Category5.Player
             damage = Mathf.RoundToInt(data.Damage * damageMultiplier);
             lifetime = data.Lifetime;
             _ownerClientId = ownerClientId;
-            _ownerStats = ownerStats;
+            _ownerInventory = ownerStats;
             _impactVfxPrefab = data.ImpactVfxPrefab;
             _isPiercing = false;
             _ignoreEnemies = false;
@@ -116,7 +117,7 @@ namespace Category5.Player
             damage = Mathf.RoundToInt(data.Damage * damageMultiplier);
             lifetime = data.Lifetime;
             _ownerClientId = ownerClientId;
-            _ownerStats = ownerStats;
+            _ownerInventory = ownerStats;
             _impactVfxPrefab = data.ImpactVfxPrefab;
             _isPiercing = true;
             _ignoreEnemies = ignoreEnemies;
@@ -200,16 +201,16 @@ namespace Category5.Player
         // helper method to apply damage and all effects
         private void ApplyDamageAndEffects(IDamageable damageable, Vector3 hitPosition)
         {
-            // calculate final damage with power-up modifiers
-            int finalDamage = _ownerStats != null 
-                ? _ownerStats.CalculateDamage(damage) 
+            // calculate final damage with item modifiers
+            int finalDamage = _ownerInventory != null 
+                ? _ownerInventory.CalculateDamage(damage) 
                 : damage;
                 
             // deal damage
             damageable.TakeDamage(finalDamage);
             
             // apply lifesteal if owner has it
-            int lifestealAmount = _ownerStats != null ? _ownerStats.LifestealAmount : 0;
+            int lifestealAmount = _ownerInventory != null ? _ownerInventory.LifestealAmount : 0;
             if (lifestealAmount > 0)
             {
                 ApplyLifestealToOwner(lifestealAmount);

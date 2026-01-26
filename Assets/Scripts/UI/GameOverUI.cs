@@ -3,7 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using Unity.Netcode;
 using UnityEngine.SceneManagement;
-using Category5.PowerUps;
+using Category5.Items;
 
 namespace Category5.UI
 {
@@ -52,19 +52,19 @@ namespace Category5.UI
         {
             if (_isSubscribed) return;
             
-            if (PowerUpManager.Instance != null)
+            if (ItemManager.Instance != null)
             {
-                PowerUpManager.Instance.OnGameOver += ShowGameOver;
+                ItemManager.Instance.OnGameOver += ShowGameOver;
                 _isSubscribed = true;
-                Debug.Log("GameOverUI: Subscribed to PowerUpManager events");
+                Debug.Log("GameOverUI: Subscribed to ItemManager events");
             }
         }
         
         private void OnDestroy()
         {
-            if (PowerUpManager.Instance != null)
+            if (Category5.Items.ItemManager.Instance != null)
             {
-                PowerUpManager.Instance.OnGameOver -= ShowGameOver;
+                Category5.Items.ItemManager.Instance.OnGameOver += ShowGameOver;
             }
             
             if (returnToMenuButton != null)
@@ -95,8 +95,8 @@ namespace Category5.UI
             // update round reached text
             if (roundReachedText != null)
             {
-                int roundReached = PowerUpManager.Instance != null 
-                    ? PowerUpManager.Instance.CurrentRound.Value 
+                int roundReached = Category5.Items.ItemManager.Instance != null 
+                    ? Category5.Items.ItemManager.Instance.CurrentRound.Value 
                     : 1;
                 roundReachedText.text = $"Reached Round {roundReached}";
             }

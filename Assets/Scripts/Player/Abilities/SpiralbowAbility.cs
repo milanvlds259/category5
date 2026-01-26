@@ -5,6 +5,7 @@ using Category5.Core;
 using Category5.Enemies;
 using Category5.Player;
 using Category5.PowerUps;
+using Category5.Items;
 using Category5.Boss;
 
 namespace Category5
@@ -365,7 +366,7 @@ namespace Category5
             
             foreach (IDamageable target in enemiesInZone)
             {
-                // calculate damage with power-up modifiers
+                // calculate damage with item modifiers
                 int finalDamage = ownerStats != null 
                     ? ownerStats.CalculateDamage((int)baseDamage) 
                     : (int)baseDamage;

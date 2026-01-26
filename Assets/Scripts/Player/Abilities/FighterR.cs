@@ -69,7 +69,11 @@ namespace Category5
                     // create taunt aura if on owner
                     if (tauntAuraPrefab != null)
                     {
-                        var auraObj = Instantiate(tauntAuraPrefab, transform);
+                        // spawn at player feet position (not parented)
+                        Vector3 spawnPos = playerController.transform.position;
+                        spawnPos.y = playerController.transform.position.y + 0.1f; // slightly above ground
+                        
+                        var auraObj = Instantiate(tauntAuraPrefab, spawnPos, Quaternion.identity);
                         currentAura = auraObj.GetComponent<TauntAura>();
                         if (currentAura != null)
                         {
@@ -104,12 +108,13 @@ namespace Category5
         
         private void ApplyStatBoost()
         {
-            // note: temporary stat multipliers would require PlayerStats support
-            // for now just log that boost was applied
+            // apply temporary stat boosts via PlayerStats
             if (playerStats != null)
             {
-                // future implementation: add temporary boost tracking to PlayerStats
-                Debug.Log($"FighterR: Damage boost {damageBoost:P0} and speed boost {speedBoost:P0} for {auraDuration}s");
+                playerStats.ApplyTemporaryMultiplier("damage", damageBoost, auraDuration);
+                playerStats.ApplyTemporaryMultiplier("speed", speedBoost, auraDuration);
+                
+                Debug.Log($"FighterR: Applied damage boost {damageBoost:P0} and speed boost {speedBoost:P0} for {auraDuration}s");
             }
         }
 

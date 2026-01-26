@@ -104,3 +104,6 @@ InitTestScene*.unity*
 # Documentation + reference files
 /[Dd]esign/
 
+# Rider Stuff
+.idea/
+

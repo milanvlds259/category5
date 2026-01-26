@@ -1,6 +1,7 @@
 using UnityEngine;
 using Category5.Player;
 using Category5.PowerUps;
+using Category5.Items;
 
 namespace Category5
 {
@@ -45,7 +46,7 @@ namespace Category5
         // execute the ability (server-side logic)
         public abstract void Execute();
 
-        // calculate damage with power-up scaling
+        // calculate damage with item scaling
         protected float CalculateDamage()
         {
             if (playerStats != null)

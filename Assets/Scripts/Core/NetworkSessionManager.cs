@@ -161,9 +161,9 @@ namespace Category5.Core
             // but we need to update game systems
             
             // update power-up selection if in progress
-            if (PowerUpManager.Instance != null)
+            if (Category5.Items.ItemManager.Instance != null)
             {
-                PowerUpManager.Instance.OnPlayerDisconnected(clientId);
+                Category5.Items.ItemManager.Instance.HandlePlayerDisconnected(clientId);
             }
             
             Debug.Log($"NetworkSessionManager: Cleaned up state for player {clientId}");
