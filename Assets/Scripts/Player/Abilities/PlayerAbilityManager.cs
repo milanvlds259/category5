@@ -316,6 +316,12 @@ namespace Category5
                 return;
             }
             
+            // cancel sprint before executing ability
+            if (playerController != null)
+            {
+                playerController.CancelSprint();
+            }
+            
             // execute locally on the owner (client has the abilities instantiated)
             IsExecutingAbility = true;
             try

@@ -58,6 +58,7 @@ namespace Category5.Player
         
         // reference to player stats for damage modifiers
         private PlayerStats _playerStats;
+        private PlayerController _playerController;
         
         // charging state
         private bool _isCharging;
@@ -101,6 +102,7 @@ namespace Category5.Player
         {
             _inputActions = new InputSystem_Actions();
             _playerStats = GetComponent<PlayerStats>();
+            _playerController = GetComponent<PlayerController>();
         }
 
         public override void OnNetworkSpawn()
@@ -206,8 +208,7 @@ namespace Category5.Player
                 Category5.Items.ItemManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection) return false;
             
             // prevent attack input when dead
-            var playerController = GetComponent<PlayerController>();
-            if (playerController != null && playerController.IsDead.Value) return false;
+            if (_playerController != null && _playerController.IsDead.Value) return false;
             
             return true;
         }
@@ -220,6 +221,12 @@ namespace Category5.Player
             {
                 Debug.LogWarning("No arrow data assigned to PlayerCombat!");
                 return;
+            }
+            
+            // cancel sprint when starting to charge
+            if (_playerController != null)
+            {
+                _playerController.CancelSprint();
             }
             
             _isCharging = true;
@@ -254,6 +261,12 @@ namespace Category5.Player
 
         private void PerformMeleeAttack()
         {
+            // cancel sprint when attacking
+            if (_playerController != null)
+            {
+                _playerController.CancelSprint();
+            }
+            
             _isAttacking = true;
             _lastAttackTime = Time.time;
             _comboCounter++;
@@ -597,10 +610,9 @@ namespace Category5.Player
         // applies lifesteal healing to the player (server only)
         private void ApplyLifesteal(int healAmount)
         {
-            var playerController = GetComponent<PlayerController>();
-            if (playerController != null)
+            if (_playerController != null)
             {
-                playerController.Heal(healAmount);
+                _playerController.Heal(healAmount);
                 
                 // show heal feedback on client
                 ShowLifestealVfxClientRpc(healAmount, transform.position, new ClientRpcParams

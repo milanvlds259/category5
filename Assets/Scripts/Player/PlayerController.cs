@@ -2,6 +2,7 @@ using UnityEngine;
 using Unity.Netcode;
 using Unity.Collections;
 using UnityEngine.InputSystem;
+using System;
 using Category5;
 using Category5.Core;
 using Category5.PowerUps;
@@ -44,6 +45,7 @@ namespace Category5.Player
 
         [Header("Movement Settings")]
         [SerializeField] private float moveSpeed = 7f;
+        [SerializeField] private float sprintSpeedMultiplier = 1.5f;
         [SerializeField] private float jumpHeight = 3f;
         [SerializeField] private float gravity = -20f;
         [SerializeField] private float rotationSpeed = 15f;
@@ -81,6 +83,16 @@ namespace Category5.Player
         private float _lastDodgeTime = -10f;
         private Vector3 _dodgeDirection;
         private Transform _cameraTransform;
+        
+        // Sprint State
+        private bool _isSprinting;
+        
+        // sprint events for ui/vfx integration
+        public static event Action<Vector3> OnSprintStarted;
+        public static event Action<Vector3> OnSprintEnded;
+        
+        // public property (ui can read this later)
+        public bool IsSprinting => _isSprinting;
 
         private void Awake()
         {
@@ -322,6 +334,7 @@ namespace Category5.Player
                 _inputActions.Player.Enable();
                 _inputActions.Player.Jump.performed += OnJump;
                 _inputActions.Player.Dodge.performed += OnDodge;
+                _inputActions.Player.Sprint.performed += OnSprint;
             }
         }
 
@@ -331,6 +344,7 @@ namespace Category5.Player
             {
                 _inputActions.Player.Jump.performed -= OnJump;
                 _inputActions.Player.Dodge.performed -= OnDodge;
+                _inputActions.Player.Sprint.performed -= OnSprint;
                 _inputActions.Player.Disable();
             }
         }
@@ -362,6 +376,12 @@ namespace Category5.Player
                 }
             }
 
+            // autocancel sprint if blocking state active
+            if (_isSprinting && (IsDead.Value || inputBlocked))
+            {
+                CancelSprint();
+            }
+            
             // always process gravity so player doesn't float when paused
             // but skip movement input when blocked
             if (_isDodging)
@@ -440,6 +460,12 @@ namespace Category5.Player
                 if (_playerStats != null)
                 {
                     effectiveSpeed *= _playerStats.GetEffectiveSpeedMultiplier();
+                }
+                
+                // apply sprint multiplier
+                if (_isSprinting)
+                {
+                    effectiveSpeed *= sprintSpeedMultiplier;
                 }
                 
                 if (_playerCombat != null && _playerCombat.IsCharging)
@@ -563,6 +589,34 @@ namespace Category5.Player
 
             float speed = dodgeDistance / dodgeDuration;
             _controller.Move(_dodgeDirection * speed * Time.deltaTime);
+        }
+        
+        private void OnSprint(InputAction.CallbackContext context)
+        {
+            // dont accept input if dead or blocked
+            if (IsDead.Value) return;
+            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection()) return;
+            
+            _isSprinting = !_isSprinting;
+            
+            // fire events for ui/vfx
+            if (_isSprinting)
+            {
+                OnSprintStarted?.Invoke(transform.position);
+            }
+            else
+            {
+                OnSprintEnded?.Invoke(transform.position);
+            }
+        }
+        
+        // method to cancel sprint (called by combat/abilities/etc)
+        public void CancelSprint()
+        {
+            if (!_isSprinting) return;
+            
+            _isSprinting = false;
+            OnSprintEnded?.Invoke(transform.position);
         }
 
         public void TakeDamage(int damage)
