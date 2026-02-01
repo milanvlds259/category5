@@ -2,6 +2,7 @@ using UnityEngine;
 using Unity.Netcode;
 using System.Collections.Generic;
 using Category5.Core;
+using Category5.Player;
 
 namespace Category5.Boss
 {
@@ -21,6 +22,10 @@ namespace Category5.Boss
         [Header("attack debugging")]
         [SerializeField] private bool showAttackGizmos = true;
         [SerializeField] private Color gizmoColor = Color.red;
+        
+        [Header("target filtering")]
+        [Tooltip("layers that boss attacks can damage - should only include Player layer")]
+        [SerializeField] private LayerMask targetLayers = ~0; // default to all, set to Player layer in inspector
         
         // current attack state
         private BossAttackData _currentAttack;
@@ -354,7 +359,8 @@ namespace Category5.Boss
             
             Vector3 attackCenter = transform.position + transform.TransformDirection(_currentAttack.damageOffset);
             
-            Collider[] hits = Physics.OverlapSphere(attackCenter, _currentAttack.damageRadius);
+            // use layer mask to only detect players, not enemies or other objects
+            Collider[] hits = Physics.OverlapSphere(attackCenter, _currentAttack.damageRadius, targetLayers);
             ProcessHits(hits, attackCenter);
         }
         
@@ -371,11 +377,12 @@ namespace Category5.Boss
             Vector3 beamStart = transform.position + _currentAttack.sweepOffset;
             Vector3 beamEnd = beamStart + sweepDirection * _currentAttack.sweepLength;
             
-            // use capsule cast for beam width
+            // use capsule cast for beam width, filtered by layer mask to only detect players
             Collider[] hits = Physics.OverlapCapsule(
                 beamStart, 
                 beamEnd, 
-                _currentAttack.sweepWidth / 2f
+                _currentAttack.sweepWidth / 2f,
+                targetLayers
             );
             
             ProcessHits(hits, transform.position);
@@ -388,10 +395,15 @@ namespace Category5.Boss
                 // skip if already hit this attack
                 if (_hitTargetsThisAttack.Contains(hit.gameObject)) continue;
                 
-                if (hit.TryGetComponent<IDamageable>(out var target) && hit.gameObject != gameObject)
+                // only damage players, not enemies or other objects
+                // this is a safety check in addition to the layer mask filtering
+                if (hit.TryGetComponent<PlayerController>(out var player) && hit.gameObject != gameObject)
                 {
+                    // skip dead players
+                    if (player.IsDead.Value) continue;
+                    
                     _hitTargetsThisAttack.Add(hit.gameObject);
-                    target.TakeDamage(_currentAttack.damage);
+                    player.TakeDamage(_currentAttack.damage);
                     
                     // trigger feedback
                     TriggerBossHitFeedback(hit.transform.position, _currentAttack.isHeavyAttack);

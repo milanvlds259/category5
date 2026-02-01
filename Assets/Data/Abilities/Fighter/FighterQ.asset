@@ -17,7 +17,7 @@ MonoBehaviour:
     regular enemies.
   abilityIcon: {fileID: 0}
   cooldownDuration: 8
-  baseDamage: 45
+  baseDamage: 50
   castTime: 0
   manaCost: 0
   vfxPrefab: {fileID: 0}

@@ -3,6 +3,7 @@ using UnityEngine;
 using Unity.Netcode;
 using Unity.Collections;
 using Category5.Boss;
+using Category5.Enemies;
 using Category5.Player;
 using Category5.Audio;
 using Category5.Core;
@@ -33,6 +34,11 @@ namespace Category5.Items
 
         // current boss reference
         private BossBase _currentBoss;
+
+        // round end tracking - requires both boss dead AND all enemies defeated
+        private bool _bossDead = false;
+        private EnemySpawner[] _allSpawners; // all spawners in scene
+        private HashSet<EnemySpawner> _completedSpawners = new HashSet<EnemySpawner>();
 
         // events for ui
         public event System.Action<string[]> OnShowItemSelection; // item ids to show
@@ -66,12 +72,21 @@ namespace Category5.Items
                 {
                     Debug.LogWarning("ItemManager: No boss found in scene");
                 }
+
+                // subscribe to spawner completion events and find all spawners
+                EnemySpawner.OnAllEnemiesDefeated += OnSpawnerCompleted;
+                RefreshSpawners();
             }
         }
 
         public override void OnNetworkDespawn()
         {
             CurrentPhase.OnValueChanged -= OnPhaseChanged;
+
+            if (IsServer)
+            {
+                EnemySpawner.OnAllEnemiesDefeated -= OnSpawnerCompleted;
+            }
         }
 
         private void OnPhaseChanged(GamePhase oldPhase, GamePhase newPhase)
@@ -110,8 +125,68 @@ namespace Category5.Items
                 return;
             }
 
-            // enter item selection phase
-            StartItemSelection();
+            // mark boss as dead and try to start item selection
+            _bossDead = true;
+            TryStartItemSelection();
+        }
+
+        // called when an enemy spawner completes all waves and enemies are defeated
+        private void OnSpawnerCompleted(EnemySpawner spawner)
+        {
+            if (!IsServer) return;
+
+            // only track spawners we know about
+            if (_allSpawners == null || System.Array.IndexOf(_allSpawners, spawner) < 0) return;
+
+            _completedSpawners.Add(spawner);
+            Debug.Log($"ItemManager: Spawner completed ({_completedSpawners.Count} completed)");
+
+            TryStartItemSelection();
+        }
+
+        // attempts to start item selection if both boss and all enemies are dead
+        private void TryStartItemSelection()
+        {
+            // check if all active spawners have completed
+            // we check IsActive dynamically because spawners may activate after ItemManager spawns
+            bool allEnemiesDefeated = true;
+            int activeCount = 0;
+            int completedCount = 0;
+
+            if (_allSpawners != null)
+            {
+                foreach (var spawner in _allSpawners)
+                {
+                    if (spawner != null && spawner.IsActive)
+                    {
+                        activeCount++;
+                        if (_completedSpawners.Contains(spawner))
+                        {
+                            completedCount++;
+                        }
+                        else
+                        {
+                            // found an active spawner that hasn't completed
+                            allEnemiesDefeated = false;
+                        }
+                    }
+                }
+            }
+
+            Debug.Log($"ItemManager: Round end check - Boss dead={_bossDead}, Spawners completed={completedCount}/{activeCount}");
+
+            if (_bossDead && allEnemiesDefeated)
+            {
+                Debug.Log("ItemManager: Both boss and all enemies defeated, starting item selection");
+                StartItemSelection();
+            }
+        }
+
+        // finds all spawners in the scene
+        private void RefreshSpawners()
+        {
+            _allSpawners = FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
+            Debug.Log($"ItemManager: Found {_allSpawners.Length} spawners in scene");
         }
 
         private void StartItemSelection()
@@ -362,6 +437,11 @@ namespace Category5.Items
         {
             CurrentRound.Value++;
             CurrentPhase.Value = GamePhase.Fighting;
+
+            // reset round end tracking for new round
+            _bossDead = false;
+            _completedSpawners.Clear();
+            RefreshSpawners();
 
             // respawn any dead players before starting next round
             RespawnAllPlayers();

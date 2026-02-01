@@ -4,6 +4,7 @@ using Unity.Netcode.Components;
 using Category5.Core;
 using Category5.Player;
 using Category5.Audio;
+using Category5.UI;
 using System.Collections.Generic;
 
 namespace Category5.Boss
@@ -98,6 +99,20 @@ namespace Category5.Boss
             {
                 Category5.Items.ItemManager.Instance.RegisterBoss(this);
             }
+
+            // initialize minimap trackable for radar display (boss icon is larger and orange)
+            InitializeMinimapTrackable();
+        }
+
+        // sets up minimap trackable component for radar visibility
+        private void InitializeMinimapTrackable()
+        {
+            var trackable = GetComponent<MinimapTrackable>();
+            if (trackable == null)
+            {
+                trackable = gameObject.AddComponent<MinimapTrackable>();
+            }
+            trackable.Configure(TrackableType.Boss, new Color(1f, 0.6f, 0f), 1.5f);
         }
         
         private void TryRegisterWithUI()

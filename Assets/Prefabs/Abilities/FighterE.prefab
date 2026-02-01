@@ -46,7 +46,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.FighterE
   abilityData: {fileID: 11400000, guid: 537a7f940ba31ef4b8bc909f765ddaf8, type: 2}
   hookProjectilePrefab: {fileID: 773458864881063007, guid: 16d5e15a2b6bce74a8718b4eb5153e4c, type: 3}
-  hookSpeed: 20
+  hookSpeed: 50
   hookLifetime: 3
-  grapplePullForce: 15
-  playerPullSpeed: 15
+  grapplePullForce: 25
+  playerPullSpeed: 25
