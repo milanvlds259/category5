@@ -17,7 +17,7 @@ MonoBehaviour:
     and grants you a large temporary stat boost
   abilityIcon: {fileID: 0}
   cooldownDuration: 8
-  baseDamage: 45
+  baseDamage: 0
   castTime: 0
   manaCost: 0
   vfxPrefab: {fileID: 0}

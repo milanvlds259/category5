@@ -158,6 +158,9 @@ namespace Category5.Enemies
                 healthBar.Initialize(this);
             }
 
+            // initialize minimap trackable for radar display
+            InitializeMinimapTrackable();
+
             // remove character controller at runtime so movement and physics rely on transform and regular colliders
             // this avoids conflicts between CharacterController movement and NetworkTransform interpolation
             if (characterController != null)
@@ -219,6 +222,17 @@ namespace Category5.Enemies
             {
                 transform.localScale = Vector3.one * enemyData.scaleMultiplier;
             }
+        }
+
+        // sets up minimap trackable component for radar visibility
+        private void InitializeMinimapTrackable()
+        {
+            var trackable = GetComponent<MinimapTrackable>();
+            if (trackable == null)
+            {
+                trackable = gameObject.AddComponent<MinimapTrackable>();
+            }
+            trackable.Configure(TrackableType.Enemy, new Color(1f, 0.2f, 0.2f), 1f);
         }
         
         // called by spawner to register itself for death callbacks

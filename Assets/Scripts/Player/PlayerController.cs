@@ -7,6 +7,7 @@ using Category5.Core;
 using Category5.PowerUps;
 using Category5.Items;
 using Category5.Audio;
+using Category5.UI;
 
 namespace Category5.Player
 {
@@ -156,11 +157,14 @@ namespace Category5.Player
             }
             
             // initialize name tag if present (name tag is a child of player prefab)
-            var nameTag = GetComponentInChildren<Category5.UI.PlayerNameTag>(true);
+            var nameTag = GetComponentInChildren<PlayerNameTag>(true);
             if (nameTag != null)
             {
                 nameTag.Initialize();
             }
+
+            // initialize minimap trackable for radar display (players are blue)
+            InitializeMinimapTrackable();
 
             // spawn position is handled by NetworkManagerBootstrap before spawning
             // server syncs spawn position to owning client since we dont use NetworkTransform
@@ -298,6 +302,17 @@ namespace Category5.Player
                     }
                 }
             }
+        }
+
+        // sets up minimap trackable component for radar visibility
+        private void InitializeMinimapTrackable()
+        {
+            var trackable = GetComponent<MinimapTrackable>();
+            if (trackable == null)
+            {
+                trackable = gameObject.AddComponent<MinimapTrackable>();
+            }
+            trackable.Configure(TrackableType.Player, new Color(0.2f, 0.6f, 1f), 1f);
         }
 
         private void OnEnable()
