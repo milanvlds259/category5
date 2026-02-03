@@ -26,9 +26,19 @@ namespace Category5.Player
         // event fired when any player's name changes (for UI updates)
         public static event System.Action<PlayerController> OnPlayerNameChanged;
         
+        // event fired when this player's max health changes (for UI updates)
+        public event System.Action<int> OnMaxHealthChanged;
+        
         [Header("Health")]
         [SerializeField] private int baseMaxHealth = 100;
         public NetworkVariable<int> CurrentHealth = new NetworkVariable<int>(100);
+        
+        [Header("Mana")]
+        [SerializeField] private int baseMaxMana = 10;
+        public NetworkVariable<int> CurrentMana = new NetworkVariable<int>(10);
+        
+        // event fired when mana changes (for UI updates)
+        public event System.Action<int, int> OnManaChanged; // current, max
         
         // death state synced across network
         public NetworkVariable<bool> IsDead = new NetworkVariable<bool>(false);
@@ -38,6 +48,9 @@ namespace Category5.Player
         
         // effective max health including item/power-up bonuses
         public int MaxHealth => _playerStats != null ? _playerStats.TotalMaxHealth : baseMaxHealth;
+        
+        // effective max mana including item/power-up bonuses
+        public int MaxMana => _playerStats != null ? _playerStats.TotalMaxMana : baseMaxMana;
         
         [Header("Death Settings")]
         [SerializeField] private GameObject[] visualsToHideOnDeath; // optional: specific objects to hide
@@ -59,6 +72,10 @@ namespace Category5.Player
         [SerializeField] private float dodgeDuration = 0.5f;
         [SerializeField] private float dodgeDistance = 8f;
         [SerializeField] private float dodgeCooldown = 2f;
+        
+        [Header("Mana Regeneration")]
+        [SerializeField] private float manaRegenInterval = 2f; // 1 mana every 2 seconds
+        private float _timeSinceLastManaRegen = 0f;
 
         private CharacterController _controller;
         private InputSystem_Actions _inputActions;
@@ -135,8 +152,11 @@ namespace Category5.Player
             if (IsServer)
             {
                 CurrentHealth.Value = MaxHealth;
+                CurrentMana.Value = MaxMana;
             }
+            _lastMaxHealth = MaxHealth;
             CurrentHealth.OnValueChanged += OnHealthChanged;
+            CurrentMana.OnValueChanged += OnManaValueChanged;
             IsDead.OnValueChanged += OnDeadStateChanged;
             PlayerName.OnValueChanged += OnPlayerNameChangedCallback;
             
@@ -297,21 +317,24 @@ namespace Category5.Player
         }
         
         // called when items change player stats
+        private int _lastMaxHealth = 0;
         private void OnStatsChanged()
         {
+            int newMax = MaxHealth;
+            
+            // check if max health changed (track on all clients for UI updates)
+            if (_lastMaxHealth != newMax)
+            {
+                _lastMaxHealth = newMax;
+                OnMaxHealthChanged?.Invoke(newMax);
+            }
+            
             if (IsServer)
             {
                 // if max health increased, also increase current health
-                int newMax = MaxHealth;
                 if (CurrentHealth.Value < newMax)
                 {
-                    // heal the difference when getting max hp bonus
-                    int oldMax = baseMaxHealth + (_playerStats != null ? _playerStats.MaxHealthBonus - 30 : 0); // rough estimate
-                    int hpGain = newMax - oldMax;
-                    if (hpGain > 0)
-                    {
-                        CurrentHealth.Value = Mathf.Min(CurrentHealth.Value + hpGain, newMax);
-                    }
+                    CurrentHealth.Value = Mathf.Min(CurrentHealth.Value + newMax - (newMax - _playerStats.MaxHealthBonus), newMax);
                 }
             }
         }
@@ -502,6 +525,25 @@ namespace Category5.Player
 
             _velocity.y += gravity * Time.deltaTime;
             _controller.Move(_velocity * Time.deltaTime);
+        }
+        
+        private void FixedUpdate()
+        {
+            // server-only mana regeneration
+            if (!IsServer) return;
+            if (IsDead.Value) return;
+            
+            // regenerate mana over time
+            if (CurrentMana.Value < MaxMana)
+            {
+                _timeSinceLastManaRegen += Time.fixedDeltaTime;
+                
+                if (_timeSinceLastManaRegen >= manaRegenInterval)
+                {
+                    CurrentMana.Value = Mathf.Min(MaxMana, CurrentMana.Value + 1);
+                    _timeSinceLastManaRegen = 0f;
+                }
+            }
         }
 
         private void OnJump(InputAction.CallbackContext context)
@@ -727,8 +769,10 @@ namespace Category5.Player
             bool wasDead = IsDead.Value;
             Debug.Log($"Respawning player {OwnerClientId} (was dead: {wasDead})");
             
-            // reset health to max and revive if dead
+            // reset health and mana to max and revive if dead
             CurrentHealth.Value = MaxHealth;
+            CurrentMana.Value = MaxMana;
+            _timeSinceLastManaRegen = 0f;
             IsDead.Value = false;
             
             // move to spawn point
@@ -760,6 +804,32 @@ namespace Category5.Player
             
             // reset velocity
             _velocity = Vector3.zero;
+        }
+        
+        // consume mana (server rpc)
+        [Rpc(SendTo.Server)]
+        public void RequestConsumeManaServerRpc(int amount)
+        {
+            if (!IsServer) return;
+            
+            CurrentMana.Value = Mathf.Max(0, CurrentMana.Value - amount);
+            _timeSinceLastManaRegen = 0f; // reset regen timer
+            
+            // notify all clients
+            NotifyManaChangedClientRpc(CurrentMana.Value, MaxMana);
+        }
+        
+        // notify all clients of mana change
+        [Rpc(SendTo.Everyone)]
+        private void NotifyManaChangedClientRpc(int current, int max)
+        {
+            OnManaChanged?.Invoke(current, max);
+        }
+        
+        // callback for mana network variable changes
+        private void OnManaValueChanged(int oldValue, int newValue)
+        {
+            OnManaChanged?.Invoke(newValue, MaxMana);
         }
         
         // syncs spawn position to owning client after network spawn

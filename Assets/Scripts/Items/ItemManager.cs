@@ -470,24 +470,25 @@ namespace Category5.Items
                 ? bossHealthPerRound[roundIndex]
                 : bossHealthPerRound[bossHealthPerRound.Length - 1];
 
+            // get spawn point position and rotation
+            Vector3 spawnPos = bossSpawnPoint != null ? bossSpawnPoint.transform.position : Vector3.zero;
+            Quaternion spawnRot = bossSpawnPoint != null ? bossSpawnPoint.transform.rotation : Quaternion.identity;
+
             if (_currentBoss != null && _currentBoss.IsSpawned)
             {
-                // reset existing boss
-                _currentBoss.ResetBoss(bossHp);
+                // reset existing boss and teleport to spawn point
+                _currentBoss.ResetBoss(bossHp, spawnPos, spawnRot);
             }
             else if (bossPrefab != null)
             {
                 // spawn new boss
-                Vector3 spawnPos = bossSpawnPoint != null ? bossSpawnPoint.transform.position : Vector3.zero;
-                Quaternion spawnRot = bossSpawnPoint != null ? bossSpawnPoint.transform.rotation : Quaternion.identity;
-
                 var bossInstance = Instantiate(bossPrefab, spawnPos, spawnRot);
                 var networkObj = bossInstance.GetComponent<NetworkObject>();
                 if (networkObj != null)
                 {
                     networkObj.Spawn();
                     _currentBoss = bossInstance.GetComponent<BossBase>();
-                    _currentBoss?.ResetBoss(bossHp);
+                    _currentBoss?.ResetBoss(bossHp, spawnPos, spawnRot);
                 }
             }
             else

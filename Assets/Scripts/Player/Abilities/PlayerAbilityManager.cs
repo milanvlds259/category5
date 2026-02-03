@@ -337,6 +337,12 @@ namespace Category5
                 IsExecutingAbility = false;
             }
             
+            // consume mana if ability has a cost
+            if (ability.Data.manaCost > 0)
+            {
+                playerController.RequestConsumeManaServerRpc(ability.Data.manaCost);
+            }
+            
             // send request to server to set cooldown on NetworkVariable
             RequestSetAbilityCooldownServerRpc(slot, ability.Data.cooldownDuration);
         }

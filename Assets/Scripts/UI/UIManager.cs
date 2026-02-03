@@ -15,6 +15,7 @@ namespace Category5.UI
 
         [Header("hud references")]
         [SerializeField] private HealthBar playerHealthBar;
+        [SerializeField] private ManaBar playerManaBar;
         [SerializeField] private HealthBar bossHealthBar;
         [SerializeField] private GameObject bossHealthContainer; // to hide it when no boss
         [SerializeField] private TextMeshProUGUI roundText;
@@ -79,7 +80,7 @@ namespace Category5.UI
             // only register the local player for the main hud
             if (player.IsOwner)
             {
-                // use player's max health property which includes power-up bonuses
+                // initialize health bar
                 playerHealthBar.Initialize(player.MaxHealth, player.CurrentHealth.Value);
                 
                 // subscribe to health changes
@@ -87,6 +88,30 @@ namespace Category5.UI
                 {
                     playerHealthBar.UpdateHealth(newVal);
                 };
+                
+                // subscribe to max health changes (when items increase max hp)
+                player.OnMaxHealthChanged += (newMaxHealth) =>
+                {
+                    playerHealthBar.Initialize(newMaxHealth, player.CurrentHealth.Value);
+                };
+                
+                // initialize mana bar
+                if (playerManaBar != null)
+                {
+                    playerManaBar.Initialize(player.MaxMana, player.CurrentMana.Value);
+                    
+                    // subscribe to mana changes
+                    player.CurrentMana.OnValueChanged += (oldVal, newVal) =>
+                    {
+                        playerManaBar.UpdateMana(newVal, player.MaxMana);
+                    };
+                    
+                    // subscribe to mana changed event (for max mana updates)
+                    player.OnManaChanged += (current, max) =>
+                    {
+                        playerManaBar.UpdateMana(current, max);
+                    };
+                }
             }
         }
 

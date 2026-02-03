@@ -39,6 +39,9 @@ namespace Category5
             if (abilityData == null) return false;
             if (playerController == null) return false;
             if (playerController.IsDead.Value) return false;
+            
+            // check mana cost
+            if (playerController.CurrentMana.Value < abilityData.manaCost) return false;
 
             return true;
         }

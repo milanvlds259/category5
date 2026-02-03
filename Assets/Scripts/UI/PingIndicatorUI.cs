@@ -5,7 +5,7 @@ using Unity.Netcode.Transports.UTP;
 
 namespace Category5.UI
 {
-    // displays local client's network ping (round-trip time) in milliseconds
+    // displays local client's network ping (for obvious reasons does not work on host)
     // color-coded: green (<50ms), yellow (50-100ms), red (>100ms)
     // updates every 0.5 seconds to avoid performance overhead
     public class PingIndicatorUI : MonoBehaviour
@@ -56,10 +56,9 @@ namespace Category5.UI
                 return;
             }
 
-            // get round-trip time from transport (already in milliseconds)
+            // get round-trip time from transport
             int ping = (int)transport.GetCurrentRtt(NetworkManager.ServerClientId);
             
-            // clamp to reasonable range (0-999ms)
             ping = Mathf.Clamp(ping, 0, 999);
             
             // update text and color
