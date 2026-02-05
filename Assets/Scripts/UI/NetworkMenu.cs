@@ -34,7 +34,21 @@ namespace Category5.UI
         [SerializeField] private TextMeshProUGUI playerCountText;
         [SerializeField] private Transform playerListContainer; // parent for player entries
         [SerializeField] private LobbyPlayerEntry playerEntryPrefab; // prefab for each player entry
-        [SerializeField] private LobbyClassSelectionUI classSelectionUI; // class selection dropdown
+        [SerializeField] private LobbyClassSelectionUI classSelectionUI; // class selection dropdown (legacy, may be unused)
+        
+        [Header("ui references - new lobby panels")]
+        [SerializeField] private LobbyTabController lobbyTabController;
+        [SerializeField] private LobbyChatUI lobbyChatUI;
+        [SerializeField] private CharacterSelectPanel characterSelectPanel;
+        [SerializeField] private CharacterViewPanel characterViewPanel;
+        [SerializeField] private LobbySettingsPanel lobbySettingsPanel;
+        [SerializeField] private Image characterArtDisplay; // center area character art
+        [SerializeField] private Sprite defaultCharacterSprite; // fallback sprite
+        
+        [Header("ui references - ready system")]
+        [SerializeField] private Button readyButton;
+        [SerializeField] private TextMeshProUGUI readyButtonText;
+        [SerializeField] private TextMeshProUGUI allPlayersReadyText; // shows when all ready
         
         [Header("status display")]
         [SerializeField] private TextMeshProUGUI statusText;
@@ -138,6 +152,12 @@ namespace Category5.UI
                 cancelConnectionButton.onClick.AddListener(OnCancelConnectionClicked);
             }
             
+            // setup ready button listener
+            if (readyButton != null)
+            {
+                readyButton.onClick.AddListener(OnReadyButtonClicked);
+            }
+            
             // hide connecting panel initially
             if (connectingPanel != null)
             {
@@ -232,6 +252,11 @@ namespace Category5.UI
                 cancelConnectionButton.onClick.RemoveListener(OnCancelConnectionClicked);
             }
             
+            if (readyButton != null)
+            {
+                readyButton.onClick.RemoveListener(OnReadyButtonClicked);
+            }
+            
             if (playerNameInputField != null)
             {
                 playerNameInputField.onEndEdit.RemoveListener(OnPlayerNameChanged);
@@ -295,6 +320,14 @@ namespace Category5.UI
             if (!NetworkManager.Singleton.IsHost)
             {
                 Debug.LogWarning("NetworkMenu: Only the host can start the game");
+                return;
+            }
+            
+            // check if all players are ready
+            if (LobbyManager.Instance != null && !LobbyManager.Instance.AreAllPlayersReady())
+            {
+                UpdateStatus("Cannot start - not all players are ready!");
+                Debug.LogWarning("NetworkMenu: Cannot start game - not all players are ready");
                 return;
             }
             
@@ -598,6 +631,9 @@ namespace Category5.UI
                 LobbyManager.Instance.Cleanup();
             }
             
+            // cleanup new lobby panels
+            CleanupLobbyPanels();
+            
             // clear player list
             ClearPlayerList();
             
@@ -639,6 +675,9 @@ namespace Category5.UI
             {
                 LobbyManager.Instance.Cleanup();
             }
+            
+            // cleanup new lobby panels
+            CleanupLobbyPanels();
             
             // hide class selection
             if (classSelectionUI != null)
@@ -720,17 +759,27 @@ namespace Category5.UI
                 lobbyPanel.SetActive(true);
             }
             
-            // initialize and show class selection UI
+            // initialize legacy class selection UI (may be unused with new system)
             if (classSelectionUI != null)
             {
                 classSelectionUI.Initialize();
                 classSelectionUI.ShowSelection();
             }
             
-            // only the host can start the game
+            // initialize new lobby panels
+            InitializeLobbyPanels();
+            
+            // only the host can start the game (visible but may be disabled until all ready)
             if (startGameButton != null)
             {
                 startGameButton.gameObject.SetActive(isHost);
+            }
+            
+            // show ready button for all players
+            if (readyButton != null)
+            {
+                readyButton.gameObject.SetActive(true);
+                UpdateReadyButtonVisual();
             }
             
             // subscribe to lobby player changes
@@ -738,6 +787,70 @@ namespace Category5.UI
             
             UpdatePlayerCount();
             RefreshPlayerList();
+            UpdateStartButtonState();
+        }
+        
+        // initialize all new lobby panel components
+        private void InitializeLobbyPanels()
+        {
+            // initialize tab controller
+            if (lobbyTabController != null)
+            {
+                lobbyTabController.Initialize();
+            }
+            
+            // initialize chat
+            if (LobbyChatManager.Instance != null)
+            {
+                LobbyChatManager.Instance.Initialize();
+            }
+            if (lobbyChatUI != null)
+            {
+                lobbyChatUI.Initialize();
+            }
+            
+            // initialize character select
+            if (characterSelectPanel != null)
+            {
+                characterSelectPanel.Initialize();
+            }
+            
+            // initialize settings
+            if (lobbySettingsPanel != null)
+            {
+                lobbySettingsPanel.Initialize();
+            }
+            
+            // update character art display
+            UpdateCharacterArtDisplay();
+        }
+        
+        // cleanup lobby panels when leaving
+        private void CleanupLobbyPanels()
+        {
+            if (LobbyChatManager.Instance != null)
+            {
+                LobbyChatManager.Instance.Cleanup();
+            }
+        }
+        
+        // update the center character art based on selected class
+        private void UpdateCharacterArtDisplay()
+        {
+            if (characterArtDisplay == null) return;
+            
+            Sprite classSprite = defaultCharacterSprite;
+            
+            if (characterSelectPanel != null)
+            {
+                var selectedClass = characterSelectPanel.GetSelectedClass();
+                if (selectedClass != null && selectedClass.classIcon != null)
+                {
+                    classSprite = selectedClass.classIcon;
+                }
+            }
+            
+            characterArtDisplay.sprite = classSprite;
         }
         
         private void UpdatePlayerCount()
@@ -790,8 +903,8 @@ namespace Category5.UI
                 if (entry != null)
                 {
                     string playerName = player.PlayerName.ToString();
-                    // Debug.Log($"NetworkMenu: Setting up entry for '{playerName}' (host: {player.IsHost}, local: {player.ClientId == localClientId})");
-                    entry.Setup(playerName, player.IsHost, player.ClientId == localClientId);
+                    // Debug.Log($"NetworkMenu: Setting up entry for '{playerName}' (host: {player.IsHost}, local: {player.ClientId == localClientId}, ready: {player.IsReady})");
+                    entry.Setup(playerName, player.IsHost, player.ClientId == localClientId, player.IsReady);
                 }
                 else
                 {
@@ -803,6 +916,8 @@ namespace Category5.UI
             UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(playerListContainer as RectTransform);
             
             UpdatePlayerCount();
+            UpdateStartButtonState();
+            UpdateReadyButtonVisual();
         }
         
         // clears all player entries from the list
@@ -813,6 +928,52 @@ namespace Category5.UI
             foreach (Transform child in playerListContainer)
             {
                 Destroy(child.gameObject);
+            }
+        }
+        
+        // called when ready button is clicked
+        private void OnReadyButtonClicked()
+        {
+            if (LobbyManager.Instance == null) return;
+            
+            // toggle ready state
+            bool currentReady = LobbyManager.Instance.IsLocalPlayerReady();
+            LobbyManager.Instance.SendLocalPlayerReady(!currentReady);
+            
+            UpdateReadyButtonVisual();
+        }
+        
+        // update ready button text based on current state
+        private void UpdateReadyButtonVisual()
+        {
+            if (readyButtonText == null || LobbyManager.Instance == null) return;
+            
+            bool isReady = LobbyManager.Instance.IsLocalPlayerReady();
+            readyButtonText.text = isReady ? "Unready" : "Ready!";
+            
+            // optionally change button color
+            if (readyButton != null)
+            {
+                var colors = readyButton.colors;
+                colors.normalColor = isReady ? new Color(0.8f, 0.4f, 0.4f) : new Color(0.4f, 0.8f, 0.4f);
+                readyButton.colors = colors;
+            }
+        }
+        
+        // update start button interactability based on all players ready
+        private void UpdateStartButtonState()
+        {
+            if (startGameButton == null) return;
+            if (!NetworkManager.Singleton.IsHost) return;
+            
+            bool allReady = LobbyManager.Instance != null && LobbyManager.Instance.AreAllPlayersReady();
+            startGameButton.interactable = allReady;
+            
+            // update visual indicator
+            if (allPlayersReadyText != null)
+            {
+                allPlayersReadyText.text = allReady ? "All players ready!" : "Waiting for players...";
+                allPlayersReadyText.color = allReady ? new Color(0.4f, 1f, 0.4f) : new Color(1f, 0.8f, 0.4f);
             }
         }
     }
