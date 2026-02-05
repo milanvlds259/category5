@@ -1,12 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Unity.VisualScripting;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
 public class MapGenerator : MonoBehaviour
 {
-    // Number of storm eyes or arenas that will be created
+    // Number of arenas that will be created
+    public int numberOfArenas;
+
+    // Number of arenas that are eyes
     public int numberOfEyes;
 
     // min and max positions, all arenas will be spawned at random
@@ -15,20 +19,28 @@ public class MapGenerator : MonoBehaviour
     public Vector3 maximumPosition;
 
     // List to hold references to created arenas/eyes
-    private List<StormEye> arenas = new List<StormEye>();
+    private List<Arena> arenas = new List<Arena>();
 
     // List to hold references to created paths
     private List<Path> paths = new List<Path>();
 
-    class StormEye
+    class Arena
     {
         public Vector3 position;
         public GameObject gameObjectRef;
 
-        public StormEye(Vector3 pos, GameObject objRef)
+        // Stores if this arena is an eye or not, players can drop into eyes
+        public bool isEye;
+        // Stores if the arena is a "hidden" arena. Hidden arenas will be initially inaccessible, and
+        // paths connected to them will also be hidden
+        public bool isHidden;
+
+        public Arena(Vector3 pos, GameObject objRef)
         {
             position = pos;
             gameObjectRef = objRef;
+            // Arenas are not eyes by default. If they are set to true it's in GenerateMap()
+            isEye = false;
         }
     }
 
@@ -38,11 +50,15 @@ public class MapGenerator : MonoBehaviour
         public GameObject arenaB;
         public GameObject gameObjectRef;
 
+        public bool isHidden;
+
         public Path(GameObject a, GameObject b, GameObject objRef)
         {
             arenaA = a;
             arenaB = b;
             gameObjectRef = objRef;
+            // Paths are only hidden if they are connected to a hidden arena
+            isHidden = false;
         }
     }
 
@@ -60,8 +76,11 @@ public class MapGenerator : MonoBehaviour
 
     void GenerateMap()
     {
+        // The main boss arena will always be created in the center of the map
+        CreateArena(Vector3.zero, "boss", 2f);
+
         // Create arenas at random positions between the input Vector3s for storm eyes
-        for (int i = 0; i < numberOfEyes; i++)
+        for (int i = 0; i < numberOfArenas; i++)
         {
             // Store a boolean for if an arena was successfully created and create an arena
             bool arenaCreated = CreateArena(minimumPosition, maximumPosition, i.ToString());
@@ -74,7 +93,7 @@ public class MapGenerator : MonoBehaviour
                 maxIterations--;
                 if (maxIterations <= 0)
                 {
-                    Debug.LogWarning("Max iterations reached while trying to place an arena. Some arenas may overlap.");
+                    UnityEngine.Debug.LogWarning("Max iterations reached while trying to place an arena. Some arenas may overlap.");
                     break; // break out of the while loop
                 }
 
@@ -82,6 +101,15 @@ public class MapGenerator : MonoBehaviour
                 arenaCreated = CreateArena(minimumPosition, maximumPosition, i.ToString());
             }
         }
+
+        // Number of eyes cannot exceed number of arenas, and cannot be < 0
+        numberOfEyes = Math.Clamp(numberOfEyes, 0, arenas.Count);
+        // Assign arenas to be the storm's eyes (points where players can drop in)
+        for (int i = 0; i < numberOfEyes; i++)
+        {
+            arenas[i].isEye = true;
+        }
+        
 
         // Create paths between arenas
         int pathCount = 0;
@@ -98,7 +126,7 @@ public class MapGenerator : MonoBehaviour
 
     // Creates an arena at the specified location, specific location version!
     // Overload below that does a random position
-    bool CreateArena(Vector3 inputPos, String numberforname = "")
+    bool CreateArena(Vector3 inputPos, String numberforname = "", float scaleFactor=1f)
     {
         // TEMPORARY! Replace basic shapes with prefabs of premade arenas and stuff
         
@@ -107,11 +135,16 @@ public class MapGenerator : MonoBehaviour
 
         // Set transform
         arena.transform.position = inputPos;
-        arena.transform.localScale = new Vector3(30, 1, 30);
+        arena.transform.localScale = new Vector3(
+                                            60*scaleFactor,
+                                            2*scaleFactor,
+                                            60*scaleFactor
+                                            );
         
         // Add a Rigidbody to make it interact with physics
         arena.AddComponent<Rigidbody>();
         arena.GetComponent<Rigidbody>().isKinematic = true;
+
         
         // Check if the new arena is too close to a previous one
         // Use an OverlapBox to detect collisions
@@ -126,12 +159,19 @@ public class MapGenerator : MonoBehaviour
         }
         else
         {
+            // Add a capsule collider to define the bounds of the arena
+            CapsuleCollider collider = arena.AddComponent<CapsuleCollider>();
+            collider.radius = arena.transform.localScale.x / (scaleFactor * 60); // Set the radius
+            collider.height = 100f; // Set the height
+            collider.center = new Vector3(0, 10, 0); // Center the collider on the arena
+            collider.isTrigger = true; // Set the collider to be a trigger so players can fall through
+            
             if (!string.IsNullOrEmpty(numberforname))
             {
                 arena.name = "Arena_" + numberforname;
             }
-            // Create a StormEye instance to hold the arena's data
-            StormEye arenaData = new StormEye(arena.transform.position, arena);
+            // Create an Arena instance to hold the arena's data
+            Arena arenaData = new Arena(arena.transform.position, arena);
             arenas.Add(arenaData); // Store reference to the created arena
             return true; // No overlap, return true
         }

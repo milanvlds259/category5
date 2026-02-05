@@ -743,9 +743,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4c98607424da9134a8831c5832a545c8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MapGenerator
+  numberOfArenas: 7
   numberOfEyes: 5
-  minimumPosition: {x: -150, y: -40, z: -150}
-  maximumPosition: {x: 150, y: 40, z: 150}
+  minimumPosition: {x: -300, y: -60, z: -300}
+  maximumPosition: {x: 300, y: 60, z: 300}
 --- !u!4 &1317563980
 Transform:
   m_ObjectHideFlags: 0
