@@ -4,6 +4,7 @@ using System.Diagnostics;
 using Unity.VisualScripting;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using UnityEngine.Splines;
 
 public class MapGenerator : MonoBehaviour
 {
@@ -113,13 +114,36 @@ public class MapGenerator : MonoBehaviour
 
         // Create paths between arenas
         int pathCount = 0;
+        // Loop through each arena here
         for (int i = 0; i < arenas.Count; i++)
         {
-            for (int j = i + 1; j < arenas.Count; j++)
+            Arena closestArena = null;
+            Arena secondClosestArena = null;
+            // Loop through all arenas again here
+            for (int j = 0; j < arenas.Count; j++)
             {
-                CreatePath(arenas[i].gameObjectRef, arenas[j].gameObjectRef, pathCount.ToString());
-                pathCount++;
+                if (i == j) continue; // Skip if it's the same arena
+
+                // Check for the arenas with the shortest distance between them, 
+                // and create paths between them until each arena has at least 2 paths, 
+                // or there are no more arenas within a certain distance threshold
+                // Get distance between the two arenas
+                float distance = Vector3.Distance(arenas[i].position, arenas[j].position);
+                if (closestArena == null || distance < Vector3.Distance(arenas[i].position, closestArena.position))
+                {
+                    secondClosestArena = closestArena;
+                    closestArena = arenas[j];
+                }
+                else if (secondClosestArena == null || distance < Vector3.Distance(arenas[i].position, secondClosestArena.position))
+                {
+                    secondClosestArena = arenas[j];
+                }
+                
             }
+            CreatePath(arenas[i].gameObjectRef, closestArena.gameObjectRef, pathCount.ToString());
+            pathCount++;
+            CreatePath(arenas[i].gameObjectRef, secondClosestArena.gameObjectRef, pathCount.ToString());
+            pathCount++;
         }
 
     }
@@ -199,6 +223,40 @@ public class MapGenerator : MonoBehaviour
 
     void CreatePath(GameObject arenaA, GameObject arenaB, String numberforname = "")
     {
+        // Checks if the path is valid
+        // Path to same arena?
+        if (arenaA == arenaB)
+        {
+            UnityEngine.Debug.LogWarning("Attempted to create a path between the same arena. Path creation aborted.");
+            return; // Do not create a path between the same arena
+        }
+        // Path to null arena?
+        if (arenaA == null || arenaB == null)
+        {
+            UnityEngine.Debug.LogWarning("Attempted to create a path with a null arena reference. Path creation aborted.");
+            return; // Do not create a path if either arena reference is null
+        }
+        // Path already exists?
+        foreach (Path path in paths)
+        {
+            if ((path.arenaA == arenaA && path.arenaB == arenaB) || (path.arenaA == arenaB && path.arenaB == arenaA))
+            {
+                UnityEngine.Debug.LogWarning("Attempted to create a duplicate path between " + arenaA.name + " and " + arenaB.name + ". Path creation aborted.");
+                return; // Do not create a duplicate path
+            }
+        }
+
+        /*
+            Make spline container
+            Add spline component to it
+            Add two spline points to the spline component, set their positions to the centers of the two arenas
+        */
+        SplineContainer splinePath = new GameObject("Path_" + numberforname).AddComponent<SplineContainer>();
+        Spline spline = splinePath.Spline;
+        spline.Add(new BezierKnot(arenaA.transform.position));
+        spline.Add(new BezierKnot(arenaB.transform.position));
+
+        /*
         // Store a vector between the two arenas
         Vector3 pathVector = arenaB.transform.position - arenaA.transform.position;
 
@@ -282,10 +340,18 @@ public class MapGenerator : MonoBehaviour
                 }
             }
         }
+        */
+        // Give the path a Path tag
+        splinePath.tag = "Path";
 
         // Create a Path instance to hold the path's data
-        Path pathData = new Path(arenaA, arenaB, path);
+        Path pathData = new Path(arenaA, arenaB, splinePath.gameObject);
 
         paths.Add(pathData); // Store reference to the created path
+    }
+
+    void OnDrawGizmos()
+    {
+        
     }
 }
