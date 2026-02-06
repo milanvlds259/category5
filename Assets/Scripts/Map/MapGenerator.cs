@@ -35,6 +35,9 @@ public class MapGenerator : MonoBehaviour
         // Stores if the arena is a "hidden" arena. Hidden arenas will be initially inaccessible, and
         // paths connected to them will also be hidden
         public bool isHidden;
+        // Arenas have a capsule collider surrounding them that defines
+        // the arena's boundaries (The storm cloud walls)
+        public Collider arenaBounds;
 
         public Arena(Vector3 pos, GameObject objRef)
         {
@@ -42,18 +45,20 @@ public class MapGenerator : MonoBehaviour
             gameObjectRef = objRef;
             // Arenas are not eyes by default. If they are set to true it's in GenerateMap()
             isEye = false;
+
+            arenaBounds = gameObjectRef.GetComponent<CapsuleCollider>();
         }
     }
 
     class Path
     {
-        public GameObject arenaA;
-        public GameObject arenaB;
+        public Arena arenaA;
+        public Arena arenaB;
         public GameObject gameObjectRef;
 
         public bool isHidden;
 
-        public Path(GameObject a, GameObject b, GameObject objRef)
+        public Path(Arena a, Arena b, GameObject objRef)
         {
             arenaA = a;
             arenaB = b;
@@ -140,9 +145,9 @@ public class MapGenerator : MonoBehaviour
                 }
                 
             }
-            CreatePath(arenas[i].gameObjectRef, closestArena.gameObjectRef, pathCount.ToString());
+            CreatePath(arenas[i], closestArena, pathCount.ToString());
             pathCount++;
-            CreatePath(arenas[i].gameObjectRef, secondClosestArena.gameObjectRef, pathCount.ToString());
+            CreatePath(arenas[i], secondClosestArena, pathCount.ToString());
             pathCount++;
         }
 
@@ -221,7 +226,7 @@ public class MapGenerator : MonoBehaviour
         }
     }
 
-    void CreatePath(GameObject arenaA, GameObject arenaB, String numberforname = "")
+    void CreatePath(Arena arenaA, Arena arenaB, String numberforname = "")
     {
         // Checks if the path is valid
         // Path to same arena?
@@ -241,7 +246,7 @@ public class MapGenerator : MonoBehaviour
         {
             if ((path.arenaA == arenaA && path.arenaB == arenaB) || (path.arenaA == arenaB && path.arenaB == arenaA))
             {
-                UnityEngine.Debug.LogWarning("Attempted to create a duplicate path between " + arenaA.name + " and " + arenaB.name + ". Path creation aborted.");
+                UnityEngine.Debug.LogWarning("Attempted to create a duplicate path between " + arenaA.gameObjectRef.name + " and " + arenaB.gameObjectRef.name + ". Path creation aborted.");
                 return; // Do not create a duplicate path
             }
         }
@@ -251,10 +256,22 @@ public class MapGenerator : MonoBehaviour
             Add spline component to it
             Add two spline points to the spline component, set their positions to the centers of the two arenas
         */
+        // Create a gameobject with a splinecontainer component
         SplineContainer splinePath = new GameObject("Path_" + numberforname).AddComponent<SplineContainer>();
+        // Create a spline to be held by the container
         Spline spline = splinePath.Spline;
-        spline.Add(new BezierKnot(arenaA.transform.position));
-        spline.Add(new BezierKnot(arenaB.transform.position));
+
+        // Get the points on each arena's bounds collider closest to the other arena
+        // These will be the start and end points of the path
+        Vector3 pointOnA = arenaA.arenaBounds.ClosestPoint(arenaB.position);
+        Vector3 pointOnB = arenaB.arenaBounds.ClosestPoint(pointOnA);
+        // Make sure the points are at the level of the arena
+        pointOnA = new Vector3(pointOnA.x, arenaA.position.y, pointOnA.z);
+        pointOnB = new Vector3(pointOnB.x, arenaB.position.y, pointOnB.z);
+
+        // Add points to the spline at the positions of the two arenas
+        spline.Add(new BezierKnot(pointOnA));
+        spline.Add(new BezierKnot(pointOnB));
 
         /*
         // Store a vector between the two arenas
