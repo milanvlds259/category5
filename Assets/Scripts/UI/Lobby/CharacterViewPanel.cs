@@ -9,9 +9,6 @@ namespace Category5.UI
     // shows class art, name, and Q/E/R ability descriptions
     public class CharacterViewPanel : MonoBehaviour
     {
-        [Header("references")]
-        [SerializeField] private LobbyTabController tabController;
-        
         [Header("class display")]
         [SerializeField] private Image classArtImage;
         [SerializeField] private TextMeshProUGUI classNameText;
@@ -34,7 +31,7 @@ namespace Category5.UI
         [SerializeField] private TextMeshProUGUI ability3DescriptionText;
         
         [Header("navigation")]
-        [SerializeField] private Button backButton;
+        [SerializeField] private Button closeButton;
         
         [Header("default sprites")]
         [SerializeField] private Sprite defaultAbilityIcon;
@@ -43,14 +40,14 @@ namespace Category5.UI
         
         private void OnEnable()
         {
-            if (backButton != null)
-                backButton.onClick.AddListener(OnBackClicked);
+            if (closeButton != null)
+                closeButton.onClick.AddListener(OnCloseClicked);
         }
         
         private void OnDisable()
         {
-            if (backButton != null)
-                backButton.onClick.RemoveListener(OnBackClicked);
+            if (closeButton != null)
+                closeButton.onClick.RemoveListener(OnCloseClicked);
         }
         
         // called by CharacterSelectPanel when View is clicked
@@ -60,13 +57,10 @@ namespace Category5.UI
             UpdateDisplay();
         }
         
-        private void OnBackClicked()
+        private void OnCloseClicked()
         {
-            // return to character select
-            if (tabController != null)
-            {
-                tabController.ShowCharacterSelectView();
-            }
+            // hide the panel
+            gameObject.SetActive(false);
         }
         
         private void UpdateDisplay()

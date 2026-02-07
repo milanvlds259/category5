@@ -81,7 +81,7 @@ namespace Category5.Core
             
             _isInitialized = true;
             
-            // if we're a client (not host), request chat history
+            // if we're a client (not host), request chat history (so clients that join late can get recent messages)
             if (!NetworkManager.Singleton.IsServer)
             {
                 RequestChatHistory();
@@ -116,6 +116,7 @@ namespace Category5.Core
             if (string.IsNullOrWhiteSpace(message)) return;
             
             // truncate message if too long
+            // i dont think anyone will type this much but just in case cuz whatever
             if (message.Length > 500)
                 message = message.Substring(0, 500);
             

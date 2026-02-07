@@ -21,8 +21,10 @@ namespace Category5.UI
         [Header("content panels")]
         [SerializeField] private GameObject chatPanel;
         [SerializeField] private GameObject characterSelectPanel;
-        [SerializeField] private GameObject characterViewPanel;
         [SerializeField] private GameObject settingsPanel;
+        
+        [Header("external panels")]
+        [SerializeField] private GameObject characterViewPanel; // external floating panel
         
         [Header("visual settings")]
         [SerializeField] private Color activeTabColor = new Color(1f, 1f, 1f, 1f);
@@ -39,9 +41,6 @@ namespace Category5.UI
         
         // event fired when tab changes
         public static event Action<LobbyTab> OnTabChanged;
-        
-        // track if we're in character view vs character select
-        private bool _isInCharacterView = false;
         
         private void OnEnable()
         {
@@ -68,7 +67,6 @@ namespace Category5.UI
         // call this when entering the lobby to set initial state
         public void Initialize()
         {
-            _isInCharacterView = false;
             SwitchToTab(LobbyTab.Character);
         }
         
@@ -79,15 +77,7 @@ namespace Category5.UI
         
         public void OnCharacterTabClicked()
         {
-            // if already on character tab, reset to select view
-            if (_currentTab == LobbyTab.Character)
-            {
-                ShowCharacterSelectView();
-            }
-            else
-            {
-                SwitchToTab(LobbyTab.Character);
-            }
+            SwitchToTab(LobbyTab.Character);
         }
         
         public void OnSettingsTabClicked()
@@ -102,8 +92,13 @@ namespace Category5.UI
             // hide all panels first
             SetPanelActive(chatPanel, false);
             SetPanelActive(characterSelectPanel, false);
-            SetPanelActive(characterViewPanel, false);
             SetPanelActive(settingsPanel, false);
+            
+            // hide character view panel when switching away from character tab
+            if (tab != LobbyTab.Character)
+            {
+                SetPanelActive(characterViewPanel, false);
+            }
             
             // show the appropriate panel
             switch (tab)
@@ -112,11 +107,7 @@ namespace Category5.UI
                     SetPanelActive(chatPanel, true);
                     break;
                 case LobbyTab.Character:
-                    // show select or view based on current state
-                    if (_isInCharacterView)
-                        SetPanelActive(characterViewPanel, true);
-                    else
-                        SetPanelActive(characterSelectPanel, true);
+                    SetPanelActive(characterSelectPanel, true);
                     break;
                 case LobbyTab.Settings:
                     SetPanelActive(settingsPanel, true);
@@ -127,22 +118,6 @@ namespace Category5.UI
             UpdateTabVisuals();
             
             OnTabChanged?.Invoke(tab);
-        }
-        
-        // called by CharacterSelectPanel when "View" button is clicked
-        public void ShowCharacterViewPanel()
-        {
-            _isInCharacterView = true;
-            SetPanelActive(characterSelectPanel, false);
-            SetPanelActive(characterViewPanel, true);
-        }
-        
-        // called by CharacterViewPanel to go back to select
-        public void ShowCharacterSelectView()
-        {
-            _isInCharacterView = false;
-            SetPanelActive(characterViewPanel, false);
-            SetPanelActive(characterSelectPanel, true);
         }
         
         private void SetPanelActive(GameObject panel, bool active)
@@ -163,6 +138,5 @@ namespace Category5.UI
         }
         
         public LobbyTab CurrentTab => _currentTab;
-        public bool IsInCharacterView => _isInCharacterView;
     }
 }

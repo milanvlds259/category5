@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.PlayerClass
   classType: 4
   className: Enchanter
-  classDescription: 
+  classDescription: Close-range warden that augments allies and defends them from
+    incoming threats.
   classIcon: {fileID: 0}
   ability1Prefab: {fileID: 0}
   ability2Prefab: {fileID: 0}

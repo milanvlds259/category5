@@ -10,15 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: da4b3cd86bfbb504fbfa4e92f8d91186, type: 3}
-  m_Name: RangerR
+  m_Name: ElementalistQ
   m_EditorClassIdentifier: Assembly-CSharp::Category5.AbilityData
-  abilityName: Critshot
-  description: Fire an instant-charged piercing arrow that deals massive damage.
-    Pierces through all enemies and walls, only stops on bosses.
-  abilityIcon: {fileID: 0}
-  cooldownDuration: 30
-  baseDamage: 15
+  abilityName: Elementalism
+  description: Cycles your active element, changing the effects of your E ability.
+  abilityIcon: {fileID: 21300000, guid: f49981ed6f7d6814ba429004585db713, type: 3}
+  cooldownDuration: 10
+  baseDamage: 20
   castTime: 0
-  manaCost: 7
+  manaCost: 0
   vfxPrefab: {fileID: 0}
   sfxClip: {fileID: 0}

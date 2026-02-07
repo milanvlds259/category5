@@ -12,7 +12,6 @@ namespace Category5.UI
     public class CharacterSelectPanel : MonoBehaviour
     {
         [Header("references")]
-        [SerializeField] private LobbyTabController tabController;
         [SerializeField] private CharacterViewPanel characterViewPanel;
         
         [Header("carousel display")]
@@ -102,6 +101,7 @@ namespace Category5.UI
             }
             
             UpdateDisplay();
+            UpdateCharacterViewPanel();
         }
         
         private void OnLeftArrowClicked()
@@ -113,6 +113,7 @@ namespace Category5.UI
                 _currentIndex = _availableClasses.Length - 1;
             
             UpdateDisplay();
+            UpdateCharacterViewPanel();
         }
         
         private void OnRightArrowClicked()
@@ -124,6 +125,7 @@ namespace Category5.UI
                 _currentIndex = 0;
             
             UpdateDisplay();
+            UpdateCharacterViewPanel();
         }
         
         private void OnSelectClicked()
@@ -164,21 +166,11 @@ namespace Category5.UI
         
         private void OnViewClicked()
         {
-            if (_availableClasses == null || _currentIndex >= _availableClasses.Length) return;
+            if (characterViewPanel == null) return;
             
-            var classToView = _availableClasses[_currentIndex];
-            
-            // tell view panel which class to show
-            if (characterViewPanel != null)
-            {
-                characterViewPanel.ShowClass(classToView);
-            }
-            
-            // switch to view panel
-            if (tabController != null)
-            {
-                tabController.ShowCharacterViewPanel();
-            }
+            // simply toggle panel visibility
+            bool isCurrentlyVisible = characterViewPanel.gameObject.activeSelf;
+            characterViewPanel.gameObject.SetActive(!isCurrentlyVisible);
         }
         
         private void UpdateDisplay()
@@ -218,6 +210,16 @@ namespace Category5.UI
             {
                 selectButton.interactable = !isSelected;
             }
+        }
+        
+        // update the character view panel with current class (if it exists) (it should)
+        private void UpdateCharacterViewPanel()
+        {
+            if (characterViewPanel == null) return;
+            if (_availableClasses == null || _currentIndex >= _availableClasses.Length) return;
+            
+            var currentClass = _availableClasses[_currentIndex];
+            characterViewPanel.ShowClass(currentClass);
         }
         
         // public accessor for current class being viewed

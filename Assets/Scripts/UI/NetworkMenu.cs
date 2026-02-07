@@ -28,7 +28,8 @@ namespace Category5.UI
         [SerializeField] private TMP_InputField playerNameInputField;
         
         [Header("ui references - lobby")]
-        [SerializeField] private GameObject lobbyPanel;
+        [SerializeField] private GameObject lobbyPanel; // the main "phone" panel
+        [SerializeField] private GameObject playerListPanel; // separate panel for player list and ready system
         [SerializeField] private Button startGameButton; // host only
         [SerializeField] private Button leaveLobbyButton;
         [SerializeField] private TextMeshProUGUI playerCountText;
@@ -647,6 +648,12 @@ namespace Category5.UI
                 lobbyPanel.SetActive(false);
             }
             
+            // hide player list panel
+            if (playerListPanel != null)
+            {
+                playerListPanel.SetActive(false);
+            }
+            
             // hide title panel when showing main menu
             if (titlePanel != null)
             {
@@ -707,6 +714,12 @@ namespace Category5.UI
             {
                 lobbyPanel.SetActive(false);
             }
+            
+            // hide player list panel
+            if (playerListPanel != null)
+            {
+                playerListPanel.SetActive(false);
+            }
         }
         
         // called when play button on title screen is clicked
@@ -757,6 +770,12 @@ namespace Category5.UI
             if (lobbyPanel != null)
             {
                 lobbyPanel.SetActive(true);
+            }
+            
+            // show player list panel
+            if (playerListPanel != null)
+            {
+                playerListPanel.SetActive(true);
             }
             
             // initialize legacy class selection UI (may be unused with new system)
@@ -815,6 +834,12 @@ namespace Category5.UI
                 characterSelectPanel.Initialize();
             }
             
+            // ensure character view panel starts hidden
+            if (characterViewPanel != null)
+            {
+                characterViewPanel.gameObject.SetActive(false);
+            }
+            
             // initialize settings
             if (lobbySettingsPanel != null)
             {
@@ -828,6 +853,12 @@ namespace Category5.UI
         // cleanup lobby panels when leaving
         private void CleanupLobbyPanels()
         {
+            // hide character view panel
+            if (characterViewPanel != null)
+            {
+                characterViewPanel.gameObject.SetActive(false);
+            }
+            
             if (LobbyChatManager.Instance != null)
             {
                 LobbyChatManager.Instance.Cleanup();
