@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 5635682412758554744}
   - component: {fileID: -7003237376495592069}
   m_Layer: 3
-  m_Name: ElementalistE1
+  m_Name: ElementalistE_Fire
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -45,3 +45,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.ElementalistE1
   abilityData: {fileID: 11400000, guid: ceda7cda25d00f648892e3d0b8920569, type: 2}
+  projectileSpeed: 18
+  projectileLifetime: 4
+  explosionRadius: 4
+  burnDamagePerTick: 5
+  burnTickInterval: 0.5
+  burnDuration: 3
+  spawnHeightOffset: 1.5
+  spawnForwardOffset: 0.5
+  fireballPrefab: {fileID: 773458864881063007, guid: 26b13c5f90032034a9ce75635d031414, type: 3}

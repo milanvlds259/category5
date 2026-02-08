@@ -2,6 +2,7 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using System;
+using System.Collections;
 using System.Linq;
 using Category5.Player;
 using Category5.PowerUps;
@@ -605,6 +606,225 @@ namespace Category5
             {
                 Debug.LogWarning($"PlayerAbilityManager: ability2 is not FighterE, it's {ability2.GetType().Name}");
             }
+        }
+
+        // =====================================
+        // elementalist ability rpcs
+        // =====================================
+
+        [Header("Elementalist Prefabs")]
+        [SerializeField] private GameObject fireballPrefab;
+        [SerializeField] private GameObject iceProjectilePrefab;
+        [SerializeField] private GameObject blackHoleProjectilePrefab;
+        [SerializeField] private GameObject blackHoleZonePrefab;
+
+        [Rpc(SendTo.Server)]
+        public void SpawnFireballServerRpc(Vector3 position, Vector3 direction, int baseDamage,
+            float projectileSpeed, float projectileLifetime, float explosionRadius,
+            int burnDmgPerTick, float burnTickInterval, float burnDuration)
+        {
+            if (fireballPrefab == null)
+            {
+                Debug.LogError("PlayerAbilityManager: fireballPrefab is not assigned!");
+                return;
+            }
+
+            GameObject obj = Instantiate(fireballPrefab, position, Quaternion.LookRotation(direction));
+            NetworkObject netObj = obj.GetComponent<NetworkObject>();
+            FireballProjectile fireball = obj.GetComponent<FireballProjectile>();
+
+            if (netObj == null || fireball == null)
+            {
+                Debug.LogError("PlayerAbilityManager: fireball prefab missing NetworkObject or FireballProjectile!");
+                Destroy(obj);
+                return;
+            }
+
+            fireball.Initialize(OwnerClientId, playerStats, baseDamage, projectileSpeed,
+                projectileLifetime, explosionRadius, burnDmgPerTick, burnTickInterval, burnDuration);
+
+            netObj.Spawn();
+            Debug.Log($"[Elementalist] fireball spawned for client {OwnerClientId}");
+        }
+
+        [Rpc(SendTo.Server)]
+        public void SpawnIceProjectileServerRpc(Vector3 position, Vector3 direction, int baseDamage,
+            float projectileSpeed, float projectileLifetime, float slowMultiplier, float slowDuration)
+        {
+            if (iceProjectilePrefab == null)
+            {
+                Debug.LogError("PlayerAbilityManager: iceProjectilePrefab is not assigned!");
+                return;
+            }
+
+            GameObject obj = Instantiate(iceProjectilePrefab, position, Quaternion.LookRotation(direction));
+            NetworkObject netObj = obj.GetComponent<NetworkObject>();
+            IceProjectile ice = obj.GetComponent<IceProjectile>();
+
+            if (netObj == null || ice == null)
+            {
+                Debug.LogError("PlayerAbilityManager: ice prefab missing NetworkObject or IceProjectile!");
+                Destroy(obj);
+                return;
+            }
+
+            ice.Initialize(OwnerClientId, playerStats, baseDamage, projectileSpeed,
+                projectileLifetime, slowMultiplier, slowDuration);
+
+            netObj.Spawn();
+            Debug.Log($"[Elementalist] ice projectile spawned for client {OwnerClientId}");
+        }
+
+        [Rpc(SendTo.Server)]
+        public void ExecuteThunderArcServerRpc(Vector3 position, Vector3 forward, int adjustedDamage,
+            float arcAngle, float arcRange, float knockbackForce, float stunDuration, float stunDelay, int enemyLayerMask)
+        {
+            if (!IsServer) return;
+
+            Debug.Log($"[ElementalistE_Thunder Server] executing arc at {position}, damage={adjustedDamage}, range={arcRange}, angle={arcAngle}");
+
+            // trigger vfx for all clients
+            TriggerThunderArcVfxClientRpc(position, forward, arcRange, arcAngle);
+
+            Collider[] hitColliders = Physics.OverlapSphere(position, arcRange, enemyLayerMask);
+            int enemiesHit = 0;
+            float halfAngle = arcAngle * 0.5f;
+
+            foreach (Collider collider in hitColliders)
+            {
+                // check if target is within the cone angle
+                Vector3 dirToTarget = (collider.transform.position - position).normalized;
+                dirToTarget.y = 0; // ignore vertical difference
+                Vector3 flatForward = forward;
+                flatForward.y = 0;
+                flatForward.Normalize();
+
+                float angle = Vector3.Angle(flatForward, dirToTarget);
+                if (angle > halfAngle) continue;
+
+                // try enemy
+                if (collider.TryGetComponent<EnemyBase>(out var enemy) && !enemy.IsDead)
+                {
+                    enemy.TakeDamage(adjustedDamage);
+
+                    // knockback away from player
+                    Vector3 knockback = dirToTarget * knockbackForce;
+                    CharacterController enemyCC = enemy.GetComponent<CharacterController>();
+                    if (enemyCC != null)
+                    {
+                        enemyCC.Move(knockback * Time.fixedDeltaTime);
+                    }
+                    else
+                    {
+                        enemy.transform.position += knockback * Time.fixedDeltaTime;
+                    }
+
+                    if (stunDuration > 0f)
+                    {
+                        StartCoroutine(ApplyStunAfterDelay(enemy, stunDuration, stunDelay));
+                    }
+
+                    ShowThunderDamageNumberClientRpc(adjustedDamage, enemy.transform.position, new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+                    });
+                    enemiesHit++;
+                }
+                // try boss
+                else if (collider.TryGetComponent<BossBase>(out var boss))
+                {
+                    boss.TakeDamage(adjustedDamage);
+                    // bosses don't get stunned or knocked back by thunder arc
+
+                    ShowThunderDamageNumberClientRpc(adjustedDamage, boss.transform.position, new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+                    });
+                    enemiesHit++;
+                }
+            }
+
+            Debug.Log($"[ElementalistE_Thunder Server] hit {enemiesHit} enemies");
+
+            if (enemiesHit > 0)
+            {
+                TriggerThunderHitFeedbackClientRpc(position, new ClientRpcParams
+                {
+                    Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+                });
+            }
+        }
+
+        private IEnumerator ApplyStunAfterDelay(EnemyBase enemy, float duration, float delay)
+        {
+            if (enemy == null) yield break;
+            if (delay > 0f)
+            {
+                yield return new WaitForSeconds(delay);
+            }
+
+            if (enemy == null || enemy.IsDead) yield break;
+            enemy.ApplyStun(duration);
+        }
+
+        [Rpc(SendTo.Everyone)]
+        private void TriggerThunderArcVfxClientRpc(Vector3 position, Vector3 forward, float range, float angle)
+        {
+            ElementalistE_Thunder.InvokeThunderArcExecute(position, forward, range, angle);
+        }
+
+        [ClientRpc]
+        private void ShowThunderDamageNumberClientRpc(int damage, Vector3 position, ClientRpcParams clientRpcParams = default)
+        {
+            if (Category5.UI.UIManager.Instance != null)
+            {
+                Category5.UI.UIManager.Instance.ShowDamageNumber(damage, position);
+            }
+        }
+
+        [ClientRpc]
+        private void TriggerThunderHitFeedbackClientRpc(Vector3 position, ClientRpcParams clientRpcParams = default)
+        {
+            if (HitFeedbackManager.Instance != null)
+            {
+                HitFeedbackManager.Instance.TriggerHeavyHit(position);
+            }
+        }
+
+        [Rpc(SendTo.Server)]
+        public void SpawnBlackHoleProjectileServerRpc(Vector3 position, Vector3 direction, int baseDamage,
+            float projectileSpeed, float projectileLifetime, float pullRadius, float pullForce,
+            float pullDuration, float pullStrengthRampUp, float explosionRadius)
+        {
+            if (blackHoleProjectilePrefab == null)
+            {
+                Debug.LogError("PlayerAbilityManager: blackHoleProjectilePrefab is not assigned!");
+                return;
+            }
+
+            if (blackHoleZonePrefab == null)
+            {
+                Debug.LogError("PlayerAbilityManager: blackHoleZonePrefab is not assigned!");
+                return;
+            }
+
+            GameObject obj = Instantiate(blackHoleProjectilePrefab, position, Quaternion.LookRotation(direction));
+            NetworkObject netObj = obj.GetComponent<NetworkObject>();
+            BlackHoleProjectile projectile = obj.GetComponent<BlackHoleProjectile>();
+
+            if (netObj == null || projectile == null)
+            {
+                Debug.LogError("PlayerAbilityManager: black hole projectile prefab missing NetworkObject or BlackHoleProjectile!");
+                Destroy(obj);
+                return;
+            }
+
+            projectile.Initialize(OwnerClientId, playerStats, blackHoleZonePrefab, baseDamage,
+                projectileSpeed, projectileLifetime, pullRadius, pullForce,
+                pullDuration, pullStrengthRampUp, explosionRadius);
+
+            netObj.Spawn();
+            Debug.Log($"[Elementalist] black hole projectile spawned for client {OwnerClientId} at {position}");
         }
 
     }

@@ -6,8 +6,8 @@ namespace Category5.Core
     {
         None,    // no element, neutral
         Fire,    	// fire element
-        Lightning,  // lightning element
-        Sleet,      // sleet/ice element
+        Thunder,    // thunder element
+        Ice,        // ice element
         Rain,       // rain/water element
         Void     	// void element
     }

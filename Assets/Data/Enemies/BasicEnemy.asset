@@ -15,7 +15,7 @@ MonoBehaviour:
   enemyName: BasicEnemy
   elementType: 0
   maxHealth: 50
-  moveSpeed: 4
+  moveSpeed: 5
   rotationSpeed: 360
   damage: 10
   attackRange: 2

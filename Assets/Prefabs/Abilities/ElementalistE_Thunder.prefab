@@ -9,9 +9,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5635682412758554744}
-  - component: {fileID: -4419157719183583389}
+  - component: {fileID: 7495433251819124387}
   m_Layer: 3
-  m_Name: ElementalistR
+  m_Name: ElementalistE_Thunder
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -32,7 +32,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &-4419157719183583389
+--- !u!114 &7495433251819124387
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -41,17 +41,20 @@ MonoBehaviour:
   m_GameObject: {fileID: 53412344211962831}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 291904302baefc04693b0cf35141d866, type: 3}
+  m_Script: {fileID: 11500000, guid: 9127fb3ab44baea4bbd715c4ab701cc3, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Category5.ElementalistR
-  abilityData: {fileID: 11400000, guid: f7e8a3bb6f958904eb5d5e8ffa778ce8, type: 2}
-  castRange: 15
-  projectileSpeed: 14
-  projectileLifetime: 5
-  pullRadius: 16
-  pullForce: 5
-  pullDuration: 4
-  pullStrengthRampUp: 5
-  explosionRadius: 8
-  spawnHeightOffset: 1.5
-  spawnForwardOffset: 0.5
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.ElementalistE_Thunder
+  abilityData: {fileID: 11400000, guid: 8b99358bea75444478551a0bb87d591c, type: 2}
+  arcRange: 6
+  arcAngle: 80
+  knockbackForce: 400
+  stunDuration: 1
+  stunDelay: 0.1
+  enemyLayers:
+    serializedVersion: 2
+    m_Bits: 64
+  showDebugArc: 1
+  debugArcDuration: 0.75
+  debugLineWidth: 0.1
+  debugArcSegments: 18
+  debugArcColor: {r: 1, g: 0.86481357, b: 0, a: 0.8352941}

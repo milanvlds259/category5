@@ -9,9 +9,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5635682412758554744}
-  - component: {fileID: -4419157719183583389}
+  - component: {fileID: -503260439741606433}
   m_Layer: 3
-  m_Name: ElementalistR
+  m_Name: ElementalistE_Ice
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -32,7 +32,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &-4419157719183583389
+--- !u!114 &-503260439741606433
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -41,17 +41,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 53412344211962831}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 291904302baefc04693b0cf35141d866, type: 3}
+  m_Script: {fileID: 11500000, guid: 4b23559ac40e58349802b2baaa71e663, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Category5.ElementalistR
-  abilityData: {fileID: 11400000, guid: f7e8a3bb6f958904eb5d5e8ffa778ce8, type: 2}
-  castRange: 15
-  projectileSpeed: 14
-  projectileLifetime: 5
-  pullRadius: 16
-  pullForce: 5
-  pullDuration: 4
-  pullStrengthRampUp: 5
-  explosionRadius: 8
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.ElementalistE_Ice
+  abilityData: {fileID: 11400000, guid: 49cc0a589e17e134a80f3cbc30487714, type: 2}
+  projectileSpeed: 50
+  projectileLifetime: 3
+  slowMultiplier: 0.5
+  slowDuration: 3
   spawnHeightOffset: 1.5
   spawnForwardOffset: 0.5
+  iceProjectilePrefab: {fileID: 773458864881063007, guid: 1d90d7ebd72ea614ba961632e08b681c, type: 3}

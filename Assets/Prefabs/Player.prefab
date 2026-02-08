@@ -425,7 +425,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 2528484781
+  GlobalObjectIdHash: 1432883955
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -523,10 +523,14 @@ MonoBehaviour:
   baseMaxHealth: 100
   CurrentHealth:
     m_InternalValue: 100
+  baseMaxMana: 10
+  CurrentMana:
+    m_InternalValue: 10
   IsDead:
     m_InternalValue: 0
   visualsToHideOnDeath: []
   moveSpeed: 7
+  sprintSpeedMultiplier: 1.5
   jumpHeight: 3
   gravity: -20
   rotationSpeed: 15
@@ -538,6 +542,7 @@ MonoBehaviour:
   dodgeDuration: 0.2
   dodgeDistance: 6
   dodgeCooldown: 2
+  manaRegenInterval: 2
   invertMovement: 0
 --- !u!114 &27346507340196499
 MonoBehaviour:
@@ -628,7 +633,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.PowerUps.PlayerStats
   ShowTopMostFoldoutHeaderGroup: 1
   baseMaxHealth: 100
+  baseMaxMana: 10
   baseDodgeCooldown: 2
+  baseMoveSpeed: 5
 --- !u!114 &4670924441742465071
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -652,6 +659,10 @@ MonoBehaviour:
     m_InternalValue: 0
   ability3Cooldown:
     m_InternalValue: 0
+  fireballPrefab: {fileID: 773458864881063007, guid: 26b13c5f90032034a9ce75635d031414, type: 3}
+  iceProjectilePrefab: {fileID: 773458864881063007, guid: 1d90d7ebd72ea614ba961632e08b681c, type: 3}
+  blackHoleProjectilePrefab: {fileID: 773458864881063007, guid: 1f522067d008e624ab47e13565a9a293, type: 3}
+  blackHoleZonePrefab: {fileID: 773458864881063007, guid: 8fa148a13e55b694b8975b0615eee12a, type: 3}
 --- !u!114 &7004229516117512557
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -681,9 +692,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Items.PlayerInventory
   ShowTopMostFoldoutHeaderGroup: 1
   maxSlots: 5
-  baseMaxHealth: 100
-  baseDodgeCooldown: 2
-  baseMoveSpeed: 7
 --- !u!1 &8085112078672293956
 GameObject:
   m_ObjectHideFlags: 0

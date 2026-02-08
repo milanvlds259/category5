@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e11b2e2571d430647bd885838e4d6511, type: 3}
+  m_Name: MageBasic
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.ProjectileData
+  projectilePrefab: {fileID: 773458864881063007, guid: 30aba6585a04bed4ca61666d605926f6, type: 3}
+  speed: 50
+  damage: 15
+  lifetime: 5
+  trailVfxPrefab: {fileID: 0}
+  impactVfxPrefab: {fileID: 0}
+  fireSound: {fileID: 0}
+  impactSound: {fileID: 0}
+  maxChargeTime: 0
+  maxDamageMultiplier: 1
+  maxSpeedMultiplier: 1
+  chargeMovementSpeedMultiplier: 1
+  baseAimRange: 200
+  chargedAimRangeBonus: 100
+  spawnForwardOffset: 0.15
+  aimLayers:
+    serializedVersion: 2
+    m_Bits: 87
