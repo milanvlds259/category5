@@ -13,8 +13,7 @@ namespace Category5
         [SerializeField] private float slowDuration = 3f;
 
         [Header("spawn")]
-        [SerializeField] private float spawnHeightOffset = 1.5f;
-        [SerializeField] private float spawnForwardOffset = 0.5f;
+        [SerializeField] private float spawnForwardOffset = 0f;
 
         // reference to ice projectile prefab (must be registered in networkmanager)
         [Header("prefab")]
@@ -26,10 +25,9 @@ namespace Category5
         public override void Execute()
         {
             Vector3 spawnPos = playerController.transform.position
-                + Vector3.up * spawnHeightOffset
                 + playerController.transform.forward * spawnForwardOffset;
 
-            Vector3 direction = GetAimDirection(spawnPos);
+            Vector3 direction = GetFlatForwardDirection();
 
             Debug.Log($"[ElementalistE_Ice] launching ice lance from {spawnPos} toward {direction}");
 
@@ -44,17 +42,15 @@ namespace Category5
             );
         }
 
-        private Vector3 GetAimDirection(Vector3 spawnPos)
+        private Vector3 GetFlatForwardDirection()
         {
-            if (Camera.main == null)
-                return playerController.transform.forward;
-
-            Ray aimRay = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
-
-            if (Physics.Raycast(aimRay, out RaycastHit hit, 100f))
-                return (hit.point - spawnPos).normalized;
-
-            return (aimRay.GetPoint(100f) - spawnPos).normalized;
+            Vector3 forward = playerController.transform.forward;
+            forward.y = 0f;
+            if (forward.sqrMagnitude < 0.001f)
+            {
+                forward = Vector3.forward;
+            }
+            return forward.normalized;
         }
 
         // gizmos
@@ -63,12 +59,11 @@ namespace Category5
             if (playerController == null) return;
 
             Vector3 spawnPos = playerController.transform.position
-                + Vector3.up * spawnHeightOffset
                 + playerController.transform.forward * spawnForwardOffset;
 
             Gizmos.color = Color.cyan;
             Gizmos.DrawSphere(spawnPos, 0.1f);
-            Gizmos.DrawRay(spawnPos, playerController.transform.forward * 15f);
+            Gizmos.DrawRay(spawnPos, GetFlatForwardDirection() * 15f);
         }
     }
 }

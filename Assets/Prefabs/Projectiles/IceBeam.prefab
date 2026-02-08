@@ -12,7 +12,6 @@ GameObject:
   - component: {fileID: 875271482742695299}
   - component: {fileID: 3424588919724753312}
   - component: {fileID: 5610915027061594424}
-  - component: {fileID: 2836764853507850256}
   - component: {fileID: 1865231231974524840}
   m_Layer: 7
   m_Name: IceBeam
@@ -135,22 +134,6 @@ MonoBehaviour:
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
   SlerpPosition: 0
---- !u!114 &2836764853507850256
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 773458864881063007}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 425f8a7360aacb34888b59dbceb1bdb0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.NetworkedProjectile
-  ShowTopMostFoldoutHeaderGroup: 1
-  speed: 20
-  damage: 15
-  lifetime: 5
 --- !u!114 &1865231231974524840
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -166,7 +149,7 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   speed: 22
   damage: 20
-  lifetime: 5
+  lifetime: 2.5
   slowMultiplier: 0.5
   slowDuration: 3
 --- !u!1 &1460827159874419459

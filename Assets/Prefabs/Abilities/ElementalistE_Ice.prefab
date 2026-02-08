@@ -45,10 +45,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.ElementalistE_Ice
   abilityData: {fileID: 11400000, guid: 49cc0a589e17e134a80f3cbc30487714, type: 2}
-  projectileSpeed: 50
+  projectileSpeed: 30
   projectileLifetime: 3
   slowMultiplier: 0.5
   slowDuration: 3
-  spawnHeightOffset: 1.5
   spawnForwardOffset: 0.5
   iceProjectilePrefab: {fileID: 773458864881063007, guid: 1d90d7ebd72ea614ba961632e08b681c, type: 3}

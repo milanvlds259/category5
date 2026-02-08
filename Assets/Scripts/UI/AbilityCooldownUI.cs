@@ -37,11 +37,13 @@ namespace Category5.UI
         private void OnEnable()
         {
             PlayerAbilityManager.OnCooldownChanged += HandleCooldownChanged;
+            ElementalistQ.OnElementChanged += HandleElementChanged;
         }
         
         private void OnDisable()
         {
             PlayerAbilityManager.OnCooldownChanged -= HandleCooldownChanged;
+            ElementalistQ.OnElementChanged -= HandleElementChanged;
         }
         
         private void Update()
@@ -110,7 +112,14 @@ namespace Category5.UI
             
             if (ability2 != null && ability2Slot != null)
             {
-                ability2Slot.Initialize(ability2.Data, "E");
+                if (ability2 is ElementalistE_Dispatcher dispatcher)
+                {
+                    ability2Slot.Initialize(dispatcher.ActiveAbilityData, "E");
+                }
+                else
+                {
+                    ability2Slot.Initialize(ability2.Data, "E");
+                }
             }
             
             if (ability3 != null && ability3Slot != null)
@@ -154,6 +163,17 @@ namespace Category5.UI
             {
                 Debug.LogWarning($"[AbilityCooldownUI] Target slot is null for {slot}");
             }
+        }
+
+        private void HandleElementChanged(ElementMode mode)
+        {
+            if (abilityManager == null || ability2Slot == null) return;
+
+            var dispatcher = abilityManager.GetAbility2() as ElementalistE_Dispatcher;
+            if (dispatcher == null) return;
+
+            AbilityData data = dispatcher.ActiveAbilityData;
+            ability2Slot.UpdateIcon(data);
         }
         
         // public method for abilities to show/hide buff indicator
@@ -310,6 +330,25 @@ namespace Category5.UI
             {
                 // ensure text is hidden when not on cooldown
                 cooldownText.gameObject.SetActive(false);
+            }
+        }
+
+        public void UpdateIcon(AbilityData data)
+        {
+            abilityData = data;
+
+            if (iconImage != null)
+            {
+                if (data != null && data.abilityIcon != null)
+                {
+                    iconImage.sprite = data.abilityIcon;
+                    iconImage.color = remainingCooldown <= 0f ? Color.white : new Color(0.5f, 0.5f, 0.5f, 1f);
+                }
+                else
+                {
+                    iconImage.sprite = null;
+                    iconImage.color = placeholderColor;
+                }
             }
         }
     }
