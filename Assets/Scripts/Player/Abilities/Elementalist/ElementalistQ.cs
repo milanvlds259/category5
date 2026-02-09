@@ -19,11 +19,29 @@ namespace Category5
         [Header("element cycle")]
         [SerializeField] private ElementMode currentElement = ElementMode.Fire;
 
+        [Header("q icons")]
+        [SerializeField] private Sprite fireIcon;
+        [SerializeField] private Sprite iceIcon;
+        [SerializeField] private Sprite thunderIcon;
+
         // public accessor for other scripts (dispatcher reads this)
         public ElementMode CurrentElement => currentElement;
 
+        public Sprite CurrentIcon => GetIconForElement(currentElement);
+
         // event fired when element changes (for ui/vfx)
         public static event Action<ElementMode> OnElementChanged;
+
+        public Sprite GetIconForElement(ElementMode mode)
+        {
+            return mode switch
+            {
+                ElementMode.Fire => fireIcon,
+                ElementMode.Ice => iceIcon,
+                ElementMode.Thunder => thunderIcon,
+                _ => fireIcon
+            };
+        }
 
         public override void Execute()
         {

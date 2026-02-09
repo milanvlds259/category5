@@ -21,3 +21,4 @@ MonoBehaviour:
   ability2Prefab: {fileID: 53412344211962831, guid: d6c001f49f785ca40ab6d2e3e6d544fd, type: 3}
   ability3Prefab: {fileID: 53412344211962831, guid: 26c0e4470eb396c46bad84189b44eb97, type: 3}
   combatClass: 1
+  basicAttackProjectile: {fileID: 11400000, guid: ec4e19a6215de594291cf4b54dd2dbfb, type: 2}

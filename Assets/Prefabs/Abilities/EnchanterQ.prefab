@@ -9,9 +9,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5635682412758554744}
-  - component: {fileID: -503260439741606433}
+  - component: {fileID: -5679417216165138712}
   m_Layer: 3
-  m_Name: ElementalistE_Ice
+  m_Name: EnchanterQ
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -32,7 +32,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &-503260439741606433
+--- !u!114 &-5679417216165138712
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -41,13 +41,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 53412344211962831}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4b23559ac40e58349802b2baaa71e663, type: 3}
+  m_Script: {fileID: 11500000, guid: 0b79c126fd3822e4a87ad839a3563508, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Category5.ElementalistE_Ice
-  abilityData: {fileID: 11400000, guid: 49cc0a589e17e134a80f3cbc30487714, type: 2}
-  projectileSpeed: 30
-  projectileLifetime: 3
-  slowMultiplier: 0.3
-  slowDuration: 4
-  spawnForwardOffset: 0.5
-  iceProjectilePrefab: {fileID: 773458864881063007, guid: 1d90d7ebd72ea614ba961632e08b681c, type: 3}
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.EnchanterQ
+  abilityData: {fileID: 11400000, guid: d886c6efe4404fd41930e837604ef766, type: 2}

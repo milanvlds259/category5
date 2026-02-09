@@ -108,6 +108,11 @@ namespace Category5.UI
             if (ability1 != null && ability1Slot != null)
             {
                 ability1Slot.Initialize(ability1.Data, "Q");
+
+                if (ability1 is ElementalistQ elementalistQ)
+                {
+                    ability1Slot.UpdateIconSprite(elementalistQ.CurrentIcon);
+                }
             }
             
             if (ability2 != null && ability2Slot != null)
@@ -168,6 +173,15 @@ namespace Category5.UI
         private void HandleElementChanged(ElementMode mode)
         {
             if (abilityManager == null || ability2Slot == null) return;
+
+            if (ability1Slot != null)
+            {
+                var elementalistQ = abilityManager.GetAbility1() as ElementalistQ;
+                if (elementalistQ != null)
+                {
+                    ability1Slot.UpdateIconSprite(elementalistQ.GetIconForElement(mode));
+                }
+            }
 
             var dispatcher = abilityManager.GetAbility2() as ElementalistE_Dispatcher;
             if (dispatcher == null) return;
@@ -342,6 +356,23 @@ namespace Category5.UI
                 if (data != null && data.abilityIcon != null)
                 {
                     iconImage.sprite = data.abilityIcon;
+                    iconImage.color = remainingCooldown <= 0f ? Color.white : new Color(0.5f, 0.5f, 0.5f, 1f);
+                }
+                else
+                {
+                    iconImage.sprite = null;
+                    iconImage.color = placeholderColor;
+                }
+            }
+        }
+
+        public void UpdateIconSprite(Sprite sprite)
+        {
+            if (iconImage != null)
+            {
+                if (sprite != null)
+                {
+                    iconImage.sprite = sprite;
                     iconImage.color = remainingCooldown <= 0f ? Color.white : new Color(0.5f, 0.5f, 0.5f, 1f);
                 }
                 else

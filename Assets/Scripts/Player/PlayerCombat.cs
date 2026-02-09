@@ -81,15 +81,22 @@ namespace Category5.Player
             : 0f;
         
         // public accessor for charge movement multiplier (used by playercontroller)
-        public float ChargeMovementMultiplier => arrowData != null 
-            ? arrowData.ChargeMovementSpeedMultiplier 
-            : 0.5f;
+        public float ChargeMovementMultiplier => arrowData != null && arrowData.AllowCharge
+            ? arrowData.ChargeMovementSpeedMultiplier
+            : 1f;
         
         // set combat class based on loaded player class
         public void SetCombatClass(CombatClass newCombatClass)
         {
             combatClass = newCombatClass;
             Debug.Log($"PlayerCombat: Combat class set to {combatClass}");
+        }
+        
+        // set arrow/projectile data based on loaded player class
+        public void SetArrowData(ProjectileData data)
+        {
+            arrowData = data;
+            Debug.Log($"PlayerCombat: Arrow data set to {(data != null ? data.name : "null")}");
         }
         
         // static events for vfx/sfx to hook into
@@ -219,7 +226,13 @@ namespace Category5.Player
         {
             if (arrowData == null)
             {
-                Debug.LogWarning("No arrow data assigned to PlayerCombat!");
+                Debug.LogWarning("PlayerCombat: Cannot attack - no projectile data assigned for this class!");
+                return;
+            }
+
+            if (!arrowData.AllowCharge)
+            {
+                PerformChargedRangedAttack(0f);
                 return;
             }
             

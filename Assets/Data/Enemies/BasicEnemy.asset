@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Enemies.EnemyData
   enemyName: BasicEnemy
   elementType: 0
-  maxHealth: 50
-  moveSpeed: 5
+  maxHealth: 80
+  moveSpeed: 2.5
   rotationSpeed: 360
-  damage: 10
-  attackRange: 2
+  damage: 5
+  attackRange: 1
   attackCooldown: 1.5
-  staggerDuration: 0.3
-  detectionRange: 25
-  leashRange: 30
+  staggerDuration: 0.5
+  detectionRange: 30
+  leashRange: 40
   enemyPrefab: {fileID: 0}
   enemyColor: {r: 1, g: 1, b: 1, a: 1}
   scaleMultiplier: 1

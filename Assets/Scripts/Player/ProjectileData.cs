@@ -37,6 +37,9 @@ namespace Category5.Player
         [SerializeField] private AudioClip impactSound;
         
         [Header("Charge Settings")]
+        [Tooltip("if false, basic attacks fire immediately without charging")]
+        [SerializeField] private bool allowCharge = true;
+
         [Tooltip("time in seconds to reach full charge")]
         [SerializeField] private float maxChargeTime = 1.5f;
         
@@ -73,6 +76,7 @@ namespace Category5.Player
         public AudioClip ImpactSound => impactSound;
         
         // charge accessors
+        public bool AllowCharge => allowCharge;
         public float MaxChargeTime => maxChargeTime;
         public float MaxDamageMultiplier => maxDamageMultiplier;
         public float MaxSpeedMultiplier => maxSpeedMultiplier;

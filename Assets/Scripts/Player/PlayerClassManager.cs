@@ -139,6 +139,12 @@ namespace Category5.Player
             if (playerCombat != null)
             {
                 playerCombat.SetCombatClass(classData.combatClass);
+                
+                // set basic attack projectile for ranged classes
+                if (classData.combatClass == CombatClass.Ranged)
+                {
+                    playerCombat.SetArrowData(classData.basicAttackProjectile);
+                }
             }
             
             Debug.Log($"Loaded class: {classData.className}");
