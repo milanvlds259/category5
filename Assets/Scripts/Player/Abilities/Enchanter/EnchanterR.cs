@@ -6,12 +6,22 @@ using Category5.Core;
 namespace Category5
 {
 
-    // enchanter q - dash - thrust spear that pierces enemies and grants a charge for each enemy hit. charge to dash longer distance
+    // enchanter r - lightning bolt that buffs allies in an area, radius scales with charges
     public class EnchanterR : AbilityBase
     {
+        public static event Action<Vector3, float, int> OnLightningStrike;
+
         public override void Execute()
         {
-            // placeholder
+            if (!CanUse()) return;
+
+            Vector3 position = transform.position;
+            abilityManager.ExecuteEnchanterRBuffServerRpc(position);
+        }
+
+        public static void InvokeLightningStrike(Vector3 position, float radius, int alliesBuffed)
+        {
+            OnLightningStrike?.Invoke(position, radius, alliesBuffed);
         }
     }
 }

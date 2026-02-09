@@ -215,5 +215,15 @@ namespace Category5.PowerUps
             }
             return effective;
         }
+
+        public float GetEffectiveAttackSpeedMultiplier()
+        {
+            float effective = _attackSpeedMultiplier;
+            if (_temporaryMultipliers.TryGetValue("attackSpeed", out var boost))
+            {
+                effective += boost.multiplier;
+            }
+            return effective;
+        }
     }
 }

@@ -155,7 +155,9 @@ namespace Category5.Player
             if (!IsOwner) return;
 
             // reset combo if too much time has passed
-            if (Time.time > _lastAttackTime + comboResetTime && _comboCounter > 0)
+            float attackSpeedMult = _playerStats != null ? _playerStats.GetEffectiveAttackSpeedMultiplier() : 1f;
+            float effectiveComboReset = comboResetTime / Mathf.Max(0.01f, attackSpeedMult);
+            if (Time.time > _lastAttackTime + effectiveComboReset && _comboCounter > 0)
             {
                 _comboCounter = 0;
             }
@@ -300,6 +302,9 @@ namespace Category5.Player
                 _comboCounter = 0; 
             }
 
+            float attackSpeedMultiplier = _playerStats != null ? _playerStats.GetEffectiveAttackSpeedMultiplier() : 1f;
+            duration /= Mathf.Max(0.01f, attackSpeedMultiplier);
+
             // visuals (Placeholder)
             // Debug.Log($"Player Melee Attack! Combo: {_comboCounter-1} | Damage: {damage}");
 
@@ -337,7 +342,8 @@ namespace Category5.Player
             }
             
             // start cooldown (modified by quickbow buff)
-            float effectiveCooldown = rangedAttackCooldown * _quickbowAttackSpeedMult;
+            float attackSpeedMultiplier = _playerStats != null ? _playerStats.GetEffectiveAttackSpeedMultiplier() : 1f;
+            float effectiveCooldown = (rangedAttackCooldown * _quickbowAttackSpeedMult) / Mathf.Max(0.01f, attackSpeedMultiplier);
             StartCoroutine(AttackCooldown(effectiveCooldown));
         }
         

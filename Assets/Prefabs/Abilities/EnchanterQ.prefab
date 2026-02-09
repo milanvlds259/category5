@@ -45,3 +45,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.EnchanterQ
   abilityData: {fileID: 11400000, guid: d886c6efe4404fd41930e837604ef766, type: 2}
+  minChargeTime: 0.3
+  maxChargeTime: 1.2
+  minDashDistance: 3
+  maxDashDistance: 10
+  dashDuration: 0.2
+  hitRadius: 1
+  enemyLayers:
+    serializedVersion: 2
+    m_Bits: 64
