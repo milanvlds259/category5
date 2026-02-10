@@ -665,6 +665,9 @@ MonoBehaviour:
     m_InternalValue: 0
   healBeaconProjectilePrefab: {fileID: 773458864881063007, guid: ea199601e87ebd24792b56beb5fd8d1a, type: 3}
   healBeaconZonePrefab: {fileID: 773458864881063007, guid: 622042cfb70ec0f459547fe67a490c1b, type: 3}
+  enchanterAllyLayers:
+    serializedVersion: 2
+    m_Bits: 8
   fireballPrefab: {fileID: 773458864881063007, guid: 26b13c5f90032034a9ce75635d031414, type: 3}
   iceProjectilePrefab: {fileID: 773458864881063007, guid: 1d90d7ebd72ea614ba961632e08b681c, type: 3}
   blackHoleProjectilePrefab: {fileID: 773458864881063007, guid: 1f522067d008e624ab47e13565a9a293, type: 3}

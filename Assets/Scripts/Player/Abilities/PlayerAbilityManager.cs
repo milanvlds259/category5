@@ -850,8 +850,11 @@ namespace Category5
             int consumedCharges = ConsumeAllEnchanterCharges();
             float radius = 5f + (consumedCharges * 1f);
 
-            Collider[] hitColliders = Physics.OverlapSphere(position, radius);
+            Collider[] hitColliders = enchanterAllyLayers.value != 0
+                ? Physics.OverlapSphere(position, radius, enchanterAllyLayers)
+                : Physics.OverlapSphere(position, radius);
             int alliesBuffed = 0;
+            var buffedTargets = new HashSet<int>();
 
             foreach (Collider collider in hitColliders)
             {
@@ -861,6 +864,9 @@ namespace Category5
 
                 PlayerStats targetStats = target.GetComponent<PlayerStats>();
                 if (targetStats == null) continue;
+
+                int targetId = target.GetInstanceID();
+                if (!buffedTargets.Add(targetId)) continue;
 
                 targetStats.ApplyTemporaryMultiplier("speed", 0.3f, 6f);
                 targetStats.ApplyTemporaryMultiplier("attackSpeed", 0.3f, 6f);
@@ -888,6 +894,7 @@ namespace Category5
         [Header("Enchanter Prefabs")]
         [SerializeField] private GameObject healBeaconProjectilePrefab;
         [SerializeField] private GameObject healBeaconZonePrefab;
+        [SerializeField] private LayerMask enchanterAllyLayers;
 
         [Header("Elementalist Prefabs")]
         [SerializeField] private GameObject fireballPrefab;
