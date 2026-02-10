@@ -371,6 +371,50 @@ namespace Category5
             };
         }
 
+        // RYLAN CODE - First attempt at resetting cooldown
+        public void ResetAbilityCooldown(AbilitySlot slot)
+        {
+            if (!IsServer)
+            {
+                ResetAbilityCooldownServerRpc(slot);
+                return;
+            }
+
+            var cooldown = GetCooldown(slot);
+            AbilityBase ability = GetAbility(slot);
+
+            float max = ability.Data.cooldownDuration;
+            cooldown.Value = 0f;
+
+            NotifyCooldownChangedClientRpc(slot, 0f, max);
+
+        }
+        //RYLAN CODE - Server RPC cooldown reset
+
+
+        [Rpc(SendTo.Server)]
+        public void ResetAbilityCooldownServerRpc(AbilitySlot slot)
+        {
+            NetworkVariable<float> cooldown = GetCooldown(slot);
+            float cdValue = cooldown.Value;
+            if (cooldown != null)
+            {
+                cooldown.Value = 0f;
+                AbilityBase ability = GetAbility(slot);
+
+                float max = ability.Data.cooldownDuration;
+
+                Debug.Log($"Cooldown for {slot} reset on server for client {OwnerClientId}");
+                
+                // notify clients about cooldown reset
+                NotifyCooldownChangedClientRpc(slot, 0f, max);
+            }
+            else
+            {
+                Debug.LogError($"PlayerAbilityManager: Invalid slot {slot} for cooldown reset");
+            }
+        }
+
         private NetworkVariable<float> GetCooldown(AbilitySlot slot)
         {
             return slot switch
@@ -500,6 +544,7 @@ namespace Category5
                     
                     enemiesHit++;
                 }
+                
             }
             
             Debug.Log($"[FighterQ Server] Total enemies hit: {enemiesHit}");
@@ -508,6 +553,13 @@ namespace Category5
             if (enemiesHit > 0)
             {
                 TriggerFighterQHitClientRpc(executePosition, enemiesHit);
+
+
+                //RYLAN CODE - reset cooldown for grapple on smash hit
+                
+                Debug.Log("cooldown reset!");
+                ResetAbilityCooldown(AbilitySlot.Ability2);
+                
             }
         }
         
