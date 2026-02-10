@@ -55,14 +55,28 @@ namespace Category5
 
             if (Time.time - _spawnTime >= maxLifetime)
             {
-                SpawnZoneAndDespawn();
+                NetworkObject.Despawn(true);
                 return;
             }
 
             if (Vector3.Distance(_startPosition, transform.position) >= _maxDistance)
             {
-                SpawnZoneAndDespawn();
+                TrySpawnZoneOnGround();
             }
+        }
+
+        private void TrySpawnZoneOnGround()
+        {
+            Ray downRay = new Ray(transform.position + Vector3.up * 0.25f, Vector3.down);
+            bool hasMask = groundLayers.value != 0;
+            bool hitGround = hasMask
+                ? Physics.Raycast(downRay, out RaycastHit hit, 10f, groundLayers)
+                : Physics.Raycast(downRay, out hit, 10f);
+
+            if (!hitGround) return;
+
+            transform.position = hit.point;
+            SpawnZoneAndDespawn();
         }
 
         private void OnCollisionEnter(Collision collision)

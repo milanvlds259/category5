@@ -17,9 +17,9 @@ MonoBehaviour:
   maxHealth: 80
   moveSpeed: 2.5
   rotationSpeed: 360
-  damage: 5
-  attackRange: 1
-  attackCooldown: 1.5
+  damage: 2
+  attackRange: 2
+  attackCooldown: 2
   staggerDuration: 0.5
   detectionRange: 30
   leashRange: 40

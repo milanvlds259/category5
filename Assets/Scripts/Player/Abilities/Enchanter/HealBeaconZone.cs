@@ -12,6 +12,10 @@ namespace Category5
         [Header("Heal Settings")]
         [SerializeField] private LayerMask playerLayers;
 
+        [Header("Debug")]
+        [SerializeField] private bool showDebugRadius = true;
+        [SerializeField] private Color debugColor = new Color(1f, 1f, 0f, 0.2f);
+
         private ulong _ownerClientId;
         private float _healPerTick;
         private float _tickInterval;
@@ -19,6 +23,8 @@ namespace Category5
         private float _radius;
         private float _elapsed;
         private float _tickTimer;
+
+        private GameObject _debugSphere;
 
         public static event Action<Vector3, int> OnHealTick;
         public static event Action<Vector3, float> OnBeaconSpawned;
@@ -56,6 +62,14 @@ namespace Category5
             {
                 NotifyBeaconExpiredClientRpc(transform.position);
                 NetworkObject.Despawn(true);
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (_debugSphere != null)
+            {
+                Destroy(_debugSphere);
             }
         }
 
@@ -98,12 +112,94 @@ namespace Category5
         private void NotifyBeaconSpawnedClientRpc(Vector3 position, float radius)
         {
             OnBeaconSpawned?.Invoke(position, radius);
+            CreateDebugSphere(radius);
         }
 
         [ClientRpc]
         private void NotifyBeaconExpiredClientRpc(Vector3 position)
         {
             OnBeaconExpired?.Invoke(position);
+            if (_debugSphere != null)
+            {
+                Destroy(_debugSphere);
+            }
+        }
+
+
+        // THIS IS JUST A DEBUG VISUALIZATION HELPER I WILL DELETE IT WHEN WE HAVE ACTUAL ANIMATION STUFFS
+        private void CreateDebugSphere(float radius)
+        {
+            if (!showDebugRadius) return;
+            if (_debugSphere != null) return;
+
+            _debugSphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            _debugSphere.name = "HealBeaconDebugSphere";
+            _debugSphere.transform.SetParent(transform, false);
+            _debugSphere.transform.localPosition = Vector3.zero;
+            _debugSphere.transform.localScale = Vector3.one * radius * 2f;
+
+            Collider col = _debugSphere.GetComponent<Collider>();
+            if (col != null)
+            {
+                Destroy(col);
+            }
+
+            Renderer renderer = _debugSphere.GetComponent<Renderer>();
+            if (renderer == null) return;
+
+            Material mat = CreateDebugMaterial();
+            if (mat != null)
+            {
+                if (mat.HasProperty("_BaseColor"))
+                {
+                    mat.SetColor("_BaseColor", debugColor);
+                }
+                if (mat.HasProperty("_Color"))
+                {
+                    mat.SetColor("_Color", debugColor);
+                }
+
+                renderer.material = mat;
+            }
+        }
+
+        // creates a transparent material for debug visuals
+        private Material CreateDebugMaterial()
+        {
+            Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+            if (shader == null) shader = Shader.Find("HDRP/Unlit");
+            if (shader == null) shader = Shader.Find("Unlit/Color");
+            if (shader == null) shader = Shader.Find("Sprites/Default");
+
+            if (shader == null)
+            {
+                Debug.LogWarning("[HealBeaconZone] no suitable unlit shader found for debug sphere");
+                return null;
+            }
+
+            Material mat = new Material(shader);
+
+            if (mat.HasProperty("_Surface"))
+            {
+                mat.SetFloat("_Surface", 1f);
+                mat.SetFloat("_ZWrite", 0f);
+                mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                mat.renderQueue = 3000;
+            }
+            else if (mat.HasProperty("_Mode"))
+            {
+                mat.SetFloat("_Mode", 3f);
+                mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                mat.SetInt("_ZWrite", 0);
+                mat.DisableKeyword("_ALPHATEST_ON");
+                mat.EnableKeyword("_ALPHABLEND_ON");
+                mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+                mat.renderQueue = 3000;
+            }
+
+            return mat;
         }
     }
 }

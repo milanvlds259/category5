@@ -45,3 +45,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.EnchanterR
   abilityData: {fileID: 11400000, guid: b987806018578154683c78d3ab367dbf, type: 2}
+  showDebugRadius: 1
+  debugColor: {r: 1, g: 0.8866233, b: 0, a: 0.2509804}
+  debugDuration: 1.5

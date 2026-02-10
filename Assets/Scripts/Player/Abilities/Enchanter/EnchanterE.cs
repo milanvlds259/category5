@@ -14,6 +14,13 @@ namespace Category5
         [SerializeField] private float forwardOffset = 0.8f;
         [SerializeField] private float upwardOffset = 1.2f;
 
+        [Header("Heal Settings")]
+        [SerializeField] private float healPerTick = 10f;
+        [SerializeField] private float tickInterval = 1f;
+        [SerializeField] private float baseDuration = 3f;
+        [SerializeField] private float durationPerCharge = 1.5f;
+        [SerializeField] private float healRadius = 6f;
+
         public static event Action<Vector3, Vector3> OnBeaconThrown;
 
         public override void Execute()
@@ -30,7 +37,16 @@ namespace Category5
 
             Vector3 spawnPos = transform.position + (direction * forwardOffset) + (Vector3.up * upwardOffset);
 
-            abilityManager.SpawnEnchanterHealBeaconServerRpc(spawnPos, direction, maxThrowDistance);
+            abilityManager.SpawnEnchanterHealBeaconServerRpc(
+                spawnPos,
+                direction,
+                maxThrowDistance,
+                healPerTick,
+                tickInterval,
+                baseDuration,
+                durationPerCharge,
+                healRadius
+            );
         }
 
         public static void InvokeBeaconThrown(Vector3 position, Vector3 direction)

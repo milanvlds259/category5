@@ -798,7 +798,8 @@ namespace Category5
         }
 
         [Rpc(SendTo.Server)]
-        public void SpawnEnchanterHealBeaconServerRpc(Vector3 spawnPosition, Vector3 direction, float maxDistance)
+        public void SpawnEnchanterHealBeaconServerRpc(Vector3 spawnPosition, Vector3 direction, float maxDistance,
+            float healPerTick, float tickInterval, float baseDuration, float durationPerCharge, float radius)
         {
             if (!IsServer) return;
 
@@ -815,10 +816,7 @@ namespace Category5
             }
 
             int consumedCharges = ConsumeAllEnchanterCharges();
-            float duration = 3f + (consumedCharges * 1.5f);
-            float healPerTick = 10f;
-            float tickInterval = 1f;
-            float radius = 6f;
+            float duration = baseDuration + (consumedCharges * durationPerCharge);
 
             GameObject obj = Instantiate(healBeaconProjectilePrefab, spawnPosition, Quaternion.identity);
             NetworkObject netObj = obj.GetComponent<NetworkObject>();
@@ -876,6 +874,11 @@ namespace Category5
         private void TriggerEnchanterRBuffClientRpc(Vector3 position, float radius, int alliesBuffed)
         {
             EnchanterR.InvokeLightningStrike(position, radius, alliesBuffed);
+
+            if (ability3 is EnchanterR enchanterR)
+            {
+                enchanterR.ShowDebugSphere(position, radius);
+            }
         }
 
         // =====================================

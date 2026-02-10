@@ -45,3 +45,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.EnchanterE
   abilityData: {fileID: 11400000, guid: d8d1d207cae942d4784bea1c68709aa9, type: 2}
+  maxThrowDistance: 20
+  forwardOffset: 0.8
+  upwardOffset: 1.2
+  healPerTick: 3
+  tickInterval: 0.4
+  baseDuration: 4
+  durationPerCharge: 1.25
+  healRadius: 9
