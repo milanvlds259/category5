@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System;
+using Category5;
 using Category5.Player;
 
 namespace Category5.UI
@@ -17,10 +18,14 @@ namespace Category5.UI
         
         [Header("Buff Indicator")]
         [SerializeField] private GameObject buffIndicator; // shows when ranger q is active
+
+        [Header("Enchanter UI")]
+        [SerializeField] private TextMeshProUGUI enchanterChargeText;
         
         private PlayerAbilityManager abilityManager;
         private int _retryCount = 0;
         private int _maxRetries = 5;
+        private bool _isEnchanter;
         
         private void Start()
         {
@@ -28,6 +33,11 @@ namespace Category5.UI
             if (buffIndicator != null)
             {
                 buffIndicator.SetActive(false);
+            }
+
+            if (enchanterChargeText != null)
+            {
+                enchanterChargeText.gameObject.SetActive(false);
             }
             
             // find the local player's ability manager
@@ -37,11 +47,15 @@ namespace Category5.UI
         private void OnEnable()
         {
             PlayerAbilityManager.OnCooldownChanged += HandleCooldownChanged;
+            ElementalistQ.OnElementChanged += HandleElementChanged;
+            PlayerAbilityManager.OnEnchanterChargesChanged += HandleEnchanterChargesChanged;
         }
         
         private void OnDisable()
         {
             PlayerAbilityManager.OnCooldownChanged -= HandleCooldownChanged;
+            ElementalistQ.OnElementChanged -= HandleElementChanged;
+            PlayerAbilityManager.OnEnchanterChargesChanged -= HandleEnchanterChargesChanged;
         }
         
         private void Update()
@@ -106,11 +120,31 @@ namespace Category5.UI
             if (ability1 != null && ability1Slot != null)
             {
                 ability1Slot.Initialize(ability1.Data, "Q");
+
+                _isEnchanter = ability1 is EnchanterQ;
+                UpdateEnchanterChargeVisibility();
+
+                if (_isEnchanter)
+                {
+                    UpdateEnchanterCharges(abilityManager.GetEnchanterCharges(), abilityManager.GetMaxEnchanterCharges());
+                }
+
+                if (ability1 is ElementalistQ elementalistQ)
+                {
+                    ability1Slot.UpdateIconSprite(elementalistQ.CurrentIcon);
+                }
             }
             
             if (ability2 != null && ability2Slot != null)
             {
-                ability2Slot.Initialize(ability2.Data, "E");
+                if (ability2 is ElementalistE_Dispatcher dispatcher)
+                {
+                    ability2Slot.Initialize(dispatcher.ActiveAbilityData, "E");
+                }
+                else
+                {
+                    ability2Slot.Initialize(ability2.Data, "E");
+                }
             }
             
             if (ability3 != null && ability3Slot != null)
@@ -154,6 +188,47 @@ namespace Category5.UI
             {
                 Debug.LogWarning($"[AbilityCooldownUI] Target slot is null for {slot}");
             }
+        }
+
+        private void HandleElementChanged(ElementMode mode)
+        {
+            if (abilityManager == null || ability2Slot == null) return;
+
+            if (ability1Slot != null)
+            {
+                var elementalistQ = abilityManager.GetAbility1() as ElementalistQ;
+                if (elementalistQ != null)
+                {
+                    ability1Slot.UpdateIconSprite(elementalistQ.GetIconForElement(mode));
+                }
+            }
+
+            var dispatcher = abilityManager.GetAbility2() as ElementalistE_Dispatcher;
+            if (dispatcher == null) return;
+
+            AbilityData data = dispatcher.ActiveAbilityData;
+            ability2Slot.UpdateIcon(data);
+        }
+
+        private void HandleEnchanterChargesChanged(PlayerAbilityManager source, int current, int max)
+        {
+            if (abilityManager == null) return;
+            if (source != abilityManager) return;
+            if (!_isEnchanter) return;
+
+            UpdateEnchanterCharges(current, max);
+        }
+
+        private void UpdateEnchanterCharges(int current, int max)
+        {
+            if (enchanterChargeText == null) return;
+            enchanterChargeText.text = $"{current}/{max}";
+        }
+
+        private void UpdateEnchanterChargeVisibility()
+        {
+            if (enchanterChargeText == null) return;
+            enchanterChargeText.gameObject.SetActive(_isEnchanter);
         }
         
         // public method for abilities to show/hide buff indicator
@@ -310,6 +385,42 @@ namespace Category5.UI
             {
                 // ensure text is hidden when not on cooldown
                 cooldownText.gameObject.SetActive(false);
+            }
+        }
+
+        public void UpdateIcon(AbilityData data)
+        {
+            abilityData = data;
+
+            if (iconImage != null)
+            {
+                if (data != null && data.abilityIcon != null)
+                {
+                    iconImage.sprite = data.abilityIcon;
+                    iconImage.color = remainingCooldown <= 0f ? Color.white : new Color(0.5f, 0.5f, 0.5f, 1f);
+                }
+                else
+                {
+                    iconImage.sprite = null;
+                    iconImage.color = placeholderColor;
+                }
+            }
+        }
+
+        public void UpdateIconSprite(Sprite sprite)
+        {
+            if (iconImage != null)
+            {
+                if (sprite != null)
+                {
+                    iconImage.sprite = sprite;
+                    iconImage.color = remainingCooldown <= 0f ? Color.white : new Color(0.5f, 0.5f, 0.5f, 1f);
+                }
+                else
+                {
+                    iconImage.sprite = null;
+                    iconImage.color = placeholderColor;
+                }
             }
         }
     }

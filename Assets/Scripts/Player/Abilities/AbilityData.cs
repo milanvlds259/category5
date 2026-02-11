@@ -15,7 +15,7 @@ namespace Category5
         public float cooldownDuration = 10f;
         public float baseDamage = 20f;
         public float castTime = 0f;
-        public float manaCost = 0f; // stubbed for future mana system
+        public int manaCost = 0;
 
         [Header("Visuals & Audio")]
         public GameObject vfxPrefab;

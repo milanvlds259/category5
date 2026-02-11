@@ -94,6 +94,10 @@ namespace Category5.UI
             PlayerCombat.OnChargeProgress += OnChargeProgress;
             PlayerCombat.OnChargeReleased += OnChargeReleased;
             PlayerCombat.OnChargeCanceled += OnChargeCanceled;
+
+            EnchanterQ.OnChargeStarted += OnEnchanterChargeStarted;
+            EnchanterQ.OnChargeProgress += OnEnchanterChargeProgress;
+            EnchanterQ.OnChargeReleased += OnEnchanterChargeReleased;
         }
         
         private void OnDisable()
@@ -103,6 +107,10 @@ namespace Category5.UI
             PlayerCombat.OnChargeProgress -= OnChargeProgress;
             PlayerCombat.OnChargeReleased -= OnChargeReleased;
             PlayerCombat.OnChargeCanceled -= OnChargeCanceled;
+
+            EnchanterQ.OnChargeStarted -= OnEnchanterChargeStarted;
+            EnchanterQ.OnChargeProgress -= OnEnchanterChargeProgress;
+            EnchanterQ.OnChargeReleased -= OnEnchanterChargeReleased;
         }
         
         private void Update()
@@ -170,6 +178,21 @@ namespace Category5.UI
         private void OnChargeCanceled(Vector3 position)
         {
             SetVisible(false);
+        }
+
+        private void OnEnchanterChargeStarted(Vector3 position)
+        {
+            OnChargeStarted(position);
+        }
+
+        private void OnEnchanterChargeProgress(float percent, Vector3 position)
+        {
+            OnChargeProgress(percent, position);
+        }
+
+        private void OnEnchanterChargeReleased(float percent, Vector3 position)
+        {
+            OnChargeReleased(percent, position);
         }
         
         private void UpdateFillAmount(float percent)

@@ -467,11 +467,25 @@ namespace Category5.Boss
         }
         
         // called by PowerUpManager to reset boss for new round with scaled hp
-        public virtual void ResetBoss(int newMaxHealth)
+        public virtual void ResetBoss(int newMaxHealth, Vector3 spawnPosition, Quaternion spawnRotation)
         {
             if (!IsServer) return;
             
-            // Debug.Log($"BossBase: Resetting boss with {newMaxHealth} HP");
+            // Debug.Log($"BossBase: Resetting boss with {newMaxHealth} HP at position {spawnPosition}");
+            
+            // teleport boss to spawn position
+            if (characterController != null)
+            {
+                characterController.enabled = false;
+                transform.position = spawnPosition;
+                transform.rotation = spawnRotation;
+                characterController.enabled = true;
+            }
+            else
+            {
+                transform.position = spawnPosition;
+                transform.rotation = spawnRotation;
+            }
             
             maxHealth = newMaxHealth;
             CurrentHealth.Value = maxHealth;
@@ -483,8 +497,8 @@ namespace Category5.Boss
             ShowBossClientRpc();
             ResetBossClientRpc(newMaxHealth);
             
-            // fire audio event for boss spawn on all clients
-            NotifyBossSpawnClientRpc(transform.position);
+            // fire audio event for boss spawn on all clients (use spawn position)
+            NotifyBossSpawnClientRpc(spawnPosition);
             
             // re-register with ui for updated health bar
             TryRegisterWithUI();

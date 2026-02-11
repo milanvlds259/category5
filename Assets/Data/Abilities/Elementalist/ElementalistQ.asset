@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da4b3cd86bfbb504fbfa4e92f8d91186, type: 3}
+  m_Name: ElementalistQ
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.AbilityData
+  abilityName: Elementalism
+  description: Cycles your active element, changing the effects of your E ability.
+  abilityIcon: {fileID: 21300000, guid: f49981ed6f7d6814ba429004585db713, type: 3}
+  cooldownDuration: 1
+  baseDamage: 20
+  castTime: 0
+  manaCost: 0
+  vfxPrefab: {fileID: 0}
+  sfxClip: {fileID: 0}
