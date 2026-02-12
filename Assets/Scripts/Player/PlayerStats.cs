@@ -12,6 +12,7 @@ namespace Category5.PowerUps
     {
         [Header("base stats (reference only)")]
         [SerializeField] private int baseMaxHealth = 100;
+        [SerializeField] private int baseMaxMana = 10;
         [SerializeField] private float baseDodgeCooldown = 2f;
         [SerializeField] private float baseMoveSpeed = 5f;
         
@@ -22,21 +23,28 @@ namespace Category5.PowerUps
         private float _damageMultiplier = 1f;
         private int _flatDamageBonus = 0;
         private int _maxHealthBonus = 0;
+        private int _maxManaBonus = 0;
         private float _dodgeCooldownReduction = 0f;
         private int _lifestealAmount = 0;
         private float _moveSpeedMultiplier = 1f;
         private float _attackSpeedMultiplier = 1f;
+        private float _manaRegenMultiplier = 1f;
+        private float _manaCostReduction = 0f;
 
         // public accessors for other systems to use
         public float DamageMultiplier => _damageMultiplier;
         public int FlatDamageBonus => _flatDamageBonus;
         public int MaxHealthBonus => _maxHealthBonus;
         public int TotalMaxHealth => baseMaxHealth + _maxHealthBonus;
+        public int MaxManaBonus => _maxManaBonus;
+        public int TotalMaxMana => baseMaxMana + _maxManaBonus;
         public float DodgeCooldownReduction => _dodgeCooldownReduction;
         public float EffectiveDodgeCooldown => Mathf.Max(0.5f, baseDodgeCooldown - _dodgeCooldownReduction);
         public int LifestealAmount => _lifestealAmount;
         public float MoveSpeedMultiplier => _moveSpeedMultiplier;
         public float AttackSpeedMultiplier => _attackSpeedMultiplier;
+        public float ManaRegenMultiplier => _manaRegenMultiplier;
+        public float ManaCostReduction => _manaCostReduction;
         public float EffectiveMoveSpeed => baseMoveSpeed * _moveSpeedMultiplier;
 
         // event for when stats change
@@ -70,10 +78,13 @@ namespace Category5.PowerUps
             _damageMultiplier = 1f;
             _flatDamageBonus = 0;
             _maxHealthBonus = 0;
+            _maxManaBonus = 0;
             _dodgeCooldownReduction = 0f;
             _lifestealAmount = 0;
             _moveSpeedMultiplier = 1f;
             _attackSpeedMultiplier = 1f;
+            _manaRegenMultiplier = 1f;
+            _manaCostReduction = 0f;
             
             // apply items from inventory
             if (_playerInventory != null)
@@ -123,6 +134,18 @@ namespace Category5.PowerUps
 
                     case ItemEffectType.AttackSpeedMultiplier:
                         _attackSpeedMultiplier += effect.value;
+                        break;
+                    
+                    case ItemEffectType.MaxManaBonus:
+                        _maxManaBonus += Mathf.RoundToInt(effect.value);
+                        break;
+                    
+                    case ItemEffectType.ManaRegenMultiplier:
+                        _manaRegenMultiplier += effect.value;
+                        break;
+                    
+                    case ItemEffectType.ManaCostReduction:
+                        _manaCostReduction += effect.value;
                         break;
 
                     default:
@@ -187,6 +210,16 @@ namespace Category5.PowerUps
         {
             float effective = _moveSpeedMultiplier;
             if (_temporaryMultipliers.TryGetValue("speed", out var boost))
+            {
+                effective += boost.multiplier;
+            }
+            return effective;
+        }
+
+        public float GetEffectiveAttackSpeedMultiplier()
+        {
+            float effective = _attackSpeedMultiplier;
+            if (_temporaryMultipliers.TryGetValue("attackSpeed", out var boost))
             {
                 effective += boost.multiplier;
             }

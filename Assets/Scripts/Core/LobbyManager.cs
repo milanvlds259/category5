@@ -14,6 +14,7 @@ namespace Category5.Core
         public FixedString64Bytes PlayerName;
         public bool IsHost;
         public PlayerClassType SelectedClass;
+        public bool IsReady;
         
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
@@ -21,6 +22,7 @@ namespace Category5.Core
             serializer.SerializeValue(ref PlayerName);
             serializer.SerializeValue(ref IsHost);
             serializer.SerializeValue(ref SelectedClass);
+            serializer.SerializeValue(ref IsReady);
         }
         
         public bool Equals(LobbyPlayerData other)
@@ -57,6 +59,7 @@ namespace Category5.Core
         private const string MSG_PLAYER_CLASS = "LobbyPlayerClass";
         private const string MSG_PLAYER_LIST = "LobbyPlayerList";
         private const string MSG_PLAYER_LEFT = "LobbyPlayerLeft";
+        private const string MSG_PLAYER_READY = "LobbyPlayerReady";
         
         private bool _isInitialized = false;
         
@@ -93,6 +96,7 @@ namespace Category5.Core
             NetworkManager.Singleton.CustomMessagingManager.RegisterNamedMessageHandler(MSG_PLAYER_CLASS, OnPlayerClassReceived);
             NetworkManager.Singleton.CustomMessagingManager.RegisterNamedMessageHandler(MSG_PLAYER_LIST, OnPlayerListReceived);
             NetworkManager.Singleton.CustomMessagingManager.RegisterNamedMessageHandler(MSG_PLAYER_LEFT, OnPlayerLeftReceived);
+            NetworkManager.Singleton.CustomMessagingManager.RegisterNamedMessageHandler(MSG_PLAYER_READY, OnPlayerReadyReceived);
             
             // subscribe to connection events
             NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
@@ -120,6 +124,7 @@ namespace Category5.Core
                 NetworkManager.Singleton.CustomMessagingManager?.UnregisterNamedMessageHandler(MSG_PLAYER_CLASS);
                 NetworkManager.Singleton.CustomMessagingManager?.UnregisterNamedMessageHandler(MSG_PLAYER_LIST);
                 NetworkManager.Singleton.CustomMessagingManager?.UnregisterNamedMessageHandler(MSG_PLAYER_LEFT);
+                NetworkManager.Singleton.CustomMessagingManager?.UnregisterNamedMessageHandler(MSG_PLAYER_READY);
                 
                 NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
                 NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
@@ -300,7 +305,8 @@ namespace Category5.Core
                 ClientId = clientId,
                 PlayerName = new FixedString64Bytes(playerName),
                 IsHost = isHost,
-                SelectedClass = selectedClass
+                SelectedClass = selectedClass,
+                IsReady = false
             };
             
             _lobbyPlayers.Add(player);
@@ -414,6 +420,110 @@ namespace Category5.Core
                     break;
                 }
             }
+        }
+        
+        // client sends their ready state to server
+        public void SendLocalPlayerReady(bool isReady)
+        {
+            if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsClient) return;
+            
+            if (NetworkManager.Singleton.IsServer)
+            {
+                // host updates directly
+                SetHostPlayerReady(isReady);
+            }
+            else
+            {
+                using var writer = new FastBufferWriter(16, Allocator.Temp);
+                writer.WriteValueSafe(isReady);
+                
+                NetworkManager.Singleton.CustomMessagingManager.SendNamedMessage(
+                    MSG_PLAYER_READY,
+                    NetworkManager.ServerClientId,
+                    writer
+                );
+                
+                Debug.Log($"LobbyManager: Sent ready state '{isReady}' to server");
+            }
+        }
+        
+        // host sets their own ready state directly
+        public void SetHostPlayerReady(bool isReady)
+        {
+            if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsServer) return;
+            
+            for (int i = 0; i < _lobbyPlayers.Count; i++)
+            {
+                if (_lobbyPlayers[i].ClientId == NetworkManager.Singleton.LocalClientId)
+                {
+                    var player = _lobbyPlayers[i];
+                    player.IsReady = isReady;
+                    _lobbyPlayers[i] = player;
+                    
+                    Debug.Log($"LobbyManager: Host set ready to {isReady}");
+                    OnLobbyPlayersChanged?.Invoke();
+                    
+                    BroadcastPlayerList();
+                    break;
+                }
+            }
+        }
+        
+        // server receives ready state from client
+        private void OnPlayerReadyReceived(ulong senderClientId, FastBufferReader reader)
+        {
+            if (!NetworkManager.Singleton.IsServer) return;
+            
+            reader.ReadValueSafe(out bool isReady);
+            
+            for (int i = 0; i < _lobbyPlayers.Count; i++)
+            {
+                if (_lobbyPlayers[i].ClientId == senderClientId)
+                {
+                    var player = _lobbyPlayers[i];
+                    player.IsReady = isReady;
+                    _lobbyPlayers[i] = player;
+                    
+                    Debug.Log($"LobbyManager: Player {senderClientId} set ready to {isReady}");
+                    OnLobbyPlayersChanged?.Invoke();
+                    
+                    BroadcastPlayerList();
+                    break;
+                }
+            }
+        }
+        
+        // check if all players are ready (for host to start game)
+        public bool AreAllPlayersReady()
+        {
+            if (_lobbyPlayers.Count == 0) return false;
+            
+            foreach (var player in _lobbyPlayers)
+            {
+                if (!player.IsReady) return false;
+            }
+            
+            return true;
+        }
+        
+        // get a player's ready state by client id
+        public bool IsPlayerReady(ulong clientId)
+        {
+            foreach (var p in _lobbyPlayers)
+            {
+                if (p.ClientId == clientId)
+                {
+                    return p.IsReady;
+                }
+            }
+            return false;
+        }
+        
+        // get local player's ready state
+        public bool IsLocalPlayerReady()
+        {
+            if (NetworkManager.Singleton == null) return false;
+            return IsPlayerReady(NetworkManager.Singleton.LocalClientId);
         }
     }
 }

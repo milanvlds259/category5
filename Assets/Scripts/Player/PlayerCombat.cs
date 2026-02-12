@@ -81,15 +81,22 @@ namespace Category5.Player
             : 0f;
         
         // public accessor for charge movement multiplier (used by playercontroller)
-        public float ChargeMovementMultiplier => arrowData != null 
-            ? arrowData.ChargeMovementSpeedMultiplier 
-            : 0.5f;
+        public float ChargeMovementMultiplier => arrowData != null && arrowData.AllowCharge
+            ? arrowData.ChargeMovementSpeedMultiplier
+            : 1f;
         
         // set combat class based on loaded player class
         public void SetCombatClass(CombatClass newCombatClass)
         {
             combatClass = newCombatClass;
             Debug.Log($"PlayerCombat: Combat class set to {combatClass}");
+        }
+        
+        // set arrow/projectile data based on loaded player class
+        public void SetArrowData(ProjectileData data)
+        {
+            arrowData = data;
+            Debug.Log($"PlayerCombat: Arrow data set to {(data != null ? data.name : "null")}");
         }
         
         // static events for vfx/sfx to hook into
@@ -148,7 +155,9 @@ namespace Category5.Player
             if (!IsOwner) return;
 
             // reset combo if too much time has passed
-            if (Time.time > _lastAttackTime + comboResetTime && _comboCounter > 0)
+            float attackSpeedMult = _playerStats != null ? _playerStats.GetEffectiveAttackSpeedMultiplier() : 1f;
+            float effectiveComboReset = comboResetTime / Mathf.Max(0.01f, attackSpeedMult);
+            if (Time.time > _lastAttackTime + effectiveComboReset && _comboCounter > 0)
             {
                 _comboCounter = 0;
             }
@@ -219,7 +228,13 @@ namespace Category5.Player
         {
             if (arrowData == null)
             {
-                Debug.LogWarning("No arrow data assigned to PlayerCombat!");
+                Debug.LogWarning("PlayerCombat: Cannot attack - no projectile data assigned for this class!");
+                return;
+            }
+
+            if (!arrowData.AllowCharge)
+            {
+                PerformChargedRangedAttack(0f);
                 return;
             }
             
@@ -287,6 +302,9 @@ namespace Category5.Player
                 _comboCounter = 0; 
             }
 
+            float attackSpeedMultiplier = _playerStats != null ? _playerStats.GetEffectiveAttackSpeedMultiplier() : 1f;
+            duration /= Mathf.Max(0.01f, attackSpeedMultiplier);
+
             // visuals (Placeholder)
             // Debug.Log($"Player Melee Attack! Combo: {_comboCounter-1} | Damage: {damage}");
 
@@ -324,7 +342,8 @@ namespace Category5.Player
             }
             
             // start cooldown (modified by quickbow buff)
-            float effectiveCooldown = rangedAttackCooldown * _quickbowAttackSpeedMult;
+            float attackSpeedMultiplier = _playerStats != null ? _playerStats.GetEffectiveAttackSpeedMultiplier() : 1f;
+            float effectiveCooldown = (rangedAttackCooldown * _quickbowAttackSpeedMult) / Mathf.Max(0.01f, attackSpeedMultiplier);
             StartCoroutine(AttackCooldown(effectiveCooldown));
         }
         

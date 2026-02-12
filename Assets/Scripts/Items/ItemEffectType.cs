@@ -9,6 +9,9 @@ namespace Category5.Items
         FlatDamageBonus,        // +x flat damage
         Lifesteal,              // x hp per hit
         MoveSpeedMultiplier,    // +x% movement speed (future)
-        AttackSpeedMultiplier   // +x% attack speed (future)
+        AttackSpeedMultiplier,  // +x% attack speed (future)
+        MaxManaBonus,           // +x max mana
+        ManaRegenMultiplier,    // +x% mana regen speed
+        ManaCostReduction       // -x% mana cost
     }
 }

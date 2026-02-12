@@ -30,5 +30,8 @@ namespace Category5.Player
         
         [Header("Combat Settings")]
         public CombatClass combatClass = CombatClass.Ranged;
+        
+        [Tooltip("projectile data for ranged basic attack (only used if combatClass is Ranged)")]
+        public ProjectileData basicAttackProjectile;
     }
 }

@@ -19,6 +19,6 @@ MonoBehaviour:
   cooldownDuration: 12
   baseDamage: 4
   castTime: 0
-  manaCost: 0
+  manaCost: 4
   vfxPrefab: {fileID: 0}
   sfxClip: {fileID: 0}

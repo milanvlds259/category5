@@ -2,6 +2,8 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using Category5.Player;
 using Category5.PowerUps;
@@ -36,6 +38,11 @@ namespace Category5
         public NetworkVariable<float> ability2Cooldown = new NetworkVariable<float>(0f);
         public NetworkVariable<float> ability3Cooldown = new NetworkVariable<float>(0f);
 
+        [Header("Enchanter Charges")]
+        [SerializeField] private int maxEnchanterCharges = 5;
+        [SerializeField] private float enchanterChargeDecaySeconds = 15f;
+        public NetworkVariable<int> enchanterCharges = new NetworkVariable<int>(0);
+
         private PlayerController playerController;
         private PlayerStats playerStats;
         private PlayerCombat playerCombat;
@@ -46,6 +53,9 @@ namespace Category5
 
         // events for ui updates - includes reference to source PlayerAbilityManager so UI can filter
         public static event Action<PlayerAbilityManager, AbilitySlot, float, float> OnCooldownChanged; // source, slot, current, max
+        public static event Action<PlayerAbilityManager, int, int> OnEnchanterChargesChanged; // source, current, max
+
+        private float _enchanterChargeTimer;
 
         private void Awake()
         {
@@ -69,6 +79,8 @@ namespace Category5
             {
                 SubscribeToInputActions();
             }
+
+            enchanterCharges.OnValueChanged += OnEnchanterChargesValueChanged;
         }
         
         // called by PlayerClassManager to clear ability references when switching classes
@@ -172,6 +184,7 @@ namespace Category5
             else
             {
                 inputActions.Player.Ability1.performed += OnAbility1Pressed;
+                inputActions.Player.Ability1.canceled += OnAbility1Released;
                 Debug.Log("PlayerAbilityManager: Subscribed to Ability1 (Q)");
             }
             
@@ -207,6 +220,8 @@ namespace Category5
 
             if (inputActions.Player.Ability1 != null)
                 inputActions.Player.Ability1.performed -= OnAbility1Pressed;
+            if (inputActions.Player.Ability1 != null)
+                inputActions.Player.Ability1.canceled -= OnAbility1Released;
             if (inputActions.Player.Ability2 != null)
                 inputActions.Player.Ability2.performed -= OnAbility2Pressed;
             if (inputActions.Player.Ability3 != null)
@@ -219,6 +234,7 @@ namespace Category5
         {
             // clean up input subscriptions on despawn
             OnDisable();
+            enchanterCharges.OnValueChanged -= OnEnchanterChargesValueChanged;
             base.OnNetworkDespawn();
         }
         
@@ -226,6 +242,16 @@ namespace Category5
         {
             Debug.Log("Ability1 (Q) pressed!");
             TryUseAbility(AbilitySlot.Ability1);
+        }
+
+        private void OnAbility1Released(InputAction.CallbackContext ctx)
+        {
+            if (!IsOwner) return;
+
+            if (ability1 != null)
+            {
+                ability1.OnReleased();
+            }
         }
         
         private void OnAbility2Pressed(InputAction.CallbackContext ctx)
@@ -256,6 +282,20 @@ namespace Category5
             if (ability3Cooldown.Value > 0f)
             {
                 ability3Cooldown.Value = Mathf.Max(0f, ability3Cooldown.Value - Time.deltaTime);
+            }
+
+            if (enchanterCharges.Value > 0)
+            {
+                _enchanterChargeTimer += Time.deltaTime;
+                if (_enchanterChargeTimer >= enchanterChargeDecaySeconds)
+                {
+                    enchanterCharges.Value = 0;
+                    _enchanterChargeTimer = 0f;
+                }
+            }
+            else
+            {
+                _enchanterChargeTimer = 0f;
             }
         }
 
@@ -337,8 +377,17 @@ namespace Category5
                 IsExecutingAbility = false;
             }
             
+            // consume mana if ability has a cost
+            if (ability.ConsumeCostOnExecute && ability.Data.manaCost > 0)
+            {
+                playerController.RequestConsumeManaServerRpc(ability.Data.manaCost);
+            }
+            
             // send request to server to set cooldown on NetworkVariable
-            RequestSetAbilityCooldownServerRpc(slot, ability.Data.cooldownDuration);
+            if (ability.StartCooldownOnExecute)
+            {
+                RequestSetAbilityCooldownServerRpc(slot, ability.Data.cooldownDuration);
+            }
         }
 
         [Rpc(SendTo.Server)]
@@ -358,6 +407,11 @@ namespace Category5
         {
             // fire event for all clients for UI updates
             OnCooldownChanged?.Invoke(this, slot, current, max);
+        }
+
+        private void OnEnchanterChargesValueChanged(int previous, int current)
+        {
+            OnEnchanterChargesChanged?.Invoke(this, current, maxEnchanterCharges);
         }
 
         private AbilityBase GetAbility(AbilitySlot slot)
@@ -424,6 +478,53 @@ namespace Category5
                 AbilitySlot.Ability3 => ability3Cooldown,
                 _ => null
             };
+        }
+
+        public void ApplyAbilityCostAndCooldown(AbilitySlot slot, AbilityBase ability)
+        {
+            if (!IsOwner) return;
+            if (ability == null || ability.Data == null) return;
+
+            if (ability.Data.manaCost > 0)
+            {
+                playerController.RequestConsumeManaServerRpc(ability.Data.manaCost);
+            }
+
+            RequestSetAbilityCooldownServerRpc(slot, ability.Data.cooldownDuration);
+        }
+
+        public int GetEnchanterCharges()
+        {
+            return enchanterCharges.Value;
+        }
+
+        public int GetMaxEnchanterCharges()
+        {
+            return maxEnchanterCharges;
+        }
+
+        public void AddEnchanterCharges(int amount)
+        {
+            if (!IsServer) return;
+            if (amount <= 0) return;
+
+            int newValue = Mathf.Clamp(enchanterCharges.Value + amount, 0, maxEnchanterCharges);
+            if (newValue != enchanterCharges.Value)
+            {
+                enchanterCharges.Value = newValue;
+            }
+
+            _enchanterChargeTimer = 0f;
+        }
+
+        public int ConsumeAllEnchanterCharges()
+        {
+            if (!IsServer) return 0;
+
+            int consumed = enchanterCharges.Value;
+            enchanterCharges.Value = 0;
+            _enchanterChargeTimer = 0f;
+            return consumed;
         }
 
         // public getters for ui
@@ -651,6 +752,415 @@ namespace Category5
             {
                 Debug.LogWarning($"PlayerAbilityManager: ability2 is not FighterE, it's {ability2.GetType().Name}");
             }
+        }
+
+        // =====================================
+        // enchanter ability rpcs
+        // =====================================
+
+        [Rpc(SendTo.Server)]
+        public void ExecuteEnchanterQDashServerRpc(Vector3 startPosition, Vector3 direction, float dashDistance,
+            int baseDamage, float hitRadius, int enemyLayerMask)
+        {
+            if (!IsServer) return;
+
+            if (direction == Vector3.zero)
+            {
+                direction = transform.forward;
+            }
+
+            direction.y = 0f;
+            direction.Normalize();
+
+            Vector3 endPosition = startPosition + direction * dashDistance;
+
+            int adjustedDamage = playerStats != null ? playerStats.CalculateDamage(baseDamage) : baseDamage;
+
+            TriggerEnchanterQDashClientRpc(startPosition, direction, dashDistance);
+
+            Collider[] hitColliders = enemyLayerMask == 0
+                ? Physics.OverlapCapsule(startPosition, endPosition, hitRadius)
+                : Physics.OverlapCapsule(startPosition, endPosition, hitRadius, enemyLayerMask);
+            var hitTargets = new HashSet<int>();
+            int hits = 0;
+
+            foreach (Collider collider in hitColliders)
+            {
+                EnemyBase enemy = collider.GetComponentInParent<EnemyBase>();
+                if (enemy != null && !enemy.IsDead)
+                {
+                    int id = enemy.GetInstanceID();
+                    if (!hitTargets.Add(id)) continue;
+
+                    enemy.TakeDamage(adjustedDamage);
+                    ShowEnchanterQDamageNumberClientRpc(adjustedDamage, enemy.transform.position, new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+                    });
+                    hits++;
+                    continue;
+                }
+
+                BossBase boss = collider.GetComponentInParent<BossBase>();
+                if (boss != null)
+                {
+                    int id = boss.GetInstanceID();
+                    if (!hitTargets.Add(id)) continue;
+
+                    boss.TakeDamage(adjustedDamage);
+                    ShowEnchanterQDamageNumberClientRpc(adjustedDamage, boss.transform.position, new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+                    });
+                    hits++;
+                }
+            }
+
+            if (hits > 0)
+            {
+                AddEnchanterCharges(hits);
+                TriggerEnchanterQHitClientRpc(endPosition, hits);
+            }
+        }
+
+        [ClientRpc]
+        private void TriggerEnchanterQDashClientRpc(Vector3 startPosition, Vector3 direction, float dashDistance)
+        {
+            EnchanterQ.InvokeDashStarted(startPosition, direction, dashDistance);
+        }
+
+        [ClientRpc]
+        private void TriggerEnchanterQHitClientRpc(Vector3 position, int hitCount)
+        {
+            EnchanterQ.InvokeDashHit(position, hitCount);
+
+            if (IsOwner && HitFeedbackManager.Instance != null)
+            {
+                HitFeedbackManager.Instance.TriggerLightHit(position);
+            }
+        }
+
+        [ClientRpc]
+        private void ShowEnchanterQDamageNumberClientRpc(int damage, Vector3 position, ClientRpcParams clientRpcParams = default)
+        {
+            if (Category5.UI.UIManager.Instance != null)
+            {
+                Category5.UI.UIManager.Instance.ShowDamageNumber(damage, position);
+            }
+        }
+
+        [Rpc(SendTo.Server)]
+        public void SpawnEnchanterHealBeaconServerRpc(Vector3 spawnPosition, Vector3 direction, float maxDistance,
+            float healPerTick, float tickInterval, float baseDuration, float durationPerCharge, float radius)
+        {
+            if (!IsServer) return;
+
+            if (healBeaconProjectilePrefab == null)
+            {
+                Debug.LogError("PlayerAbilityManager: healBeaconProjectilePrefab is not assigned!");
+                return;
+            }
+
+            if (healBeaconZonePrefab == null)
+            {
+                Debug.LogError("PlayerAbilityManager: healBeaconZonePrefab is not assigned!");
+                return;
+            }
+
+            int consumedCharges = ConsumeAllEnchanterCharges();
+            float duration = baseDuration + (consumedCharges * durationPerCharge);
+
+            GameObject obj = Instantiate(healBeaconProjectilePrefab, spawnPosition, Quaternion.identity);
+            NetworkObject netObj = obj.GetComponent<NetworkObject>();
+            HealBeaconProjectile projectile = obj.GetComponent<HealBeaconProjectile>();
+
+            if (netObj == null || projectile == null)
+            {
+                Debug.LogError("PlayerAbilityManager: heal beacon projectile prefab missing NetworkObject or HealBeaconProjectile!");
+                Destroy(obj);
+                return;
+            }
+
+            projectile.Initialize(OwnerClientId, healBeaconZonePrefab, direction, maxDistance, healPerTick, tickInterval, duration, radius);
+
+            netObj.Spawn();
+
+            TriggerEnchanterEThrownClientRpc(spawnPosition, direction);
+        }
+
+        [ClientRpc]
+        private void TriggerEnchanterEThrownClientRpc(Vector3 spawnPosition, Vector3 direction)
+        {
+            EnchanterE.InvokeBeaconThrown(spawnPosition, direction);
+        }
+
+        [Rpc(SendTo.Server)]
+        public void ExecuteEnchanterRBuffServerRpc(Vector3 position)
+        {
+            if (!IsServer) return;
+
+            int consumedCharges = ConsumeAllEnchanterCharges();
+            float radius = 5f + (consumedCharges * 1f);
+
+            Collider[] hitColliders = enchanterAllyLayers.value != 0
+                ? Physics.OverlapSphere(position, radius, enchanterAllyLayers)
+                : Physics.OverlapSphere(position, radius);
+            int alliesBuffed = 0;
+            var buffedTargets = new HashSet<int>();
+
+            foreach (Collider collider in hitColliders)
+            {
+                PlayerController target = collider.GetComponentInParent<PlayerController>();
+                if (target == null) continue;
+                if (target.IsDead.Value) continue;
+
+                PlayerStats targetStats = target.GetComponent<PlayerStats>();
+                if (targetStats == null) continue;
+
+                int targetId = target.GetInstanceID();
+                if (!buffedTargets.Add(targetId)) continue;
+
+                targetStats.ApplyTemporaryMultiplier("speed", 0.3f, 6f);
+                targetStats.ApplyTemporaryMultiplier("attackSpeed", 0.3f, 6f);
+                alliesBuffed++;
+            }
+
+            TriggerEnchanterRBuffClientRpc(position, radius, alliesBuffed);
+        }
+
+        [ClientRpc]
+        private void TriggerEnchanterRBuffClientRpc(Vector3 position, float radius, int alliesBuffed)
+        {
+            EnchanterR.InvokeLightningStrike(position, radius, alliesBuffed);
+
+            if (ability3 is EnchanterR enchanterR)
+            {
+                enchanterR.ShowDebugSphere(position, radius);
+            }
+        }
+
+        // =====================================
+        // elementalist ability rpcs
+        // =====================================
+
+        [Header("Enchanter Prefabs")]
+        [SerializeField] private GameObject healBeaconProjectilePrefab;
+        [SerializeField] private GameObject healBeaconZonePrefab;
+        [SerializeField] private LayerMask enchanterAllyLayers;
+
+        [Header("Elementalist Prefabs")]
+        [SerializeField] private GameObject fireballPrefab;
+        [SerializeField] private GameObject iceProjectilePrefab;
+        [SerializeField] private GameObject blackHoleProjectilePrefab;
+        [SerializeField] private GameObject blackHoleZonePrefab;
+
+        [Rpc(SendTo.Server)]
+        public void SpawnFireballServerRpc(Vector3 position, Vector3 direction, int baseDamage,
+            float projectileSpeed, float projectileLifetime, float explosionRadius,
+            int burnDmgPerTick, float burnTickInterval, float burnDuration)
+        {
+            if (fireballPrefab == null)
+            {
+                Debug.LogError("PlayerAbilityManager: fireballPrefab is not assigned!");
+                return;
+            }
+
+            GameObject obj = Instantiate(fireballPrefab, position, Quaternion.LookRotation(direction));
+            NetworkObject netObj = obj.GetComponent<NetworkObject>();
+            FireballProjectile fireball = obj.GetComponent<FireballProjectile>();
+
+            if (netObj == null || fireball == null)
+            {
+                Debug.LogError("PlayerAbilityManager: fireball prefab missing NetworkObject or FireballProjectile!");
+                Destroy(obj);
+                return;
+            }
+
+            fireball.Initialize(OwnerClientId, playerStats, baseDamage, projectileSpeed,
+                projectileLifetime, explosionRadius, burnDmgPerTick, burnTickInterval, burnDuration);
+
+            netObj.Spawn();
+            Debug.Log($"[Elementalist] fireball spawned for client {OwnerClientId}");
+        }
+
+        [Rpc(SendTo.Server)]
+        public void SpawnIceProjectileServerRpc(Vector3 position, Vector3 direction, int baseDamage,
+            float projectileSpeed, float projectileLifetime, float slowMultiplier, float slowDuration)
+        {
+            if (iceProjectilePrefab == null)
+            {
+                Debug.LogError("PlayerAbilityManager: iceProjectilePrefab is not assigned!");
+                return;
+            }
+
+            GameObject obj = Instantiate(iceProjectilePrefab, position, Quaternion.LookRotation(direction));
+            NetworkObject netObj = obj.GetComponent<NetworkObject>();
+            IceProjectile ice = obj.GetComponent<IceProjectile>();
+
+            if (netObj == null || ice == null)
+            {
+                Debug.LogError("PlayerAbilityManager: ice prefab missing NetworkObject or IceProjectile!");
+                Destroy(obj);
+                return;
+            }
+
+            ice.Initialize(OwnerClientId, playerStats, baseDamage, projectileSpeed,
+                projectileLifetime, slowMultiplier, slowDuration);
+
+            netObj.Spawn();
+            Debug.Log($"[Elementalist] ice projectile spawned for client {OwnerClientId}");
+        }
+
+        [Rpc(SendTo.Server)]
+        public void ExecuteThunderArcServerRpc(Vector3 position, Vector3 forward, int adjustedDamage,
+            float arcAngle, float arcRange, float knockbackForce, float stunDuration, float stunDelay, int enemyLayerMask)
+        {
+            if (!IsServer) return;
+
+            Debug.Log($"[ElementalistE_Thunder Server] executing arc at {position}, damage={adjustedDamage}, range={arcRange}, angle={arcAngle}");
+
+            // trigger vfx for all clients
+            TriggerThunderArcVfxClientRpc(position, forward, arcRange, arcAngle);
+
+            Collider[] hitColliders = Physics.OverlapSphere(position, arcRange, enemyLayerMask);
+            int enemiesHit = 0;
+            float halfAngle = arcAngle * 0.5f;
+
+            foreach (Collider collider in hitColliders)
+            {
+                // check if target is within the cone angle
+                Vector3 dirToTarget = (collider.transform.position - position).normalized;
+                dirToTarget.y = 0; // ignore vertical difference
+                Vector3 flatForward = forward;
+                flatForward.y = 0;
+                flatForward.Normalize();
+
+                float angle = Vector3.Angle(flatForward, dirToTarget);
+                if (angle > halfAngle) continue;
+
+                // try enemy
+                if (collider.TryGetComponent<EnemyBase>(out var enemy) && !enemy.IsDead)
+                {
+                    enemy.TakeDamage(adjustedDamage);
+
+                    // knockback away from player
+                    Vector3 knockback = dirToTarget * knockbackForce;
+                    CharacterController enemyCC = enemy.GetComponent<CharacterController>();
+                    if (enemyCC != null)
+                    {
+                        enemyCC.Move(knockback * Time.fixedDeltaTime);
+                    }
+                    else
+                    {
+                        enemy.transform.position += knockback * Time.fixedDeltaTime;
+                    }
+
+                    if (stunDuration > 0f)
+                    {
+                        StartCoroutine(ApplyStunAfterDelay(enemy, stunDuration, stunDelay));
+                    }
+
+                    ShowThunderDamageNumberClientRpc(adjustedDamage, enemy.transform.position, new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+                    });
+                    enemiesHit++;
+                }
+                // try boss
+                else if (collider.TryGetComponent<BossBase>(out var boss))
+                {
+                    boss.TakeDamage(adjustedDamage);
+                    // bosses don't get stunned or knocked back by thunder arc
+
+                    ShowThunderDamageNumberClientRpc(adjustedDamage, boss.transform.position, new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+                    });
+                    enemiesHit++;
+                }
+            }
+
+            Debug.Log($"[ElementalistE_Thunder Server] hit {enemiesHit} enemies");
+
+            if (enemiesHit > 0)
+            {
+                TriggerThunderHitFeedbackClientRpc(position, new ClientRpcParams
+                {
+                    Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+                });
+            }
+        }
+
+        private IEnumerator ApplyStunAfterDelay(EnemyBase enemy, float duration, float delay)
+        {
+            if (enemy == null) yield break;
+            if (delay > 0f)
+            {
+                yield return new WaitForSeconds(delay);
+            }
+
+            if (enemy == null || enemy.IsDead) yield break;
+            enemy.ApplyStun(duration);
+        }
+
+        [Rpc(SendTo.Everyone)]
+        private void TriggerThunderArcVfxClientRpc(Vector3 position, Vector3 forward, float range, float angle)
+        {
+            ElementalistE_Thunder.InvokeThunderArcExecute(position, forward, range, angle);
+        }
+
+        [ClientRpc]
+        private void ShowThunderDamageNumberClientRpc(int damage, Vector3 position, ClientRpcParams clientRpcParams = default)
+        {
+            if (Category5.UI.UIManager.Instance != null)
+            {
+                Category5.UI.UIManager.Instance.ShowDamageNumber(damage, position);
+            }
+        }
+
+        [ClientRpc]
+        private void TriggerThunderHitFeedbackClientRpc(Vector3 position, ClientRpcParams clientRpcParams = default)
+        {
+            if (HitFeedbackManager.Instance != null)
+            {
+                HitFeedbackManager.Instance.TriggerHeavyHit(position);
+            }
+        }
+
+        [Rpc(SendTo.Server)]
+        public void SpawnBlackHoleProjectileServerRpc(Vector3 position, Vector3 direction, int baseDamage,
+            float projectileSpeed, float projectileLifetime, float pullRadius, float pullForce,
+            float pullDuration, float pullStrengthRampUp, float explosionRadius)
+        {
+            if (blackHoleProjectilePrefab == null)
+            {
+                Debug.LogError("PlayerAbilityManager: blackHoleProjectilePrefab is not assigned!");
+                return;
+            }
+
+            if (blackHoleZonePrefab == null)
+            {
+                Debug.LogError("PlayerAbilityManager: blackHoleZonePrefab is not assigned!");
+                return;
+            }
+
+            GameObject obj = Instantiate(blackHoleProjectilePrefab, position, Quaternion.LookRotation(direction));
+            NetworkObject netObj = obj.GetComponent<NetworkObject>();
+            BlackHoleProjectile projectile = obj.GetComponent<BlackHoleProjectile>();
+
+            if (netObj == null || projectile == null)
+            {
+                Debug.LogError("PlayerAbilityManager: black hole projectile prefab missing NetworkObject or BlackHoleProjectile!");
+                Destroy(obj);
+                return;
+            }
+
+            projectile.Initialize(OwnerClientId, playerStats, blackHoleZonePrefab, baseDamage,
+                projectileSpeed, projectileLifetime, pullRadius, pullForce,
+                pullDuration, pullStrengthRampUp, explosionRadius);
+
+            netObj.Spawn();
+            Debug.Log($"[Elementalist] black hole projectile spawned for client {OwnerClientId} at {position}");
         }
 
     }

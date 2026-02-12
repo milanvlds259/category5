@@ -20,6 +20,9 @@ namespace Category5
 
         public AbilityData Data => abilityData;
 
+        public virtual bool ConsumeCostOnExecute => true;
+        public virtual bool StartCooldownOnExecute => true;
+
         // delegate to ability manager for network checks
         protected bool IsServer => abilityManager != null && abilityManager.IsServer;
         protected bool IsOwner => abilityManager != null && abilityManager.IsOwner;
@@ -39,12 +42,18 @@ namespace Category5
             if (abilityData == null) return false;
             if (playerController == null) return false;
             if (playerController.IsDead.Value) return false;
+            
+            // check mana cost
+            if (playerController.CurrentMana.Value < abilityData.manaCost) return false;
 
             return true;
         }
 
         // execute the ability (server-side logic)
         public abstract void Execute();
+
+        // optional input release handler for charge-style abilities
+        public virtual void OnReleased() { }
 
         // calculate damage with item scaling
         protected float CalculateDamage()
