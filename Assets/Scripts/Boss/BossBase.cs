@@ -74,6 +74,7 @@ namespace Category5.Boss
         
         // flag to prevent multiple death triggers
         private bool _isDead = false;
+        private bool _isHidden = false;
 
         public override void OnNetworkSpawn()
         {
@@ -136,6 +137,7 @@ namespace Category5.Boss
         protected virtual void Update()
         {
             if (!IsServer) return;
+            if (_isHidden) return;
 
             UpdateTargetTimer();
             HandleStateMachine();
@@ -460,15 +462,40 @@ namespace Category5.Boss
         [ClientRpc]
         private void HideBossClientRpc()
         {
-            // hide the boss visually during power-up selection
-            gameObject.SetActive(false);
+            // hide boss without deactivating the network object
+            SetBossHiddenState(true);
         }
         
         [ClientRpc]
         private void ShowBossClientRpc()
         {
-            // show the boss when respawning
-            gameObject.SetActive(true);
+            // show boss again
+            SetBossHiddenState(false);
+        }
+
+        private void SetBossHiddenState(bool hidden)
+        {
+            _isHidden = hidden;
+
+            // disable visuals
+            var renderers = GetComponentsInChildren<Renderer>(true);
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                renderers[i].enabled = !hidden;
+            }
+
+            // disable combat collisions while hidden
+            var colliders = GetComponentsInChildren<Collider>(true);
+            for (int i = 0; i < colliders.Length; i++)
+            {
+                colliders[i].enabled = !hidden;
+            }
+
+            // disable movement controller while hidden
+            if (characterController != null)
+            {
+                characterController.enabled = !hidden;
+            }
         }
         
         // called by PowerUpManager to reset boss for new round with scaled hp
@@ -497,6 +524,7 @@ namespace Category5.Boss
             currentState.Value = BossState.Idle;
             stateTimer = idleDuration;
             _isDead = false;
+            _isHidden = false;
             
             // show boss again and notify clients about the reset
             ShowBossClientRpc();

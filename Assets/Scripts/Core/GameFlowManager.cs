@@ -43,6 +43,8 @@ namespace Category5.Core
         // spawner tracking
         private EnemySpawner[] _allSpawners;
         private HashSet<EnemySpawner> _completedSpawners = new HashSet<EnemySpawner>();
+        private bool _serverInitialized = false;
+        private bool _bossEntranceTriggeredThisRound = false;
 
         // events for ui and other systems
         public event Action OnVictory;
@@ -52,6 +54,8 @@ namespace Category5.Core
         // events for boss entrance sequence (vfx/sfx hooks)
         public static event Action OnAllEnemiesCleared;
         public static event Action OnBossEntranceStart;
+
+        private bool IsServerAuthority => NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer;
 
         private void Awake()
         {
@@ -65,42 +69,71 @@ namespace Category5.Core
             }
         }
 
+        private void Start()
+        {
+            TryInitializeServerFlow();
+        }
+
         public override void OnNetworkSpawn()
         {
             CurrentPhase.OnValueChanged += OnPhaseChanged;
             CurrentRound.OnValueChanged += (old, newVal) => OnRoundChanged?.Invoke(newVal);
 
-            if (IsServer)
+            TryInitializeServerFlow();
+        }
+
+        private void Update()
+        {
+            if (!IsServerAuthority) return;
+            if (!_serverInitialized) TryInitializeServerFlow();
+            if (!_serverInitialized) return;
+
+            // fallback polling path in case spawner completion event subscription did not fire
+            if (!_bossEntranceTriggeredThisRound && CurrentPhase.Value == GamePhase.Fighting && AreAllActiveSpawnersFullyComplete())
             {
-                // find the boss in scene and hide it until enemies are cleared
-                _currentBoss = FindFirstObjectByType<BossBase>();
-                if (_currentBoss != null)
-                {
-                    HideBossClientRpc();
-                }
-                else
-                {
-                    Debug.LogWarning("GameFlowManager: no boss found in scene");
-                }
-
-                // subscribe to spawner completion events
-                EnemySpawner.OnAllEnemiesDefeated += OnSpawnerCompleted;
-                RefreshSpawners();
-
-                // start enemy waves for round 1
-                float multiplier = GetEnemyMultiplier(0);
-                EnemySpawner.StartAllSpawners(multiplier);
+                Debug.Log("GameFlowManager: fallback detected all spawners complete, triggering boss entrance");
+                OnAllWavesCleared();
             }
+        }
+
+        private void TryInitializeServerFlow()
+        {
+            if (_serverInitialized) return;
+            if (!IsServerAuthority) return;
+
+            // find the boss in scene and hide it until enemies are cleared
+            _currentBoss = FindFirstObjectByType<BossBase>();
+            if (_currentBoss != null)
+            {
+                _currentBoss.HideBoss();
+            }
+            else
+            {
+                Debug.LogWarning("GameFlowManager: no boss found in scene");
+            }
+
+            // subscribe to spawner completion events
+            EnemySpawner.OnAllEnemiesDefeated += OnSpawnerCompleted;
+            RefreshSpawners();
+
+            // start enemy waves for round 1
+            float multiplier = GetEnemyMultiplier(0);
+            EnemySpawner.StartAllSpawners(multiplier);
+            _bossEntranceTriggeredThisRound = false;
+            _serverInitialized = true;
+            Debug.Log("GameFlowManager: server flow initialized");
         }
 
         public override void OnNetworkDespawn()
         {
             CurrentPhase.OnValueChanged -= OnPhaseChanged;
 
-            if (IsServer)
+            if (IsServerAuthority)
             {
                 EnemySpawner.OnAllEnemiesDefeated -= OnSpawnerCompleted;
             }
+
+            _serverInitialized = false;
         }
 
         private void OnPhaseChanged(GamePhase oldPhase, GamePhase newPhase)
@@ -125,16 +158,26 @@ namespace Category5.Core
         // called when an enemy spawner completes all waves and enemies are defeated
         private void OnSpawnerCompleted(EnemySpawner spawner)
         {
-            if (!IsServer) return;
+            NotifySpawnerCompleted(spawner);
+        }
 
-            // only track spawners we know about
-            if (_allSpawners == null || Array.IndexOf(_allSpawners, spawner) < 0) return;
+        // robust server entrypoint for spawner completion
+        public void NotifySpawnerCompleted(EnemySpawner spawner)
+        {
+            if (!IsServerAuthority) return;
+            if (spawner == null) return;
+
+            if (_allSpawners == null || _allSpawners.Length == 0)
+            {
+                RefreshSpawners();
+            }
 
             _completedSpawners.Add(spawner);
-            Debug.Log($"GameFlowManager: spawner completed ({_completedSpawners.Count}/{_allSpawners.Length})");
+            int totalKnown = _allSpawners != null ? _allSpawners.Length : 0;
+            Debug.Log($"GameFlowManager: spawner completed ({_completedSpawners.Count}/{totalKnown})");
 
-            // check if all active spawners have completed
-            if (AreAllSpawnersComplete())
+            // use dynamic completion check to avoid stale cached arrays
+            if (AreAllActiveSpawnersFullyComplete())
             {
                 OnAllWavesCleared();
             }
@@ -160,6 +203,8 @@ namespace Category5.Core
 
         private void OnAllWavesCleared()
         {
+            if (_bossEntranceTriggeredThisRound) return;
+            _bossEntranceTriggeredThisRound = true;
             Debug.Log("GameFlowManager: all enemy waves cleared, starting boss entrance sequence");
             OnAllEnemiesCleared?.Invoke();
             StartCoroutine(BossEntranceSequence());
@@ -217,7 +262,7 @@ namespace Category5.Core
         // called by BossBase when boss dies (server only)
         public void OnBossDied()
         {
-            if (!IsServer) return;
+            if (!IsServerAuthority) return;
 
             Debug.Log($"GameFlowManager: boss died on round {CurrentRound.Value}");
 
@@ -232,6 +277,7 @@ namespace Category5.Core
             // boss is dead and enemies were already cleared -> start item selection
             if (ItemManager.Instance != null)
             {
+                Debug.Log("GameFlowManager: triggering ItemManager.StartItemSelection");
                 ItemManager.Instance.StartItemSelection();
             }
             else
@@ -256,7 +302,7 @@ namespace Category5.Core
         // called by ItemManager when all players have made their item selection
         public void OnAllItemSelectionsComplete()
         {
-            if (!IsServer) return;
+            if (!IsServerAuthority) return;
 
             Debug.Log("GameFlowManager: all item selections complete, starting next round");
             StartNextRound();
@@ -266,6 +312,7 @@ namespace Category5.Core
         {
             CurrentRound.Value++;
             CurrentPhase.Value = GamePhase.Fighting;
+            _bossEntranceTriggeredThisRound = false;
 
             // reset spawner tracking for new round
             _completedSpawners.Clear();
@@ -284,29 +331,10 @@ namespace Category5.Core
             float multiplier = GetEnemyMultiplier(CurrentRound.Value - 1);
             EnemySpawner.StartAllSpawners(multiplier);
 
-            // notify clients to hide selection ui and fire round start event
-            HideSelectionUIClientRpc();
-        }
-
-        [ClientRpc]
-        private void HideSelectionUIClientRpc()
-        {
-            // fire audio event for round start
-            GameEvents.InvokeRoundStart(CurrentRound.Value);
-
-            // item manager will handle hiding its own ui via OnHideItemSelection
+            // notify clients to hide selection ui and fire round start event via ItemManager rpc
             if (ItemManager.Instance != null)
             {
-                ItemManager.Instance.NotifyHideSelectionUI();
-            }
-        }
-
-        [ClientRpc]
-        private void HideBossClientRpc()
-        {
-            if (_currentBoss != null)
-            {
-                _currentBoss.gameObject.SetActive(false);
+                ItemManager.Instance.NotifyRoundStartedAndHideSelection(CurrentRound.Value);
             }
         }
 
@@ -327,7 +355,7 @@ namespace Category5.Core
         // called when a player dies (server only)
         public void OnPlayerDied(ulong clientId)
         {
-            if (!IsServer) return;
+            if (!IsServerAuthority) return;
 
             Debug.Log($"GameFlowManager: player {clientId} died, checking for game over");
 
@@ -390,7 +418,7 @@ namespace Category5.Core
         // respawns all players to spawn positions (server only) - called at round transitions
         public void RespawnAllPlayers()
         {
-            if (!IsServer) return;
+            if (!IsServerAuthority) return;
 
             Debug.Log("GameFlowManager: respawning all players to spawn positions");
 
@@ -435,7 +463,7 @@ namespace Category5.Core
         // called by NetworkSessionManager when a player disconnects mid-game (game flow side)
         public void HandlePlayerDisconnected(ulong clientId)
         {
-            if (!IsServer) return;
+            if (!IsServerAuthority) return;
 
             Debug.Log($"GameFlowManager: handling disconnect for player {clientId}");
 
@@ -473,6 +501,27 @@ namespace Category5.Core
         {
             _allSpawners = FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
             Debug.Log($"GameFlowManager: found {_allSpawners.Length} spawners in scene");
+        }
+
+        private bool AreAllActiveSpawnersFullyComplete()
+        {
+            var spawners = FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
+            if (spawners == null || spawners.Length == 0) return false;
+
+            bool hasActiveSpawner = false;
+            foreach (var spawner in spawners)
+            {
+                if (spawner == null || !spawner.IsActive) continue;
+                hasActiveSpawner = true;
+
+                bool completed = spawner.CurrentWave >= spawner.TotalWaves && spawner.AliveEnemyCount == 0 && !spawner.IsSpawning;
+                if (!completed)
+                {
+                    return false;
+                }
+            }
+
+            return hasActiveSpawner;
         }
 
         private float GetEnemyMultiplier(int roundIndex)

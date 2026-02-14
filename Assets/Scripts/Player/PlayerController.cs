@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 using System;
 using Category5;
 using Category5.Core;
+using Category5.PowerUps;
 using Category5.Audio;
 using Category5.UI;
 

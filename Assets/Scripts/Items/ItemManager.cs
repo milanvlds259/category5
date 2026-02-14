@@ -20,6 +20,8 @@ namespace Category5.Items
         private Dictionary<ulong, bool> _playerSelections = new Dictionary<ulong, bool>();
         private Dictionary<ulong, string[]> _playerItemChoices = new Dictionary<ulong, string[]>(); // item ids
 
+        private bool IsServerAuthority => NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer;
+
         // events for ui
         public event System.Action<string[]> OnShowItemSelection; // item ids to show
         public event System.Action OnHideItemSelection;
@@ -36,9 +38,18 @@ namespace Category5.Items
             }
         }
 
-        // called by GameFlowManager to notify clients to hide selection ui
-        public void NotifyHideSelectionUI()
+        // called by GameFlowManager on server to hide selection ui on all clients
+        public void NotifyRoundStartedAndHideSelection(int round)
         {
+            if (!IsServerAuthority) return;
+            NotifyRoundStartedAndHideSelectionClientRpc(round);
+        }
+
+        [ClientRpc]
+        private void NotifyRoundStartedAndHideSelectionClientRpc(int round)
+        {
+            // fire audio event for round start
+            GameEvents.InvokeRoundStart(round);
             OnHideItemSelection?.Invoke();
         }
 
@@ -295,7 +306,7 @@ namespace Category5.Items
         // called by NetworkSessionManager when a player disconnects mid-game
         public void HandlePlayerDisconnected(ulong clientId)
         {
-            if (!IsServer) return;
+            if (!IsServerAuthority) return;
 
             Debug.Log($"ItemManager: handling disconnect for player {clientId}");
 

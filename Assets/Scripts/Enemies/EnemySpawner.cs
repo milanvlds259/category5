@@ -2,6 +2,7 @@ using UnityEngine;
 using Unity.Netcode;
 using System;
 using System.Collections.Generic;
+using Category5.Core;
 
 namespace Category5.Enemies
 {
@@ -179,6 +180,10 @@ namespace Category5.Enemies
                 // wave spawning complete
                 isSpawning = false;
                 OnWaveCompleted?.Invoke(this, _currentWave);
+
+                // re-check completion now that spawning has stopped
+                // this handles the case where enemies were killed before the wave officially finished spawning
+                CheckAllEnemiesDefeated();
                 
                 // wait for enemies to die or start next wave after cooldown
                 if (_currentWave < totalWaves)
@@ -299,6 +304,12 @@ namespace Category5.Enemies
         {
             if (_aliveEnemies.Count == 0 && !isSpawning && _currentWave >= totalWaves)
             {
+                // direct server callback for robust progression
+                if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer && GameFlowManager.Instance != null)
+                {
+                    GameFlowManager.Instance.NotifySpawnerCompleted(this);
+                }
+
                 OnAllEnemiesDefeated?.Invoke(this);
             }
         }
