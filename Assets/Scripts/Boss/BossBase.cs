@@ -94,10 +94,10 @@ namespace Category5.Boss
             // try to register with ui, it may not be ready yet on scene load
             TryRegisterWithUI();
             
-            // register with item manager
-            if (IsServer && Category5.Items.ItemManager.Instance != null)
+            // register with game flow manager
+            if (IsServer && Category5.Core.GameFlowManager.Instance != null)
             {
-                Category5.Items.ItemManager.Instance.RegisterBoss(this);
+                Category5.Core.GameFlowManager.Instance.RegisterBoss(this);
             }
 
             // initialize minimap trackable for radar display (boss icon is larger and orange)
@@ -433,25 +433,30 @@ namespace Category5.Boss
             // fire audio event for boss death on all clients
             NotifyBossDeathClientRpc(transform.position);
             
-            // notify item manager instead of despawning immediately
-            if (Category5.Items.ItemManager.Instance != null)
+            // notify game flow manager instead of despawning immediately
+            if (Category5.Core.GameFlowManager.Instance != null)
             {
-                // Debug.Log("BossBase: Notifying ItemManager of boss death");
-                
                 // hide boss visually during item selection
                 HideBossClientRpc();
                 
-                Category5.Items.ItemManager.Instance.OnBossDied();
-                // boss will be reset by ItemManager when item selection completes
+                Category5.Core.GameFlowManager.Instance.OnBossDied();
+                // boss will be reset by GameFlowManager when item selection completes
             }
             else
             {
-                Debug.LogWarning("BossBase: ItemManager not found! Make sure ItemManager is in the scene.");
+                Debug.LogWarning("BossBase: GameFlowManager not found! Make sure GameFlowManager is in the scene.");
                 // fallback if no manager - just despawn
                 GetComponent<NetworkObject>().Despawn();
             }
         }
         
+        // public method for GameFlowManager to hide boss
+        public void HideBoss()
+        {
+            if (!IsServer) return;
+            HideBossClientRpc();
+        }
+
         [ClientRpc]
         private void HideBossClientRpc()
         {

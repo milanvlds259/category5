@@ -213,8 +213,8 @@ namespace Category5.Player
             if (Category5.UI.PauseMenu.GameIsPaused) return false;
             
             // prevent attack input during power-up selection
-            if (Category5.Items.ItemManager.Instance != null && 
-                Category5.Items.ItemManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection) return false;
+            if (Category5.Core.GameFlowManager.Instance != null && 
+                Category5.Core.GameFlowManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection) return false;
             
             // prevent attack input when dead
             if (_playerController != null && _playerController.IsDead.Value) return false;

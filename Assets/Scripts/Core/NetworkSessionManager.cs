@@ -160,10 +160,16 @@ namespace Category5.Core
             // the player object should be automatically despawned by NGO
             // but we need to update game systems
             
-            // update power-up selection if in progress
+            // update item selection if in progress
             if (Category5.Items.ItemManager.Instance != null)
             {
                 Category5.Items.ItemManager.Instance.HandlePlayerDisconnected(clientId);
+            }
+
+            // update game flow (game over check)
+            if (GameFlowManager.Instance != null)
+            {
+                GameFlowManager.Instance.HandlePlayerDisconnected(clientId);
             }
             
             Debug.Log($"NetworkSessionManager: Cleaned up state for player {clientId}");

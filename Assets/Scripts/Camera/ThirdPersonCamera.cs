@@ -213,9 +213,9 @@ namespace Category5
         // check if power-up selection is active
         private bool IsInPowerUpSelection()
         {
-            if (Category5.Items.ItemManager.Instance != null)
+            if (Category5.Core.GameFlowManager.Instance != null)
             {
-                return Category5.Items.ItemManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection;
+                return Category5.Core.GameFlowManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection;
             }
             return false;
         }
@@ -223,10 +223,10 @@ namespace Category5
         // check if game is over
         private bool IsGameOver()
         {
-            if (Category5.Items.ItemManager.Instance != null)
+            if (Category5.Core.GameFlowManager.Instance != null)
             {
-                return Category5.Items.ItemManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.GameOver ||
-                       Category5.Items.ItemManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.Victory;
+                return Category5.Core.GameFlowManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.GameOver ||
+                       Category5.Core.GameFlowManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.Victory;
             }
             return false;
         }

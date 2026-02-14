@@ -311,7 +311,7 @@ namespace Category5
                 Debug.Log("  -> Blocked: Game paused");
                 return;
             }
-            if (Category5.Items.ItemManager.Instance != null && Category5.Items.ItemManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection)
+            if (Category5.Core.GameFlowManager.Instance != null && Category5.Core.GameFlowManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection)
             {
                 Debug.Log("  -> Blocked: Power-up selection phase");
                 return;
