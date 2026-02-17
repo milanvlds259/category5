@@ -7,9 +7,19 @@ using UnityEngine;
 using Random = UnityEngine.Random;
 using UnityEngine.Splines;
 using Unity.Mathematics;
+using System.Linq;
 
 public class MapGenerator : MonoBehaviour
 {
+    // CURRENT ISSUES!
+    /*
+        - Arenas can still be generated with some overlap. Like two might be in a row from another arena, but they're still
+        the closest 2, so the paths end up kind of overlapping (Check for minimum distance between arenas, redo the random generation if they're too close)
+        - Paths Can get too close together (REJECTION CHECK. KEEP ALL OTHER POINTS TO CHECK FOR DISTANCE)
+        - Path entrances can get crowded, and maybe want some random not quite closest point entrances (Add random offset within += angle range of the closest point, then use raycast from inside the arena to the collider to get a point)
+    */
+
+
     // Number of arenas that will be created
     public int numberOfArenas;
 
@@ -26,6 +36,9 @@ public class MapGenerator : MonoBehaviour
 
     // List to hold references to created paths
     private List<Path> paths = new List<Path>();
+
+    // Mesh to generate along paths
+    [SerializeField] Mesh pathMesh;
 
     class Arena
     {
@@ -282,107 +295,144 @@ public class MapGenerator : MonoBehaviour
         pointOnB = new Vector3(pointOnB.x, arenaB.position.y, pointOnB.z);
 
         // Add points to the spline at the positions of the two arenas
-        spline.Add(new BezierKnot(pointOnA)); // Start pos
-        spline.Add(new BezierKnot(pointOnB)); // End pos
+        spline.Add(new BezierKnot(pointOnA), TangentMode.AutoSmooth); // Start pos
+        spline.Add(new BezierKnot(pointOnB), TangentMode.AutoSmooth); // End pos
+        // Save points to be added later after random curves
+        Vector3 pointBeforeA = splineContainer.EvaluatePosition(spline, .13f);
+        Vector3 pointBeforeB = splineContainer.EvaluatePosition(spline, .87f);
+
+        // Get the vector from arena to arena
+        Vector3 betweenArenaVector = pointOnB - pointOnA;
+
+        Debug.Log(betweenArenaVector.magnitude + " " + splineContainer.name);
+
+        // the max number of bends/curves in the path
+        int maxCurves = 0;
+
+        if (betweenArenaVector.magnitude <= 50) maxCurves = 1;
+        else if (betweenArenaVector.magnitude <= 100) maxCurves = 2;
+        else if (betweenArenaVector.magnitude <= 150) maxCurves = 4;
+        else maxCurves = 5;
+
+        // Array that stores a tuple of the percentage along the spline and the position given to that knot
+        // The length of this array decides how many random curves are added
+        (float placeOnSpline, Vector3 position)[] knotPositions = new (float, Vector3)[Random.Range(1, maxCurves)];
 
         // Add some random curves
-        Vector3 midPos = splineContainer.EvaluatePosition(spline, Random.Range(0.1f, 0.9f));
-        midPos += new Vector3(Random.Range(-10, 10), Random.Range(-10, 10), Random.Range(-10, 10));
-        spline.Insert(1, new BezierKnot(midPos), TangentMode.AutoSmooth);
-
-        
-
-        /*
-        // Store a vector between the two arenas
-        Vector3 pathVector = arenaB.transform.position - arenaA.transform.position;
-
-        // Make a primitive cube to represent the path
-        GameObject path = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        path.transform.position = arenaA.transform.position + pathVector / 2; // Position it halfway between the two arenas
-        path.transform.localScale = new Vector3(5, 1, pathVector.magnitude); // Scale it to the distance between arenas
-        path.transform.rotation = Quaternion.LookRotation(pathVector); // Rotate it to face the other arena
-
-        // Add a Rigidbody to make it interact with physics
-        path.AddComponent<Rigidbody>();
-        path.GetComponent<Rigidbody>().isKinematic = true;
-
-        // Give the path a Path tag
-        path.tag = "Path";
-
-        if (!string.IsNullOrEmpty(numberforname))
+        for (int i = 0; i < knotPositions.Length; i++)
         {
-            path.name = "Path_" + numberforname;
-        }
+            // A percentage of the spline, used by EvaluatePosition
+            // to get the position of where that point is along the spline
+            float place = Random.Range(0.125f, 0.865f);
+            // The position on the spline based on the place value
+            Vector3 midPos = splineContainer.EvaluatePosition(spline, place);
 
-        // Check if the new path overlaps with any existing arenas, if so remove it
-        // Let the localscale x be wider so that paths dont get too close to arenas
-        Collider[] colliders = Physics.OverlapBox(path.transform.position, new Vector3(path.transform.localScale.x, path.transform.localScale.y * 100, path.transform.localScale.z / 2), path.transform.rotation);
-        for (int i = 0; i < colliders.Length; i++)
-        {
-            // Check if the collider belongs to an arena
-            for (int j = 0; j < arenas.Count; j++)
+            // Get a vector perpedicular to the spline's x and z
+            Vector3 moveVector = Vector3.zero;
+            int tempRand = Random.Range(0, 2);
+            if (tempRand == 0)
             {
-                if (colliders[i].gameObject == arenas[j].gameObjectRef)
-                {
-                    // Check that the overlapped arena is not one of the two this path connects
-                    if (arenas[j].gameObjectRef == arenaA || arenas[j].gameObjectRef == arenaB)
-                    {
-                        continue; // It's one of the connected arenas, so it's fine
-                    }
-                    
-                    Destroy(path); // Remove the overlapping path
-                    return; // Exit the function, this path is invalid
-                }
+                moveVector = new Vector3(-betweenArenaVector.z, 0, betweenArenaVector.x).normalized;   
+            }
+            else
+            {
+                moveVector = new Vector3(betweenArenaVector.z, 0, -betweenArenaVector.x).normalized;
             }
 
-            // If it's a path overlapping with another path, it's also invalid
-            if (colliders[i].gameObject.tag == "Path")
+            // Move the position using the vector, random magnitude
+            midPos += moveVector * Random.Range(30, 50);
+
+            // Add the place on spline and the position into the newKnotPositions array
+            knotPositions[i] = (place, midPos);
+        }
+
+        // Sort the knot positions by their place along the spline
+        knotPositions = knotPositions.OrderBy(p => p.placeOnSpline).ToArray();
+        
+        // Since inserting the knots into the spline changes it's shape, we put them in after so that
+        // we can get a path without too crazy of a shape
+        for (int i = 0; i < knotPositions.Length; i++)
+        {
+            // Insert the new knot on the spline
+            spline.Insert(spline.Count - 1, knotPositions[i].position, TangentMode.Mirrored);
+        }
+
+        // Add points to the spline before the end points to point the entrances to the
+        // path at the arenas
+        spline.Insert(1, new BezierKnot(pointBeforeA), TangentMode.AutoSmooth); // Start pos
+        spline.Insert(spline.Count-1, new BezierKnot(pointBeforeB), TangentMode.AutoSmooth); // End pos
+        
+        // Clean up knots that are too sharp
+        // Shouldn't take more than 50 tries
+        int attempts = 0;
+        bool noProblemKnots = false;
+        // Also check if there were no problem knots, just exit if there weren't
+        while (attempts < 50 && noProblemKnots == false)
+        {
+            // Set this to true before checking
+            noProblemKnots = true;
+
+            // Skip the end point knots, start at 1 and end at Count-1
+            for (int i = 1; i < spline.Count-1; i++)
             {
-                // Check that the overlapped path doesn't share an arena with this path
-                Path overlappedPath = null;
-                foreach (Path p in paths)
+                // Get how small the knot's angle is, it's a magnitude though not an angle
+                float tangentLength = math.length(spline[i].TangentOut);
+                if (tangentLength <= 12f)
                 {
-                    if (p.gameObjectRef == colliders[i].gameObject)
-                    {
-                        overlappedPath = p;
-                        break;
-                    }
-                }
-
-                if (overlappedPath != null)
-                {
-                    if (overlappedPath.arenaA == arenaA || overlappedPath.arenaA == arenaB ||
-                        overlappedPath.arenaB == arenaA || overlappedPath.arenaB == arenaB)
-                    {
-                        continue; // It's connected to one of the same arenas, so it's fine
-                    }
-                    else
-                    {
-                        // Prioritize shorter paths
-                        float thisPathLength = path.transform.localScale.z;
-                        float otherPathLength = overlappedPath.gameObjectRef.transform.localScale.z;
-
-                        if (thisPathLength < otherPathLength)
-                        {
-                            Destroy(overlappedPath.gameObjectRef);
-                            paths.Remove(overlappedPath);
-                        }
-                        else
-                        {
-                            Destroy(path);
-                            return;
-                        }
-                    }
+                    // If we find a problem knot
+                    Debug.Log("REMOVING " + spline[i] + " AT " + spline[i].Position + " ON " + splineContainer.name);
+                    // There ARE problem knots
+                    noProblemKnots = false;
+                    // Remove the problem knot
+                    spline.RemoveAt(i);
+                    // Exit this loop since we changed the thing being iterated over
+                    break;
                 }
             }
+            attempts++;
         }
-        */
         
+        
+        // Add a mesh to this path
+        CreatePathMesh(splineContainer);
 
         // Create a Path instance to hold the path's data
         Path pathData = new Path(arenaA, arenaB, splineContainer.gameObject);
 
         paths.Add(pathData); // Store reference to the created path
+    }
+
+
+    // Adds the mesh to the input path game object
+    void CreatePathMesh(SplineContainer container)
+    {
+        // Temporary implementation, just used to make a visible path rn!!
+
+        SplineExtrude splineExtrude = container.gameObject.AddComponent<SplineExtrude>();
+        splineExtrude.Container = container;
+
+        var hasMeshFilter = container.gameObject.TryGetComponent<MeshFilter>(out var meshFilter);
+        if (hasMeshFilter)
+        {
+            if (meshFilter.sharedMesh == null)
+            {
+                var extrudeMesh = new Mesh();
+                extrudeMesh.name = "Spline Extrude Mesh";
+                meshFilter.sharedMesh = extrudeMesh;
+            }
+            // Set the mesh variables
+            splineExtrude.Radius = 10;
+            splineExtrude.FlipNormals = true;
+
+            var hasMeshRenderer = container.gameObject.TryGetComponent<MeshRenderer>(out var meshRenderer);
+            if (hasMeshRenderer)
+                meshRenderer.material = new Material(Shader.Find("Standard"));
+        }
+
+        // For some reason the mesh doesn't show unless you mess with the component in the editor,
+        // or if you turn it off and on here, so that's what this is for
+        splineExtrude.enabled = false;
+        splineExtrude.enabled = true;
     }
 
     void OnDrawGizmos()
