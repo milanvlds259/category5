@@ -270,7 +270,7 @@ namespace Category5.Core
             if (CurrentRound.Value >= totalRounds)
             {
                 CurrentPhase.Value = GamePhase.Victory;
-                TriggerVictoryClientRpc();
+                TriggerVictoryLocal();
                 return;
             }
 
@@ -286,8 +286,7 @@ namespace Category5.Core
             }
         }
 
-        [ClientRpc]
-        private void TriggerVictoryClientRpc()
+        private void TriggerVictoryLocal()
         {
             // fire audio event for victory
             GameEvents.InvokeVictory();
@@ -397,11 +396,12 @@ namespace Category5.Core
         {
             Debug.Log($"GameFlowManager: game over on round {CurrentRound.Value}");
             CurrentPhase.Value = GamePhase.GameOver;
-            TriggerGameOverClientRpc(CurrentRound.Value);
+            TriggerGameOverLocal(CurrentRound.Value);
         }
 
-        [ClientRpc]
-        private void TriggerGameOverClientRpc(int roundReached)
+        // this used to be a client rpc but after refactoring item manager i changed it
+        // might redo this part later but more important things rn
+        private void TriggerGameOverLocal(int roundReached)
         {
             Debug.Log($"Game Over! Reached round {roundReached}");
 

@@ -4486,7 +4486,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Core.GameFlowManager
   ShowTopMostFoldoutHeaderGroup: 1
-  totalRounds: 5
+  totalRounds: 2
   bossHealthPerRound: f401000020030000b0040000dc050000d0070000
   enemyScalePerRound:
   - 1
