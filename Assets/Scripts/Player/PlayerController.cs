@@ -6,7 +6,6 @@ using System;
 using Category5;
 using Category5.Core;
 using Category5.PowerUps;
-using Category5.Items;
 using Category5.Audio;
 using Category5.UI;
 
@@ -424,13 +423,13 @@ namespace Category5.Player
             }
         }
         
-        // check if power-up selection is active
+        // check if power-up selection (now item selection) is active
         private bool IsInPowerUpSelection()
         {
-            // check ItemManager first (new system), fallback to PowerUpManager (legacy)
-            if (Category5.Items.ItemManager.Instance != null)
+            // check GameFlowManager for current phase
+            if (Category5.Core.GameFlowManager.Instance != null)
             {
-                return Category5.Items.ItemManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection;
+                return Category5.Core.GameFlowManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection;
             }
             return false;
         }
@@ -747,10 +746,10 @@ namespace Category5.Player
             // fire audio event for death on all clients
             NotifyPlayerDeathClientRpc(transform.position);
             
-            // notify power-up manager for game over check
-            if (ItemManager.Instance != null)
+            // notify game flow manager for game over check
+            if (Category5.Core.GameFlowManager.Instance != null)
             {
-                ItemManager.Instance.OnPlayerDied(OwnerClientId);
+                Category5.Core.GameFlowManager.Instance.OnPlayerDied(OwnerClientId);
             }
         }
         

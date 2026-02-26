@@ -90,9 +90,9 @@ namespace Category5.UI
         public void TogglePause()
         {
             // don't allow pause during game over or victory
-            if (Category5.Items.ItemManager.Instance != null)
+            if (Category5.Core.GameFlowManager.Instance != null)
             {
-                var phase = Category5.Items.ItemManager.Instance.CurrentPhase.Value;
+                var phase = Category5.Core.GameFlowManager.Instance.CurrentPhase.Value;
                 if (phase == Category5.Core.GamePhase.GameOver || phase == Category5.Core.GamePhase.Victory)
                 {
                     return;

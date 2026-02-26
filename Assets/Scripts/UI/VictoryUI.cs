@@ -3,7 +3,6 @@ using UnityEngine.UI;
 using TMPro;
 using Unity.Netcode;
 using UnityEngine.SceneManagement;
-using Category5.Items;
 
 namespace Category5.UI
 {
@@ -62,19 +61,18 @@ namespace Category5.UI
         {
             if (_isSubscribed) return;
             
-            if (ItemManager.Instance != null)
+            if (Category5.Core.GameFlowManager.Instance != null)
             {
-                ItemManager.Instance.OnVictory += ShowVictory;
+                Category5.Core.GameFlowManager.Instance.OnVictory += ShowVictory;
                 _isSubscribed = true;
-                // Debug.Log("VictoryUI: Subscribed to PowerUpManager events");
             }
         }
         
         private void OnDestroy()
         {
-            if (Category5.Items.ItemManager.Instance != null)
+            if (Category5.Core.GameFlowManager.Instance != null)
             {
-                Category5.Items.ItemManager.Instance.OnVictory += ShowVictory;
+                Category5.Core.GameFlowManager.Instance.OnVictory -= ShowVictory;
             }
             
             if (returnToMenuButton != null)
@@ -117,8 +115,8 @@ namespace Category5.UI
             // stats display
             if (statsText != null)
             {
-                int totalRounds = Category5.Items.ItemManager.Instance != null 
-                    ? Category5.Items.ItemManager.Instance.CurrentRound.Value 
+                int totalRounds = Category5.Core.GameFlowManager.Instance != null 
+                    ? Category5.Core.GameFlowManager.Instance.CurrentRound.Value 
                     : 3;
                 statsText.text = $"Completed all {totalRounds} rounds!";
             }

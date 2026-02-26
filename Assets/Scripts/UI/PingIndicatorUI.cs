@@ -59,7 +59,7 @@ namespace Category5.UI
             // get round-trip time from transport
             int ping = (int)transport.GetCurrentRtt(NetworkManager.ServerClientId);
             
-            ping = Mathf.Clamp(ping, 0, 999);
+            ping = Mathf.Clamp(ping, 0, 9999);
             
             // update text and color
             if (pingText != null)

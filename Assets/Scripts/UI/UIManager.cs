@@ -41,18 +41,18 @@ namespace Category5.UI
             FindAndRegisterBoss();
             
             // subscribe to round changes
-            if (Category5.Items.ItemManager.Instance != null)
+            if (Category5.Core.GameFlowManager.Instance != null)
             {
-                Category5.Items.ItemManager.Instance.OnRoundChanged += UpdateRoundDisplay;
-                UpdateRoundDisplay(Category5.Items.ItemManager.Instance.CurrentRound.Value);
+                Category5.Core.GameFlowManager.Instance.OnRoundChanged += UpdateRoundDisplay;
+                UpdateRoundDisplay(Category5.Core.GameFlowManager.Instance.CurrentRound.Value);
             }
         }
         
         private void OnDestroy()
         {
-            if (Category5.Items.ItemManager.Instance != null)
+            if (Category5.Core.GameFlowManager.Instance != null)
             {
-                Category5.Items.ItemManager.Instance.OnRoundChanged -= UpdateRoundDisplay;
+                Category5.Core.GameFlowManager.Instance.OnRoundChanged -= UpdateRoundDisplay;
             }
         }
         

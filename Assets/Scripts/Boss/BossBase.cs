@@ -72,8 +72,13 @@ namespace Category5.Boss
         // current attack type for vfx hooks
         protected BossAttackType currentAttackType = BossAttackType.None;
         
+        // cached spawn position for killbox teleport
+        protected Vector3 _initialSpawnPosition;
+        protected Quaternion _initialSpawnRotation;
+
         // flag to prevent multiple death triggers
         private bool _isDead = false;
+        private bool _isHidden = false;
 
         public override void OnNetworkSpawn()
         {
@@ -84,20 +89,24 @@ namespace Category5.Boss
                 stateTimer = idleDuration;
                 _isDead = false;
                 _targetUpdateTimer = 0f;
+
+                // cache initial spawn position for killbox recovery
+                _initialSpawnPosition = transform.position;
+                _initialSpawnRotation = transform.rotation;
             }
             
             // cache character controller if present
-            characterController = GetComponent<CharacterController>();
+            characterController = GetComponent<CharacterController>(); 
 
             CurrentHealth.OnValueChanged += OnHealthChanged;
             
             // try to register with ui, it may not be ready yet on scene load
             TryRegisterWithUI();
             
-            // register with item manager
-            if (IsServer && Category5.Items.ItemManager.Instance != null)
+            // register with game flow manager
+            if (IsServer && Category5.Core.GameFlowManager.Instance != null)
             {
-                Category5.Items.ItemManager.Instance.RegisterBoss(this);
+                Category5.Core.GameFlowManager.Instance.RegisterBoss(this);
             }
 
             // initialize minimap trackable for radar display (boss icon is larger and orange)
@@ -136,6 +145,7 @@ namespace Category5.Boss
         protected virtual void Update()
         {
             if (!IsServer) return;
+            if (_isHidden) return;
 
             UpdateTargetTimer();
             HandleStateMachine();
@@ -433,37 +443,67 @@ namespace Category5.Boss
             // fire audio event for boss death on all clients
             NotifyBossDeathClientRpc(transform.position);
             
-            // notify item manager instead of despawning immediately
-            if (Category5.Items.ItemManager.Instance != null)
+            // notify game flow manager instead of despawning immediately
+            if (Category5.Core.GameFlowManager.Instance != null)
             {
-                // Debug.Log("BossBase: Notifying ItemManager of boss death");
-                
                 // hide boss visually during item selection
                 HideBossClientRpc();
                 
-                Category5.Items.ItemManager.Instance.OnBossDied();
-                // boss will be reset by ItemManager when item selection completes
+                Category5.Core.GameFlowManager.Instance.OnBossDied();
+                // boss will be reset by GameFlowManager when item selection completes
             }
             else
             {
-                Debug.LogWarning("BossBase: ItemManager not found! Make sure ItemManager is in the scene.");
+                Debug.LogWarning("BossBase: GameFlowManager not found! Make sure GameFlowManager is in the scene.");
                 // fallback if no manager - just despawn
                 GetComponent<NetworkObject>().Despawn();
             }
         }
         
+        // public method for GameFlowManager to hide boss
+        public void HideBoss()
+        {
+            if (!IsServer) return;
+            HideBossClientRpc();
+        }
+
         [ClientRpc]
         private void HideBossClientRpc()
         {
-            // hide the boss visually during power-up selection
-            gameObject.SetActive(false);
+            // hide boss without deactivating the network object
+            SetBossHiddenState(true);
         }
         
         [ClientRpc]
         private void ShowBossClientRpc()
         {
-            // show the boss when respawning
-            gameObject.SetActive(true);
+            // show boss again
+            SetBossHiddenState(false);
+        }
+
+        private void SetBossHiddenState(bool hidden)
+        {
+            _isHidden = hidden;
+
+            // disable visuals
+            var renderers = GetComponentsInChildren<Renderer>(true);
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                renderers[i].enabled = !hidden;
+            }
+
+            // disable combat collisions while hidden
+            var colliders = GetComponentsInChildren<Collider>(true);
+            for (int i = 0; i < colliders.Length; i++)
+            {
+                colliders[i].enabled = !hidden;
+            }
+
+            // disable movement controller while hidden
+            if (characterController != null)
+            {
+                characterController.enabled = !hidden;
+            }
         }
         
         // called by PowerUpManager to reset boss for new round with scaled hp
@@ -487,11 +527,16 @@ namespace Category5.Boss
                 transform.rotation = spawnRotation;
             }
             
+            // update cached spawn position for killbox recovery
+            _initialSpawnPosition = spawnPosition;
+            _initialSpawnRotation = spawnRotation;
+
             maxHealth = newMaxHealth;
             CurrentHealth.Value = maxHealth;
             currentState.Value = BossState.Idle;
             stateTimer = idleDuration;
             _isDead = false;
+            _isHidden = false;
             
             // show boss again and notify clients about the reset
             ShowBossClientRpc();
@@ -512,6 +557,29 @@ namespace Category5.Boss
             TryRegisterWithUI();
         }
         
+        // teleports boss back to its cached spawn position (used by killbox)
+        public void TeleportToSpawn()
+        {
+            if (!IsServer) return;
+
+            if (characterController != null)
+            {
+                characterController.enabled = false;
+                transform.position = _initialSpawnPosition;
+                transform.rotation = _initialSpawnRotation;
+                characterController.enabled = true;
+            }
+            else
+            {
+                transform.position = _initialSpawnPosition;
+                transform.rotation = _initialSpawnRotation;
+            }
+
+            // reset to idle state so boss resumes behavior
+            currentState.Value = BossState.Idle;
+            stateTimer = idleDuration;
+        }
+
         // =====================================
         // vfx hook clientrpcs
         // =====================================

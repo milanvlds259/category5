@@ -2,6 +2,7 @@ using UnityEngine;
 using Unity.Netcode;
 using System;
 using System.Collections.Generic;
+using Category5.Core;
 
 namespace Category5.Enemies
 {
@@ -19,7 +20,7 @@ namespace Category5.Enemies
         
         [Header("wave settings")]
         [SerializeField] private int enemiesPerWave = 3;
-        [SerializeField] private int totalWaves = 1;
+        [SerializeField] private int totalWaves = 2;
         [SerializeField] private float spawnInterval = 0.5f;
         [SerializeField] private float waveCooldown = 5f;
         [SerializeField] private bool autoStartOnSpawn = true;
@@ -36,6 +37,7 @@ namespace Category5.Enemies
         private float _spawnTimer;
         private float _waveTimer;
         private bool _isActive = false;
+        private int _effectiveEnemiesPerWave; // scaled by multiplier each round
         
         // events
         public static event Action<EnemySpawner> OnAllEnemiesDefeated;
@@ -49,6 +51,8 @@ namespace Category5.Enemies
         public override void OnNetworkSpawn()
         {
             if (!IsServer) return;
+            
+            _effectiveEnemiesPerWave = enemiesPerWave;
             
             if (autoStartOnSpawn)
             {
@@ -106,6 +110,51 @@ namespace Category5.Enemies
             isSpawning = false;
         }
         
+        // resets spawner for a new round, despawning any remaining enemies
+        public void ResetSpawner(float enemyMultiplier = 1f)
+        {
+            if (!IsServer) return;
+            
+            // despawn any remaining alive enemies
+            for (int i = _aliveEnemies.Count - 1; i >= 0; i--)
+            {
+                if (_aliveEnemies[i] != null)
+                {
+                    var netObj = _aliveEnemies[i].GetComponent<NetworkObject>();
+                    if (netObj != null && netObj.IsSpawned)
+                    {
+                        netObj.Despawn();
+                    }
+                }
+            }
+            _aliveEnemies.Clear();
+            
+            // reset state
+            _currentWave = 0;
+            _spawnedThisWave = 0;
+            _nextSpawnPointIndex = 0;
+            _spawnTimer = 0f;
+            _waveTimer = 0f;
+            _isActive = false;
+            isSpawning = false;
+            
+            // apply enemy scaling
+            _effectiveEnemiesPerWave = Mathf.RoundToInt(enemiesPerWave * enemyMultiplier);
+            if (_effectiveEnemiesPerWave < 1) _effectiveEnemiesPerWave = 1;
+        }
+        
+        // static helper to reset and start all spawners in the scene
+        public static void StartAllSpawners(float enemyMultiplier = 1f)
+        {
+            var spawners = FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
+            foreach (var spawner in spawners)
+            {
+                spawner.ResetSpawner(enemyMultiplier);
+                spawner.StartSpawning();
+            }
+            Debug.Log($"EnemySpawner: started {spawners.Length} spawners with {enemyMultiplier}x enemy multiplier");
+        }
+        
         private void StartNextWave()
         {
             if (_currentWave >= totalWaves)
@@ -126,11 +175,15 @@ namespace Category5.Enemies
         
         private void SpawnEnemy()
         {
-            if (_spawnedThisWave >= enemiesPerWave)
+            if (_spawnedThisWave >= _effectiveEnemiesPerWave)
             {
                 // wave spawning complete
                 isSpawning = false;
                 OnWaveCompleted?.Invoke(this, _currentWave);
+
+                // re-check completion now that spawning has stopped
+                // this handles the case where enemies were killed before the wave officially finished spawning
+                CheckAllEnemiesDefeated();
                 
                 // wait for enemies to die or start next wave after cooldown
                 if (_currentWave < totalWaves)
@@ -251,6 +304,12 @@ namespace Category5.Enemies
         {
             if (_aliveEnemies.Count == 0 && !isSpawning && _currentWave >= totalWaves)
             {
+                // direct server callback for robust progression
+                if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer && GameFlowManager.Instance != null)
+                {
+                    GameFlowManager.Instance.NotifySpawnerCompleted(this);
+                }
+
                 OnAllEnemiesDefeated?.Invoke(this);
             }
         }

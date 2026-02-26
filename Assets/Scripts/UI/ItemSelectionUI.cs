@@ -72,8 +72,11 @@ namespace Category5.UI
             {
                 ItemManager.Instance.OnShowItemSelection += ShowSelection;
                 ItemManager.Instance.OnHideItemSelection += HideSelection;
-                ItemManager.Instance.OnGameOver += OnGameOver;
                 _isSubscribed = true;
+            }
+            if (Category5.Core.GameFlowManager.Instance != null)
+            {
+                Category5.Core.GameFlowManager.Instance.OnGameOver += OnGameOver;
             }
         }
 
@@ -83,7 +86,10 @@ namespace Category5.UI
             {
                 ItemManager.Instance.OnShowItemSelection -= ShowSelection;
                 ItemManager.Instance.OnHideItemSelection -= HideSelection;
-                ItemManager.Instance.OnGameOver -= OnGameOver;
+            }
+            if (Category5.Core.GameFlowManager.Instance != null)
+            {
+                Category5.Core.GameFlowManager.Instance.OnGameOver -= OnGameOver;
             }
 
             if (skipButton != null)
