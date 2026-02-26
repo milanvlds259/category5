@@ -423,7 +423,7 @@ namespace Category5.Player
             }
         }
         
-        // check if power-up selection is active
+        // check if power-up selection (now item selection) is active
         private bool IsInPowerUpSelection()
         {
             // check GameFlowManager for current phase

@@ -72,6 +72,10 @@ namespace Category5.Boss
         // current attack type for vfx hooks
         protected BossAttackType currentAttackType = BossAttackType.None;
         
+        // cached spawn position for killbox teleport
+        protected Vector3 _initialSpawnPosition;
+        protected Quaternion _initialSpawnRotation;
+
         // flag to prevent multiple death triggers
         private bool _isDead = false;
         private bool _isHidden = false;
@@ -85,10 +89,14 @@ namespace Category5.Boss
                 stateTimer = idleDuration;
                 _isDead = false;
                 _targetUpdateTimer = 0f;
+
+                // cache initial spawn position for killbox recovery
+                _initialSpawnPosition = transform.position;
+                _initialSpawnRotation = transform.rotation;
             }
             
             // cache character controller if present
-            characterController = GetComponent<CharacterController>();
+            characterController = GetComponent<CharacterController>(); 
 
             CurrentHealth.OnValueChanged += OnHealthChanged;
             
@@ -519,6 +527,10 @@ namespace Category5.Boss
                 transform.rotation = spawnRotation;
             }
             
+            // update cached spawn position for killbox recovery
+            _initialSpawnPosition = spawnPosition;
+            _initialSpawnRotation = spawnRotation;
+
             maxHealth = newMaxHealth;
             CurrentHealth.Value = maxHealth;
             currentState.Value = BossState.Idle;
@@ -545,6 +557,29 @@ namespace Category5.Boss
             TryRegisterWithUI();
         }
         
+        // teleports boss back to its cached spawn position (used by killbox)
+        public void TeleportToSpawn()
+        {
+            if (!IsServer) return;
+
+            if (characterController != null)
+            {
+                characterController.enabled = false;
+                transform.position = _initialSpawnPosition;
+                transform.rotation = _initialSpawnRotation;
+                characterController.enabled = true;
+            }
+            else
+            {
+                transform.position = _initialSpawnPosition;
+                transform.rotation = _initialSpawnRotation;
+            }
+
+            // reset to idle state so boss resumes behavior
+            currentState.Value = BossState.Idle;
+            stateTimer = idleDuration;
+        }
+
         // =====================================
         // vfx hook clientrpcs
         // =====================================

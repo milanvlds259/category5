@@ -91,11 +91,11 @@ Material:
     m_Ints: []
     m_Floats:
     - HardEdgeAlpha: 1
-    - HardEdgeFalloff: 0.035
-    - HardEdgeSize: 0.218
-    - SoftEdgeAlpha: 1
+    - HardEdgeFalloff: 0
+    - HardEdgeSize: 0.27
+    - SoftEdgeAlpha: 0.884
     - SoftEdgeFalloff: 0
-    - SoftEdgeSize: 28.3
+    - SoftEdgeSize: 28.6
     - _AddPrecomputedVelocity: 0
     - _AlphaClip: 0
     - _AlphaToMask: 0
@@ -115,13 +115,13 @@ Material:
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
-    - _LightScalar: 1.2
+    - _LightScalar: 0.95
     - _Metallic: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.005
     - _QueueControl: 0
     - _QueueOffset: 0
-    - _RampLevels: 7.6
+    - _RampLevels: 5.6
     - _ReceiveShadows: 1
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
@@ -136,14 +136,14 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - HardEdgeColor: {r: 0, g: 0, b: 0, a: 0}
-    - SoftEdgeColor: {r: 0.6173763, g: 0, b: 1, a: 0}
+    - SoftEdgeColor: {r: 1, g: 0.009907627, b: 0, a: 0}
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _Color: {r: 0.78867924, g: 0.30932966, b: 0.0580348, a: 1}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissColor: {r: 1, g: 1, b: 1, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _FillColor: {r: 1, g: 1, b: 1, a: 0.3}
     - _HighColor: {r: 2.670157, g: 2.670157, b: 2.670157, a: 0}
-    - _LowColor: {r: 0.3660378, g: 0, b: 0, a: 0}
+    - _LowColor: {r: 0.4188679, g: 0.34694907, b: 0.34694907, a: 0}
     - _OutlineBrightColor: {r: 1, g: 1, b: 1, a: 1}
     - _OutlineDarkColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
