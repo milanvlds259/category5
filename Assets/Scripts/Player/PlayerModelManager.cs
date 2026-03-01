@@ -33,7 +33,7 @@ namespace Category5.Player
         // attachment points from current model
         public Transform WeaponMountR { get; private set; }
         public Transform WeaponMountL { get; private set; }
-        public Transform ProjectileSpawnPoint { get; private set; }
+        public Transform ProjectileSpawnPoint { get; private set; } // place in avatar where projectiles spawn (like bow tip or hand)
         
         // animator reference for external systems (playercontroller, hitfeedbackmanager, etc)
         public Animator ModelAnimator => _animator;
@@ -122,7 +122,7 @@ namespace Category5.Player
                 _currentModelData = null;
             }
 
-            // clear any leftover children under model root (editor preview, previous runtime model, etc)
+            // clear any leftover children under model root (aka editor preview or previous model)
             ClearModelRootChildren();
             
             // instantiate new model as child of model root
@@ -134,22 +134,16 @@ namespace Category5.Player
             // match player's layer recursively
             SetLayerRecursively(_currentModel, gameObject.layer);
             
-            // get model data component
             _currentModelData = _currentModel.GetComponent<ModelData>();
             
-            // setup animator on root
             SetupAnimator();
             
             // cache attachment points from model
             CacheAttachmentPoints();
             
-            // adjust character controller to match model dimensions
             AdjustCharacterController();
-            
-            // adjust name tag height for this model
             AdjustNameTagHeight();
             
-            // refresh renderer cache on player controller for death visuals
             RefreshPlayerRenderers();
             
             // fire event so other systems can react (PlayerCombat, vfx, etc)
@@ -255,7 +249,7 @@ namespace Category5.Player
             _characterController.center = _currentModelData.characterCenter;
         }
         
-        // moves the name tag to the correct height for this model
+        // moves the name tag to the correct height for this model (in case we have models of different sizes)
         private void AdjustNameTagHeight()
         {
             if (_currentModelData == null) return;

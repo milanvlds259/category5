@@ -1011,7 +1011,6 @@ namespace Category5.Player
             }
 
             // strafing directional inputs for 2d blend trees
-            // MoveX/MoveY are preferred names, SpeedX/SpeedY are supported aliases
             float directionalX = _isDodging ? 0f : Mathf.Clamp(_moveInput.x, -1f, 1f);
             float directionalY = _isDodging ? 0f : Mathf.Clamp(_moveInput.y, -1f, 1f);
 
@@ -1037,6 +1036,7 @@ namespace Category5.Player
         }
 
         // caches which animator params exist on the currently assigned controller
+        // this is so i dont get spam of "parameter not found" warnings in the console
         private void EnsureAnimatorParameterCache(Animator anim)
         {
             var controller = anim.runtimeAnimatorController;
@@ -1094,7 +1094,6 @@ namespace Category5.Player
             if (!_hasAnimIsSprinting) Debug.LogWarning("PlayerController: Animator parameter missing: IsSprinting");
             if (!_hasAnimVerticalVelocity) Debug.LogWarning("PlayerController: Animator parameter missing: VerticalVelocity");
 
-            // strafing params (at least one naming pair is recommended)
             bool hasMovePair = _hasAnimMoveX && _hasAnimMoveY;
             bool hasSpeedPair = _hasAnimSpeedX && _hasAnimSpeedY;
             if (!hasMovePair && !hasSpeedPair)
