@@ -125,6 +125,34 @@ namespace Category5.Player
             {
                 _playerStats = GetComponent<PlayerStats>();
             }
+            
+            // subscribe to model changes to update projectile spawn point
+            PlayerModelManager.OnModelLoaded += OnModelLoaded;
+            
+            // check if model already loaded (in case it loaded before us)
+            var modelManager = GetComponent<PlayerModelManager>();
+            if (modelManager != null && modelManager.ProjectileSpawnPoint != null)
+            {
+                projectileSpawnPoint = modelManager.ProjectileSpawnPoint;
+            }
+        }
+        
+        public override void OnNetworkDespawn()
+        {
+            PlayerModelManager.OnModelLoaded -= OnModelLoaded;
+        }
+        
+        // called when any player's model finishes loading
+        private void OnModelLoaded(PlayerController player, Animator animator)
+        {
+            // only care about our own player's model
+            if (player != _playerController) return;
+            
+            var modelManager = player.GetComponent<PlayerModelManager>();
+            if (modelManager != null && modelManager.ProjectileSpawnPoint != null)
+            {
+                projectileSpawnPoint = modelManager.ProjectileSpawnPoint;
+            }
         }
 
         private void OnEnable()

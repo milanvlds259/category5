@@ -14,9 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.PlayerClass
   classType: 3
   className: Assassin
-  classDescription: 
+  classDescription: Extremely fast assassin with tons of burst damage but limited
+    survivability.
   classIcon: {fileID: 0}
   ability1Prefab: {fileID: 0}
   ability2Prefab: {fileID: 0}
   ability3Prefab: {fileID: 0}
   combatClass: 0
+  basicAttackProjectile: {fileID: 0}
+  modelPrefab: {fileID: 8244325506597506508, guid: 1f54b5b0ac68ae1428dd2f1a75ec66f1, type: 3}

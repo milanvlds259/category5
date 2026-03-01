@@ -86,6 +86,35 @@ namespace Category5.Player
         // cached reference to player combat for charge state
         private PlayerCombat _playerCombat;
         
+        // cached reference to model manager for animation
+        private PlayerModelManager _playerModelManager;
+        
+        // animation parameter hashes (matched to animator controller parameters)
+        private static readonly int _animSpeedHash = Animator.StringToHash("Speed");
+        private static readonly int _animIsGroundedHash = Animator.StringToHash("IsGrounded");
+        private static readonly int _animIsDodgingHash = Animator.StringToHash("IsDodging");
+        private static readonly int _animIsDeadHash = Animator.StringToHash("IsDead");
+        private static readonly int _animIsSprintingHash = Animator.StringToHash("IsSprinting");
+        private static readonly int _animVerticalVelocityHash = Animator.StringToHash("VerticalVelocity");
+        private static readonly int _animMoveXHash = Animator.StringToHash("MoveX");
+        private static readonly int _animMoveYHash = Animator.StringToHash("MoveY");
+        private static readonly int _animSpeedXHash = Animator.StringToHash("SpeedX");
+        private static readonly int _animSpeedYHash = Animator.StringToHash("SpeedY");
+
+        // animator parameter cache to avoid per frame warnings when a parameter is missing
+        private RuntimeAnimatorController _cachedAnimatorController;
+        private bool _animParamsCached;
+        private bool _hasAnimSpeed;
+        private bool _hasAnimIsGrounded;
+        private bool _hasAnimIsDodging;
+        private bool _hasAnimIsDead;
+        private bool _hasAnimIsSprinting;
+        private bool _hasAnimVerticalVelocity;
+        private bool _hasAnimMoveX;
+        private bool _hasAnimMoveY;
+        private bool _hasAnimSpeedX;
+        private bool _hasAnimSpeedY;
+        
         [Header("Debug")]
         [SerializeField] private bool invertMovement = false;
 
@@ -116,6 +145,7 @@ namespace Category5.Player
             _inputActions = new InputSystem_Actions();
             _playerStats = GetComponent<PlayerStats>();
             _playerCombat = GetComponent<PlayerCombat>();
+            _playerModelManager = GetComponent<PlayerModelManager>();
             
             // cache all renderers for death visibility toggle
             _renderers = GetComponentsInChildren<Renderer>();
@@ -272,6 +302,17 @@ namespace Category5.Player
         private void OnDeadStateChanged(bool wasDead, bool isDead)
         {
             SetDeathVisuals(isDead);
+            
+            // set death animation parameter on all clients for responsive feedback
+            var anim = _playerModelManager != null ? _playerModelManager.ModelAnimator : null;
+            if (anim != null)
+            {
+                EnsureAnimatorParameterCache(anim);
+                if (_hasAnimIsDead)
+                {
+                    anim.SetBool(_animIsDeadHash, isDead);
+                }
+            }
         }
         
         // enables/disables visuals and collider based on death state
@@ -421,6 +462,9 @@ namespace Category5.Player
                 HandleMovement();
                 HandleGravity();
             }
+            
+            // update animator parameters after all state changes
+            UpdateAnimationParameters();
         }
         
         // check if power-up selection (now item selection) is active
@@ -922,6 +966,140 @@ namespace Category5.Player
                     Debug.Log("PlayerController: Notifying FighterE of collision");
                     fighterE.OnPlayerCollision(hit.gameObject);
                 }
+            }
+        }
+
+        // re-caches renderer array after model swap so death visibility toggling works
+        public void RefreshRenderers()
+        {
+            _renderers = GetComponentsInChildren<Renderer>();
+        }
+        
+        // forwards movement/state data to the animator each frame
+        private void UpdateAnimationParameters()
+        {
+            var anim = _playerModelManager != null ? _playerModelManager.ModelAnimator : null;
+            if (anim == null) return;
+
+            EnsureAnimatorParameterCache(anim);
+            
+            // movement speed (0 during dodge since dodge has its own animation)
+            float speed = _isDodging ? 0f : Mathf.Clamp01(_moveInput.magnitude);
+            if (_hasAnimSpeed)
+            {
+                anim.SetFloat(_animSpeedHash, speed, 0.1f, Time.deltaTime);
+            }
+            
+            if (_hasAnimIsGrounded)
+            {
+                anim.SetBool(_animIsGroundedHash, _isGrounded);
+            }
+
+            if (_hasAnimIsDodging)
+            {
+                anim.SetBool(_animIsDodgingHash, _isDodging);
+            }
+
+            if (_hasAnimIsSprinting)
+            {
+                anim.SetBool(_animIsSprintingHash, _isSprinting);
+            }
+
+            if (_hasAnimVerticalVelocity)
+            {
+                anim.SetFloat(_animVerticalVelocityHash, _velocity.y);
+            }
+
+            // strafing directional inputs for 2d blend trees
+            // MoveX/MoveY are preferred names, SpeedX/SpeedY are supported aliases
+            float directionalX = _isDodging ? 0f : Mathf.Clamp(_moveInput.x, -1f, 1f);
+            float directionalY = _isDodging ? 0f : Mathf.Clamp(_moveInput.y, -1f, 1f);
+
+            if (_hasAnimMoveX)
+            {
+                anim.SetFloat(_animMoveXHash, directionalX, 0.1f, Time.deltaTime);
+            }
+
+            if (_hasAnimMoveY)
+            {
+                anim.SetFloat(_animMoveYHash, directionalY, 0.1f, Time.deltaTime);
+            }
+
+            if (_hasAnimSpeedX)
+            {
+                anim.SetFloat(_animSpeedXHash, directionalX, 0.1f, Time.deltaTime);
+            }
+
+            if (_hasAnimSpeedY)
+            {
+                anim.SetFloat(_animSpeedYHash, directionalY, 0.1f, Time.deltaTime);
+            }
+        }
+
+        // caches which animator params exist on the currently assigned controller
+        private void EnsureAnimatorParameterCache(Animator anim)
+        {
+            var controller = anim.runtimeAnimatorController;
+            if (_animParamsCached && _cachedAnimatorController == controller)
+            {
+                return;
+            }
+
+            _cachedAnimatorController = controller;
+            _animParamsCached = true;
+
+            _hasAnimSpeed = false;
+            _hasAnimIsGrounded = false;
+            _hasAnimIsDodging = false;
+            _hasAnimIsDead = false;
+            _hasAnimIsSprinting = false;
+            _hasAnimVerticalVelocity = false;
+            _hasAnimMoveX = false;
+            _hasAnimMoveY = false;
+            _hasAnimSpeedX = false;
+            _hasAnimSpeedY = false;
+
+            if (controller == null)
+            {
+                Debug.LogWarning("PlayerController: Animator has no controller assigned.");
+                return;
+            }
+
+            var parameters = anim.parameters;
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                var parameter = parameters[i];
+                if (parameter.nameHash == _animSpeedHash) _hasAnimSpeed = true;
+                if (parameter.nameHash == _animIsGroundedHash) _hasAnimIsGrounded = true;
+                if (parameter.nameHash == _animIsDodgingHash) _hasAnimIsDodging = true;
+                if (parameter.nameHash == _animIsDeadHash) _hasAnimIsDead = true;
+                if (parameter.nameHash == _animIsSprintingHash) _hasAnimIsSprinting = true;
+                if (parameter.nameHash == _animVerticalVelocityHash) _hasAnimVerticalVelocity = true;
+                if (parameter.nameHash == _animMoveXHash) _hasAnimMoveX = true;
+                if (parameter.nameHash == _animMoveYHash) _hasAnimMoveY = true;
+                if (parameter.nameHash == _animSpeedXHash) _hasAnimSpeedX = true;
+                if (parameter.nameHash == _animSpeedYHash) _hasAnimSpeedY = true;
+            }
+
+            LogMissingAnimatorParamsOnce();
+        }
+
+        // logs missing parameters once per controller assignment to make setup issues obvious
+        private void LogMissingAnimatorParamsOnce()
+        {
+            if (!_hasAnimSpeed) Debug.LogWarning("PlayerController: Animator parameter missing: Speed");
+            if (!_hasAnimIsGrounded) Debug.LogWarning("PlayerController: Animator parameter missing: IsGrounded");
+            if (!_hasAnimIsDodging) Debug.LogWarning("PlayerController: Animator parameter missing: IsDodging");
+            if (!_hasAnimIsDead) Debug.LogWarning("PlayerController: Animator parameter missing: IsDead");
+            if (!_hasAnimIsSprinting) Debug.LogWarning("PlayerController: Animator parameter missing: IsSprinting");
+            if (!_hasAnimVerticalVelocity) Debug.LogWarning("PlayerController: Animator parameter missing: VerticalVelocity");
+
+            // strafing params (at least one naming pair is recommended)
+            bool hasMovePair = _hasAnimMoveX && _hasAnimMoveY;
+            bool hasSpeedPair = _hasAnimSpeedX && _hasAnimSpeedY;
+            if (!hasMovePair && !hasSpeedPair)
+            {
+                Debug.LogWarning("PlayerController: Animator strafing parameters missing. add MoveX/MoveY (preferred) or SpeedX/SpeedY for strafe blend trees.");
             }
         }
 
