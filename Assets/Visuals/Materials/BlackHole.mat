@@ -90,12 +90,12 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - HardEdgeAlpha: 0.128
-    - HardEdgeFalloff: 0.687
+    - HardEdgeAlpha: 0
+    - HardEdgeFalloff: 1
     - HardEdgeSize: 0.468
-    - SoftEdgeAlpha: 1
+    - SoftEdgeAlpha: 0.946
     - SoftEdgeFalloff: 0
-    - SoftEdgeSize: 28.3
+    - SoftEdgeSize: 26.2
     - _AddPrecomputedVelocity: 0
     - _AlphaClip: 0
     - _AlphaToMask: 0
@@ -121,7 +121,7 @@ Material:
     - _Parallax: 0.005
     - _QueueControl: 0
     - _QueueOffset: 0
-    - _RampLevels: 4.6
+    - _RampLevels: 2
     - _ReceiveShadows: 1
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
@@ -135,8 +135,8 @@ Material:
     - _XRMotionVectorsPass: 1
     - _ZWrite: 1
     m_Colors:
-    - HardEdgeColor: {r: 0.27489403, g: 0, b: 0.3283019, a: 0}
-    - SoftEdgeColor: {r: 0.17735851, g: 0, b: 0.17735851, a: 0}
+    - HardEdgeColor: {r: 0.735849, g: 0.735849, b: 0.735849, a: 0}
+    - SoftEdgeColor: {r: 0.73801804, g: 0, b: 1, a: 0}
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissColor: {r: 0.335849, g: 0, b: 0.335849, a: 0}

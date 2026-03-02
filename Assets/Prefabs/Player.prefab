@@ -492,6 +492,9 @@ MonoBehaviour:
   projectileSpawnPoint: {fileID: 3966561765945640776}
   rangedAttackCooldown: 0.5
   enableTargetLeading: 1
+  meleeInputBufferTime: 0.25
+  minAttackAnimationSpeed: 0.85
+  maxAttackAnimationSpeed: 1.75
 --- !u!114 &4296747668078663274
 MonoBehaviour:
   m_ObjectHideFlags: 0

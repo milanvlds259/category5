@@ -26,6 +26,7 @@ namespace Category5.Boss
 
     [RequireComponent(typeof(NetworkObject))]
     [RequireComponent(typeof(NetworkTransform))]
+    [RequireComponent(typeof(Rigidbody))]
     public abstract class BossBase : NetworkBehaviour, IDamageable
     {
         [Header("stats")]
@@ -59,8 +60,27 @@ namespace Category5.Boss
         [SerializeField] protected bool movesDuringTelegraph = false;
         [SerializeField] protected BossMovementStyle movementStyle = BossMovementStyle.Direct;
         
-        // optional character controller for better collision handling
-        protected CharacterController characterController;
+        // rigidbody for physics collision
+        protected Rigidbody _rigidbody;
+        
+        [Header("ground check")]
+        public float groundCheckRadius = 0.3f;
+        public Vector3 groundCheckOffset = new Vector3(0f, 0.3f, 0f);
+        public LayerMask groundLayers = 1; // default layer
+        public bool showGroundCheckGizmo = true;
+        protected bool _isGrounded = false;
+
+        [Header("ground check stability")]
+        [SerializeField] protected int groundedConfirmFrames = 3;
+        [SerializeField] protected int groundedLossFrames = 3;
+        private int _groundedTrueCounter = 0;
+        private int _groundedFalseCounter = 0;
+
+        [Header("gravity")]
+        public float gravity = -20f;
+        public float groundedStickForce = -2f;
+        public float terminalVelocity = -50f;
+        protected float _verticalVelocity = 0f;
         
         [Header("vfx/feedback")]
         [Tooltip("Default attack type for vfx hooks, can be overridden by subclass")]
@@ -95,8 +115,16 @@ namespace Category5.Boss
                 _initialSpawnRotation = transform.rotation;
             }
             
-            // cache character controller if present
-            characterController = GetComponent<CharacterController>(); 
+            // configure rigidbody: kinematic so we control movement manually
+            _rigidbody = GetComponent<Rigidbody>();
+            if (_rigidbody != null)
+            {
+                _rigidbody.isKinematic = true;
+                _rigidbody.useGravity = false;
+                _rigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+                // only freeze x/z rotation
+                _rigidbody.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
+            }
 
             CurrentHealth.OnValueChanged += OnHealthChanged;
             
@@ -147,8 +175,13 @@ namespace Category5.Boss
             if (!IsServer) return;
             if (_isHidden) return;
 
+            // ground check and gravity run before state logic so vertical displacement
+            // is always applied regardless of what state the boss is in
+            UpdateGroundCheck();
+            ApplyGravity();
             UpdateTargetTimer();
             HandleStateMachine();
+            ApplyVerticalDisplacement();
         }
 
         private void HandleStateMachine()
@@ -374,14 +407,14 @@ namespace Category5.Boss
             
             Vector3 movement = direction * moveSpeed * Time.deltaTime;
             
-            if (characterController != null)
+            if (_rigidbody != null)
             {
-                // use character controller for better collision handling
-                characterController.Move(movement);
+                // use MovePosition for correct kinematic physics integration
+                _rigidbody.MovePosition(_rigidbody.position + movement);
             }
             else
             {
-                // simple transform-based movement
+                // fallback to direct transform movement just in case
                 transform.position += movement;
             }
         }
@@ -499,10 +532,12 @@ namespace Category5.Boss
                 colliders[i].enabled = !hidden;
             }
 
-            // disable movement controller while hidden
-            if (characterController != null)
+            // freeze all rigidbody motion while hidden, restore rotation constraints when shown
+            if (_rigidbody != null)
             {
-                characterController.enabled = !hidden;
+                _rigidbody.constraints = hidden
+                    ? RigidbodyConstraints.FreezeAll
+                    : RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
             }
         }
         
@@ -513,19 +548,18 @@ namespace Category5.Boss
             
             // Debug.Log($"BossBase: Resetting boss with {newMaxHealth} HP at position {spawnPosition}");
             
-            // teleport boss to spawn position
-            if (characterController != null)
+            // teleport boss to spawn position and clear any accumulated vertical velocity
+            if (_rigidbody != null)
             {
-                characterController.enabled = false;
-                transform.position = spawnPosition;
-                transform.rotation = spawnRotation;
-                characterController.enabled = true;
+                _rigidbody.position = spawnPosition;
+                _rigidbody.rotation = spawnRotation;
             }
             else
             {
                 transform.position = spawnPosition;
                 transform.rotation = spawnRotation;
             }
+            _verticalVelocity = 0f;
             
             // update cached spawn position for killbox recovery
             _initialSpawnPosition = spawnPosition;
@@ -562,18 +596,17 @@ namespace Category5.Boss
         {
             if (!IsServer) return;
 
-            if (characterController != null)
+            if (_rigidbody != null)
             {
-                characterController.enabled = false;
-                transform.position = _initialSpawnPosition;
-                transform.rotation = _initialSpawnRotation;
-                characterController.enabled = true;
+                _rigidbody.position = _initialSpawnPosition;
+                _rigidbody.rotation = _initialSpawnRotation;
             }
             else
             {
                 transform.position = _initialSpawnPosition;
                 transform.rotation = _initialSpawnRotation;
             }
+            _verticalVelocity = 0f;
 
             // reset to idle state so boss resumes behavior
             currentState.Value = BossState.Idle;
@@ -642,6 +675,111 @@ namespace Category5.Boss
         private void NotifyBossHurtClientRpc(Vector3 position, int damage)
         {
             BossEvents.InvokeHurt(position, damage);
+        }
+
+        protected virtual void OnDrawGizmosSelected()
+        {
+            if (!showGroundCheckGizmo) return;
+
+            // draw the ground check in the scene view so we can tune it
+            Gizmos.color = _isGrounded ? new Color(0f, 1f, 0f, 0.6f) : new Color(1f, 0.3f, 0f, 0.6f);
+            Gizmos.DrawSphere(transform.position + groundCheckOffset, groundCheckRadius);
+        }
+
+        // sphere check with confirm/loss hysteresis to avoid flickering ground state
+        protected void UpdateGroundCheck()
+        {
+            Vector3 checkPos = transform.position + groundCheckOffset;
+            bool raw = Physics.CheckSphere(checkPos, groundCheckRadius, groundLayers, QueryTriggerInteraction.Ignore);
+
+            if (raw)
+            {
+                _groundedTrueCounter++;
+                _groundedFalseCounter = 0;
+                if (_groundedTrueCounter >= groundedConfirmFrames)
+                    _isGrounded = true;
+            }
+            else
+            {
+                _groundedFalseCounter++;
+                _groundedTrueCounter = 0;
+                if (_groundedFalseCounter >= groundedLossFrames)
+                    _isGrounded = false;
+            }
+        }
+
+        // accumulate vertical velocity from gravity reset to stick force when grounded
+        protected void ApplyGravity()
+        {
+            if (_isGrounded)
+            {
+                _verticalVelocity = groundedStickForce;
+            }
+            else
+            {
+                _verticalVelocity += gravity * Time.deltaTime;
+                if (_verticalVelocity < terminalVelocity) _verticalVelocity = terminalVelocity;
+            }
+        }
+
+        // apply vertical displacement after other movement so the boss always falls when off the ground
+        protected void ApplyVerticalDisplacement()
+        {
+            float deltaY = _verticalVelocity * Time.deltaTime;
+
+            // always resolve the collider once upfront so both branches share it
+            Collider col = GetComponent<Collider>() ?? GetComponentInChildren<Collider>();
+
+            if (_isGrounded)
+            {
+                // snap to ground surface / cast from just above collider bottom so scale doesnt matter
+                if (col != null)
+                {
+                    Vector3 rayOrigin = new Vector3(transform.position.x, col.bounds.min.y + 0.15f, transform.position.z);
+                    RaycastHit hit;
+                    if (Physics.Raycast(rayOrigin, Vector3.down, out hit, 0.4f, groundLayers, QueryTriggerInteraction.Ignore))
+                    {
+                        float diff = hit.point.y - col.bounds.min.y;
+                        if (diff > 0.001f)
+                            transform.position += Vector3.up * diff;
+                    }
+                }
+                return;
+            }
+
+            if (deltaY < 0f)
+            {
+                // cast from near the collider bottom so the ray only needs to travel a short
+                // distance regardless of how tall/scaled the boss is
+                Vector3 rayOrigin = col != null
+                    ? new Vector3(transform.position.x, col.bounds.min.y + 0.15f, transform.position.z)
+                    : transform.position + Vector3.up * 0.1f;
+                float castDistance = Mathf.Abs(deltaY) + 0.15f + groundCheckRadius;
+                RaycastHit hit;
+                if (Physics.Raycast(rayOrigin, Vector3.down, out hit, castDistance, groundLayers, QueryTriggerInteraction.Ignore))
+                {
+                    if (col != null)
+                    {
+                        float shift = hit.point.y - col.bounds.min.y;
+                        transform.position += Vector3.up * shift;
+                    }
+                    else
+                    {
+                        transform.position = new Vector3(transform.position.x, hit.point.y, transform.position.z);
+                    }
+                    _verticalVelocity = groundedStickForce;
+                    _isGrounded = true;
+                }
+                else
+                {
+                    transform.position += Vector3.up * deltaY;
+                    _isGrounded = false;
+                }
+            }
+            else if (deltaY > 0f)
+            {
+                transform.position += Vector3.up * deltaY;
+            }
         }
     }
 }

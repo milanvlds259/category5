@@ -151,11 +151,11 @@ namespace Category5
                     Vector3 dirToCenter = (transform.position - boss.transform.position).normalized;
                     Vector3 pullVector = dirToCenter * pullForce * strengthMultiplier * 0.3f; // bosses resist pull
 
-                    // move boss via character controller or transform
-                    CharacterController bossCC = boss.GetComponent<CharacterController>();
-                    if (bossCC != null)
+                    // move boss via rigidbody MovePosition for
+                    Rigidbody bossRb = boss.GetComponent<Rigidbody>();
+                    if (bossRb != null)
                     {
-                        bossCC.Move(pullVector * Time.fixedDeltaTime);
+                        bossRb.MovePosition(bossRb.position + pullVector * Time.fixedDeltaTime);
                     }
                     else
                     {
