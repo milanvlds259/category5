@@ -745,8 +745,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MapGenerator
   numberOfArenas: 4
   numberOfEyes: 2
-  minimumPosition: {x: -300, y: -60, z: -300}
-  maximumPosition: {x: 300, y: 60, z: 300}
+  minBounds: {x: -300, y: -50, z: -300}
+  maxBounds: {x: 300, y: 50, z: 300}
+  pathMesh: {fileID: 0}
 --- !u!4 &1317563980
 Transform:
   m_ObjectHideFlags: 0

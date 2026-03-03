@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Collections;
 using Debug = UnityEngine.Debug;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -14,7 +14,7 @@ public class MapGenerator : MonoBehaviour
     // CURRENT ISSUES!
     /*
         - Arenas can still be generated with some overlap. Like two might be in a row from another arena, but they're still
-        the closest 2, so the paths end up kind of overlapping (Check for minimum distance between arenas, redo the random generation if they're too close)
+        the closest 2, so the paths end up kind of overlapping (Delete paths that overlap? Chance to have unreachable arenas maybe)
         - Paths Can get too close together (REJECTION CHECK. KEEP ALL OTHER POINTS TO CHECK FOR DISTANCE)
         - Path entrances can get crowded, and maybe want some random not quite closest point entrances (Add random offset within += angle range of the closest point, then use raycast from inside the arena to the collider to get a point)
     */
@@ -28,14 +28,17 @@ public class MapGenerator : MonoBehaviour
 
     // min and max positions, all arenas will be spawned at random
     // positions between these Vector3s
-    public Vector3 minimumPosition;
-    public Vector3 maximumPosition;
+    public Vector3 minBounds;
+    public Vector3 maxBounds;
 
     // List to hold references to created arenas/eyes
     private List<Arena> arenas = new List<Arena>();
 
     // List to hold references to created paths
     private List<Path> paths = new List<Path>();
+
+    // Keep track of all path points to make sure they're not too close together
+    private List<BezierKnot> pathMidpoints = new List<BezierKnot>();
 
     // Mesh to generate along paths
     [SerializeField] Mesh pathMesh;
@@ -104,7 +107,7 @@ public class MapGenerator : MonoBehaviour
         for (int i = 0; i < numberOfArenas; i++)
         {
             // Store a boolean for if an arena was successfully created and create an arena
-            bool arenaCreated = CreateArena(minimumPosition, maximumPosition, i.ToString());
+            bool arenaCreated = CreateArena(minBounds, maxBounds, i.ToString());
 
             int maxIterations = 100; // Prevent infinite loops
             // As long as the arena wasn't created (overlaps), try again
@@ -119,7 +122,7 @@ public class MapGenerator : MonoBehaviour
                 }
 
                 // Try creating the arena again at another random pos
-                arenaCreated = CreateArena(minimumPosition, maximumPosition, i.ToString());
+                arenaCreated = CreateArena(minBounds, maxBounds, i.ToString());
             }
         }
 
@@ -166,6 +169,8 @@ public class MapGenerator : MonoBehaviour
             pathCount++;
         }
 
+        // Space out all the path points so they dont overlap!
+        //StartCoroutine(SpaceOutPaths());
     }
 
 
@@ -194,7 +199,14 @@ public class MapGenerator : MonoBehaviour
         // Check if the new arena is too close to a previous one
         // Use an OverlapBox to detect collisions
         // Do not let arenas spawn on top of each other
-        Collider[] colliders = Physics.OverlapBox(arena.transform.position, new Vector3(arena.transform.localScale.x, arena.transform.localScale.y * 100, arena.transform.localScale.z), arena.transform.rotation);
+        // The radius is a little bigger than the arena's actual size to prevent them from being too close, 
+        // since the paths will be generated from the edges of the arenas
+        Collider[] colliders = Physics.OverlapCapsule(arena.transform.position - new Vector3(0, 100, 0), 
+                                                    arena.transform.position + new Vector3(0, 100, 0), 
+                                                    arena.transform.localScale.x / scaleFactor, 
+                                                    Physics.AllLayers, 
+                                                    QueryTriggerInteraction.Collide
+                                                    );
         if (colliders.Length > 1) // More than one collider means overlap
         {
             Destroy(arena); // Remove the overlapping arena
@@ -294,17 +306,22 @@ public class MapGenerator : MonoBehaviour
         pointOnA = new Vector3(pointOnA.x, arenaA.position.y, pointOnA.z);
         pointOnB = new Vector3(pointOnB.x, arenaB.position.y, pointOnB.z);
 
+        BezierKnot Aknot = new BezierKnot(pointOnA);
+        BezierKnot Bknot = new BezierKnot(pointOnB);
+
         // Add points to the spline at the positions of the two arenas
-        spline.Add(new BezierKnot(pointOnA), TangentMode.AutoSmooth); // Start pos
-        spline.Add(new BezierKnot(pointOnB), TangentMode.AutoSmooth); // End pos
+        spline.Add(Aknot, TangentMode.AutoSmooth); // Start pos
+        spline.Add(Bknot, TangentMode.AutoSmooth); // End pos
         // Save points to be added later after random curves
         Vector3 pointBeforeA = splineContainer.EvaluatePosition(spline, .13f);
         Vector3 pointBeforeB = splineContainer.EvaluatePosition(spline, .87f);
+        // Add points to list that contains all points
+        //pathPoints.Add(Aknot);
+        //pathPoints.Add(Bknot);
 
         // Get the vector from arena to arena
         Vector3 betweenArenaVector = pointOnB - pointOnA;
 
-        Debug.Log(betweenArenaVector.magnitude + " " + splineContainer.name);
 
         // the max number of bends/curves in the path
         int maxCurves = 0;
@@ -328,6 +345,7 @@ public class MapGenerator : MonoBehaviour
             Vector3 midPos = splineContainer.EvaluatePosition(spline, place);
 
             // Get a vector perpedicular to the spline's x and z
+            // Vector3 moveVector = Vector3.Cross(Vector3.down, betweenArenaVector.normalized); IDK WHY this isn't working, it's making loops in the paths
             Vector3 moveVector = Vector3.zero;
             int tempRand = Random.Range(0, 2);
             if (tempRand == 0)
@@ -340,6 +358,7 @@ public class MapGenerator : MonoBehaviour
             }
 
             // Move the position using the vector, random magnitude
+            // float curveStrength = Random.Range(30, 50);
             midPos += moveVector * Random.Range(30, 50);
 
             // Add the place on spline and the position into the newKnotPositions array
@@ -353,14 +372,25 @@ public class MapGenerator : MonoBehaviour
         // we can get a path without too crazy of a shape
         for (int i = 0; i < knotPositions.Length; i++)
         {
+            // Create BezierKnot
+            BezierKnot newKnot = new BezierKnot(knotPositions[i].position);
+    
+            // Add it to the all points list
+            pathMidpoints.Add(newKnot);
             // Insert the new knot on the spline
-            spline.Insert(spline.Count - 1, knotPositions[i].position, TangentMode.Mirrored);
+            spline.Insert(spline.Count - 1, newKnot, TangentMode.AutoSmooth);
         }
 
         // Add points to the spline before the end points to point the entrances to the
         // path at the arenas
-        spline.Insert(1, new BezierKnot(pointBeforeA), TangentMode.AutoSmooth); // Start pos
-        spline.Insert(spline.Count-1, new BezierKnot(pointBeforeB), TangentMode.AutoSmooth); // End pos
+        BezierKnot beforeAknot = new BezierKnot(pointBeforeA);
+        BezierKnot beforeBknot = new BezierKnot(pointBeforeB);
+        spline.Insert(1, beforeAknot, TangentMode.AutoSmooth); // Start pos
+        spline.Insert(spline.Count-1, beforeBknot, TangentMode.AutoSmooth); // End pos
+
+        // Add points to list that contains all points
+        //pathPoints.Add(beforeAknot);
+        //pathPoints.Add(beforeBknot);
         
         // Clean up knots that are too sharp
         // Shouldn't take more than 50 tries
@@ -372,15 +402,15 @@ public class MapGenerator : MonoBehaviour
             // Set this to true before checking
             noProblemKnots = true;
 
-            // Skip the end point knots, start at 1 and end at Count-1
-            for (int i = 1; i < spline.Count-1; i++)
+            // Skip the entrance/exit knots, start at 2 and end at Count-2
+            for (int i = 2; i < spline.Count-2; i++)
             {
                 // Get how small the knot's angle is, it's a magnitude though not an angle
                 float tangentLength = math.length(spline[i].TangentOut);
                 if (tangentLength <= 12f)
                 {
                     // If we find a problem knot
-                    Debug.Log("REMOVING " + spline[i] + " AT " + spline[i].Position + " ON " + splineContainer.name);
+                    Debug.Log("REMOVING " + spline[i] + " AT " + tangentLength + " ON " + splineContainer.name);
                     // There ARE problem knots
                     noProblemKnots = false;
                     // Remove the problem knot
@@ -435,8 +465,49 @@ public class MapGenerator : MonoBehaviour
         splineExtrude.enabled = true;
     }
 
+    IEnumerator SpaceOutPaths()
+    {
+        bool pointsAllSpaced = false;
+        int attempts = 0;
+        while (!pointsAllSpaced && attempts < 10000)
+        {
+            yield return new WaitForSeconds(.1f);
+            attempts++;
+            pointsAllSpaced = true;
+            // Loop through all points, and loop through all points for each point
+            for (int i = 0; i < pathMidpoints.Count; i++)
+            {
+                for (int j = 0; j < pathMidpoints.Count; j++)
+                {
+                    // Get knots from list
+                    BezierKnot knot = pathMidpoints[i];
+                    BezierKnot otherKnot = pathMidpoints[j];
+                    // Get their positions
+                    Vector3 pos = pathMidpoints[i].Position;
+                    Vector3 otherPos = pathMidpoints[j].Position;
+
+                    Vector3 betweenVector = otherPos - pos;
+
+                    // Check if they're too close
+                    if (pos != otherPos && betweenVector.magnitude < 50f)
+                    {
+                        Debug.Log("Spacing out " + knot + " and " + otherKnot + " at distance " + Vector3.Distance(pos, otherPos));
+                        // Set points spaced false and space them apart
+                        pointsAllSpaced = false;
+                        
+                        Vector3 newPos = pos;
+                        newPos -= betweenVector.normalized * (50 - betweenVector.magnitude) / 50;
+                        knot.Position = newPos;
+                    }
+                }
+            }
+        }
+    }
+
     void OnDrawGizmos()
     {
-        
+        // Draws the bounds of the map's generation area (between minBounds and maxBounds)
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireCube(Vector3.Lerp(minBounds, maxBounds, 0.5f), maxBounds - minBounds);
     }
 }
