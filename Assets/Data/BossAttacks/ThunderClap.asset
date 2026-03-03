@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Boss.BossAttackData
   attackName: Thunder Clap
   attackType: 4
-  selectionWeight: 10
+  selectionWeight: 90
   healthThreshold: 0.3
   minRange: 0
   maxRange: 100
@@ -28,6 +28,7 @@ MonoBehaviour:
   lungeSpeed: 15
   lungeDistance: 8
   isSweep: 0
+  sweepOffset: {x: 0, y: -1, z: 0}
   sweepAngle: 180
   sweepLength: 10
   sweepWidth: 2

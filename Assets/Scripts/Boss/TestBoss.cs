@@ -196,7 +196,9 @@ namespace Category5.Boss
             if (_currentAttack == null) return;
 
             // always spawn the procedural indicator so players can see the telegraph
-            float groundY = transform.position.y + 0.02f;
+            // use collider bottom for correct ground-level Y, falling back to pivot if none found
+            Collider bossCol = GetComponent<Collider>() ?? GetComponentInChildren<Collider>();
+            float groundY = bossCol != null ? bossCol.bounds.min.y + 0.02f : transform.position.y + 0.02f;
 
             if (_currentAttack.isSweep)
             {

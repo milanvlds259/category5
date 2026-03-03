@@ -42,6 +42,8 @@ namespace Category5.Boss
         // offset is in the boss's local horizontal plane (XZ only, Y ignored)
         private Transform _followTarget;
         private Vector3 _followLocalOffsetXZ;
+        // cached collider for ground-level Y calculation
+        private Collider _followCollider;
 
         // factory
 
@@ -84,7 +86,10 @@ namespace Category5.Boss
             // track boss position/rotation on both server and clients
             if (_followTarget != null)
             {
-                float groundY = _followTarget.position.y + 0.02f;
+                // use collider bottom so the indicator sits at floor level regardless of boss pivot height
+                float groundY = _followCollider != null
+                    ? _followCollider.bounds.min.y + 0.02f
+                    : _followTarget.position.y + 0.02f;
                 // rotate the local offset by the boss's current Y rotation
                 Vector3 worldOffset = Quaternion.Euler(0f, _followTarget.eulerAngles.y, 0f) * _followLocalOffsetXZ;
                 transform.position = new Vector3(
@@ -130,6 +135,10 @@ namespace Category5.Boss
         {
             _followTarget = target;
             _followLocalOffsetXZ = new Vector3(localOffsetXZ.x, 0f, localOffsetXZ.z);
+            // cache the first collider found on the target for ground-level Y sampling
+            _followCollider = target != null
+                ? (target.GetComponent<Collider>() ?? target.GetComponentInChildren<Collider>())
+                : null;
         }
 
         // mesh builders
