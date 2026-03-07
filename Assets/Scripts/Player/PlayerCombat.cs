@@ -42,7 +42,7 @@ namespace Category5.Player
         [Tooltip("projectile data defining arrow properties")]
         [SerializeField] private ProjectileData arrowData;
         
-        [Tooltip("transform where projectiles spawn from (should be near player's hand or bow)")]
+        [Tooltip("transform where projectiles spawn from (aka avatar joint in the hand or bow tip)")]
         [SerializeField] private Transform projectileSpawnPoint;
         
         [Tooltip("cooldown between ranged attacks in seconds")]
@@ -59,6 +59,7 @@ namespace Category5.Player
         // reference to player stats for damage modifiers
         private PlayerStats _playerStats;
         private PlayerController _playerController;
+        private OwnerPlayerNetworkAnimator _ownerNetworkAnimator;
         
         // charging state
         private bool _isCharging;
@@ -139,6 +140,7 @@ namespace Category5.Player
             _inputActions = new InputSystem_Actions();
             _playerStats = GetComponent<PlayerStats>();
             _playerController = GetComponent<PlayerController>();
+            _ownerNetworkAnimator = GetComponent<OwnerPlayerNetworkAnimator>();
         }
 
         public override void OnNetworkSpawn()
@@ -272,9 +274,7 @@ namespace Category5.Player
             }
         }
         
-        /// <summary>
-        /// checks if the player can currently attack
-        /// </summary>
+        // checks if the player can currently attack
         private bool CanAttack()
         {
             if (_isAttacking) return false;
@@ -555,7 +555,13 @@ namespace Category5.Player
 
             if (_hasAnimAttackTrigger)
             {
-                anim.SetTrigger(_animAttackTriggerHash);
+                if (_ownerNetworkAnimator == null)
+                {
+                    Debug.LogError("PlayerCombat: Missing OwnerPlayerNetworkAnimator. Cannot sync attack trigger.");
+                    return;
+                }
+
+                _ownerNetworkAnimator.SetTrigger(_animAttackTriggerHash);
                 return;
             }
 

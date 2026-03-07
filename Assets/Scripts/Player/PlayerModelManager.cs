@@ -27,6 +27,7 @@ namespace Category5.Player
         private PlayerController _playerController;
         private PlayerCombat _playerCombat;
         private Animator _animator;
+        private OwnerPlayerNetworkAnimator _ownerNetworkAnimator;
         private NetworkAnimator _networkAnimator;
         private CharacterController _characterController;
         private Transform _modelRoot;
@@ -48,25 +49,23 @@ namespace Category5.Player
             _playerController = GetComponent<PlayerController>();
             _playerCombat = GetComponent<PlayerCombat>();
             _characterController = GetComponent<CharacterController>();
-            _networkAnimator = GetComponent<NetworkAnimator>();
+            _ownerNetworkAnimator = GetComponent<OwnerPlayerNetworkAnimator>();
+            _networkAnimator = _ownerNetworkAnimator != null ? _ownerNetworkAnimator : GetComponent<NetworkAnimator>();
             _modelRoot = transform.Find("ModelRoot");
+
+            if (_networkAnimator == null)
+            {
+                Debug.LogError("PlayerModelManager: Missing NetworkAnimator on Player prefab. remote animation sync will not work.");
+            }
+            else if (_ownerNetworkAnimator == null)
+            {
+                Debug.LogError("PlayerModelManager: Player prefab must use OwnerPlayerNetworkAnimator instead of the base NetworkAnimator. remote animation sync will not work until this is fixed.");
+            }
 
             if (_modelRoot == null)
             {
                 Debug.LogWarning("PlayerModelManager: ModelRoot child not found");
                 _modelRoot = transform;
-            }
-
-            // if the root animator (initial NetworkAnimator target) has no controller,
-            // ngo will throw a NullRef every frame via CheckParametersChanged
-            // null it out here - SetupAnimator will bind the proper child animator on load
-            if (_networkAnimator != null)
-            {
-                var rootAnimator = GetComponent<Animator>();
-                if (rootAnimator != null && rootAnimator.runtimeAnimatorController == null)
-                {
-                    _networkAnimator.Animator = null;
-                }
             }
         }
         
@@ -190,6 +189,13 @@ namespace Category5.Player
         // configures the active model animator and binds network animator to it
         private void SetupAnimator()
         {
+            if (_networkAnimator == null)
+            {
+                Debug.LogError("PlayerModelManager: Cannot bind animator because no NetworkAnimator is present on the player root.");
+                _animator = null;
+                return;
+            }
+
             // find animator on spawned model hierarchy
             var childAnimator = _currentModel.GetComponentInChildren<Animator>(true);
             if (childAnimator == null)
@@ -218,22 +224,6 @@ namespace Category5.Player
                 _animator.runtimeAnimatorController = sharedAnimatorController;
             }
 
-            // bind network animator to the active child animator
-            // only bind if the animator has a valid controller - ngo throws NullRef every frame
-            // in CheckParametersChanged if runtimeAnimatorController is null
-            if (_networkAnimator != null)
-            {
-                if (_animator.runtimeAnimatorController != null)
-                {
-                    _networkAnimator.Animator = _animator;
-                }
-                else
-                {
-                    Debug.LogError("PlayerModelManager: skipping NetworkAnimator bind because animator has no controller. " +
-                        "assign sharedAnimatorController on PlayerModelManager or overrideController on ModelData");
-                }
-            }
-
             // ensure animation events on the model animator can reach PlayerCombat
             var relay = _animator.GetComponent<PlayerAnimationEventRelay>();
             if (relay == null)
@@ -249,13 +239,27 @@ namespace Category5.Player
 
             if (_animator.runtimeAnimatorController == null)
             {
-                Debug.LogError("PlayerModelManager: Animator controller is null after setup. " +
-                    "assign sharedAnimatorController on PlayerModelManager or ModelData.overrideController on the class prefab. " +
-                    "this WILL cause a NullReferenceException in NetworkAnimator every frame.");
+                Debug.LogWarning("PlayerModelManager: Animator controller is null after setup. assign sharedAnimatorController or ModelData.overrideController.");
             }
             
             // rebind to discover new bone hierarchy from the model child
             _animator.Rebind();
+            _animator.Update(0f);
+
+            // bind network animator after the animator is fully configured
+            if (_ownerNetworkAnimator != null)
+            {
+                _ownerNetworkAnimator.BindRuntimeAnimator(_animator);
+            }
+            else
+            {
+                _networkAnimator.Animator = _animator;
+            }
+
+            if (_networkAnimator.Animator != _animator)
+            {
+                Debug.LogError("PlayerModelManager: Failed to bind the active model animator to OwnerPlayerNetworkAnimator.");
+            }
         }
         
         // caches attachment point transforms from the current model's ModelData
