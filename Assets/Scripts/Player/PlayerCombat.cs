@@ -287,6 +287,9 @@ namespace Category5.Player
             // prevent attack input when dead
             if (_playerController != null && _playerController.IsDead.Value) return false;
             
+            // prevent attack input during wind riding
+            if (_playerController != null && _playerController.IsWindRiding) return false;
+            
             return true;
         }
 

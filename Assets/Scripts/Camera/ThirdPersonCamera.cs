@@ -3,6 +3,7 @@ using UnityEngine.InputSystem;
 using Unity.Netcode;
 using Category5.PowerUps;
 using Category5.Player;
+using Category5.Player.WindRiding;
 using System.Collections.Generic;
 
 namespace Category5
@@ -31,6 +32,13 @@ namespace Category5
         [SerializeField] private float shakeDecay = 5f; // how fast shake fades out
         [SerializeField] private bool usePerlinNoise = true; // perlin noise vs random shake
 
+        [Header("Wind Riding Camera")]
+        [SerializeField] private float ridingOrbitLimit = 30f; // max yaw offset from tunnel tangent
+        [SerializeField] private float ridingMinPitch = -10f;
+        [SerializeField] private float ridingMaxPitch = 40f;
+        [SerializeField] private float ridingDistanceBonus = 2f; // extra camera distance during riding
+        [SerializeField] private float ridingTransitionSpeed = 4f; // how fast camera blends into riding mode
+
         private float _rotationX;
         private float _rotationY;
         private InputSystem_Actions _inputActions;
@@ -52,6 +60,12 @@ namespace Category5
         
         // event for ui to show spectating info
         public event System.Action<string> OnSpectateTargetChanged;
+        
+        // wind riding camera state
+        private WindRiderController _windRider;
+        private float _ridingYawBase; // yaw locked to tunnel tangent
+        private float _ridingYawOffset; // player orbit offset from tangent
+        private float _ridingDistanceLerp; // 0-1 blend for bonus distance
 
         private void Awake()
         {
@@ -107,7 +121,14 @@ namespace Category5
             
             // in spectator mode, always allow camera input
             // when alive, normal gameplay applies
-            HandleInput();
+            if (IsWindRiding())
+            {
+                HandleWindRidingCamera();
+            }
+            else
+            {
+                HandleInput();
+            }
             HandleCameraPosition();
         }
         
@@ -263,12 +284,17 @@ namespace Category5
             // update screen shake
             UpdateShake();
             
+            // blend extra distance for wind riding
+            float targetDistLerp = IsWindRiding() ? 1f : 0f;
+            _ridingDistanceLerp = Mathf.Lerp(_ridingDistanceLerp, targetDistLerp, ridingTransitionSpeed * Time.deltaTime);
+            float effectiveDistance = distance + ridingDistanceBonus * _ridingDistanceLerp;
+            
             Quaternion rotation = Quaternion.Euler(_rotationY, _rotationX, 0);
-            Vector3 desiredPosition = target.position + offset - (rotation * Vector3.forward * distance);
+            Vector3 desiredPosition = target.position + offset - (rotation * Vector3.forward * effectiveDistance);
 
             // Simple collision check
             Vector3 direction = desiredPosition - (target.position + offset);
-            if (Physics.SphereCast(target.position + offset, collisionRadius, direction.normalized, out RaycastHit hit, distance, collisionLayers))
+            if (Physics.SphereCast(target.position + offset, collisionRadius, direction.normalized, out RaycastHit hit, effectiveDistance, collisionLayers))
             {
                 // If we hit something, move camera to hit point (plus a little buffer)
                 desiredPosition = hit.point + (hit.normal * collisionRadius);
@@ -333,6 +359,47 @@ namespace Category5
                     Random.Range(-0.5f, 0.5f)
                 ) * currentIntensity;
             }
+        }
+        
+        // =====================================
+        // wind riding camera
+        // =====================================
+        
+        // check if the target player is currently wind riding
+        private bool IsWindRiding()
+        {
+            if (_windRider == null && target != null)
+            {
+                _windRider = target.GetComponent<WindRiderController>();
+            }
+            return _windRider != null && _windRider.IsWindRiding;
+        }
+        
+        // camera input during wind riding: yaw locked behind player with slight orbit
+        private void HandleWindRidingCamera()
+        {
+            _lookInput = _inputActions.Player.Look.ReadValue<Vector2>();
+            
+            // calculate the base yaw from the tunnel tangent (where the player is facing)
+            Vector3 tangent = _windRider.ActiveTunnel.EvaluateTangent(_windRider.Progress);
+            float direction = _windRider.IsRidingForward ? 1f : -1f; // this is probable really stupid and inefficient but whatever lmao
+            Vector3 facing = tangent * direction;
+            if (facing.sqrMagnitude > 0.001f)
+            {
+                _ridingYawBase = Mathf.Atan2(facing.x, facing.z) * Mathf.Rad2Deg;
+            }
+            
+            // allow limited orbit offset
+            _ridingYawOffset += _lookInput.x * sensitivityX;
+            _ridingYawOffset = Mathf.Clamp(_ridingYawOffset, -ridingOrbitLimit, ridingOrbitLimit);
+            
+            // smoothly blend the main rotation toward the riding yaw
+            float targetYaw = _ridingYawBase + _ridingYawOffset;
+            _rotationX = Mathf.LerpAngle(_rotationX, targetYaw, ridingTransitionSpeed * Time.deltaTime);
+            
+            // pitch with reduced range
+            _rotationY -= _lookInput.y * sensitivityY;
+            _rotationY = Mathf.Clamp(_rotationY, ridingMinPitch, ridingMaxPitch);
         }
     }
 }

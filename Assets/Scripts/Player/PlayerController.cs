@@ -8,6 +8,7 @@ using Category5.Core;
 using Category5.PowerUps;
 using Category5.Audio;
 using Category5.UI;
+using Category5.Player.WindRiding;
 
 namespace Category5.Player
 {
@@ -62,6 +63,11 @@ namespace Category5.Player
         [SerializeField] private float gravity = -20f;
         [SerializeField] private float rotationSpeed = 15f;
 
+        [Header("External Momentum")]
+        [SerializeField] private float groundedMomentumDecay = 18f;
+        [SerializeField] private float airborneMomentumDecay = 4f;
+        [SerializeField] private float movementMomentumCancelRate = 24f;
+
         [Header("Ground Check")]
         [SerializeField] private float groundCheckRadius = 0.2f;
         [SerializeField] private Vector3 groundCheckOffset = new Vector3(0, 0.1f, 0);
@@ -80,6 +86,7 @@ namespace Category5.Player
         private InputSystem_Actions _inputActions;
         private Vector2 _moveInput;
         private Vector3 _velocity;
+        private Vector3 _externalVelocity;
         private bool _isGrounded;
         private bool _isOffline = false;
         
@@ -100,6 +107,7 @@ namespace Category5.Player
         private static readonly int _animMoveYHash = Animator.StringToHash("MoveY");
         private static readonly int _animSpeedXHash = Animator.StringToHash("SpeedX");
         private static readonly int _animSpeedYHash = Animator.StringToHash("SpeedY");
+        private static readonly int _animIsWindRidingHash = Animator.StringToHash("IsWindRiding");
 
         // animator parameter cache to avoid per frame warnings when a parameter is missing
         private RuntimeAnimatorController _cachedAnimatorController;
@@ -114,6 +122,7 @@ namespace Category5.Player
         private bool _hasAnimMoveY;
         private bool _hasAnimSpeedX;
         private bool _hasAnimSpeedY;
+        private bool _hasAnimIsWindRiding;
         
         [Header("Debug")]
         [SerializeField] private bool invertMovement = false;
@@ -138,6 +147,15 @@ namespace Category5.Player
         
         // public property (ui can read this later)
         public bool IsSprinting => _isSprinting;
+        
+        // cached reference to wind rider controller
+        private WindRiderController _windRider;
+        
+        // true when the player is surfing through a wind tunnel
+        public bool IsWindRiding => _windRider != null && _windRider.IsWindRiding;
+        
+        // expose gravity value for external systems (wind riding lift calculations)
+        public float Gravity => gravity;
 
         private void Awake()
         {
@@ -146,6 +164,7 @@ namespace Category5.Player
             _playerStats = GetComponent<PlayerStats>();
             _playerCombat = GetComponent<PlayerCombat>();
             _playerModelManager = GetComponent<PlayerModelManager>();
+            _windRider = GetComponent<WindRiderController>();
             
             // cache all renderers for death visibility toggle
             _renderers = GetComponentsInChildren<Renderer>();
@@ -419,6 +438,13 @@ namespace Category5.Player
             // dead players cannot do anything
             if (IsDead.Value) return;
             
+            // wind riding: WindRiderController drives all movement, skip everything else
+            if (IsWindRiding)
+            {
+                UpdateAnimationParameters();
+                return;
+            }
+            
             // check if input should be blocked (pause menu or power-up selection)
             bool inputBlocked = Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection();
 
@@ -519,6 +545,12 @@ namespace Category5.Player
 
             if (move != Vector3.zero)
             {
+                _externalVelocity = Vector3.MoveTowards(
+                    _externalVelocity,
+                    Vector3.zero,
+                    movementMomentumCancelRate * Time.deltaTime
+                );
+
                 // apply charge movement speed reduction if charging
                 float effectiveSpeed = moveSpeed;
                 
@@ -567,7 +599,12 @@ namespace Category5.Player
             }
 
             _velocity.y += gravity * Time.deltaTime;
-            _controller.Move(_velocity * Time.deltaTime);
+
+            Vector3 frameVelocity = _externalVelocity + Vector3.up * _velocity.y;
+            _controller.Move(frameVelocity * Time.deltaTime);
+
+            float momentumDecay = _isGrounded ? groundedMomentumDecay : airborneMomentumDecay;
+            _externalVelocity = Vector3.MoveTowards(_externalVelocity, Vector3.zero, momentumDecay * Time.deltaTime);
         }
         
         private void FixedUpdate()
@@ -594,6 +631,7 @@ namespace Category5.Player
             // don't accept input if dead or blocked
             if (IsDead.Value) return;
             if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection()) return;
+            if (IsWindRiding) return;
             
             // instead of jumping immediately we buffer the input
             _jumpBufferCounter = _jumpBufferTime;
@@ -607,6 +645,7 @@ namespace Category5.Player
             // don't accept input if dead or blocked
             if (IsDead.Value) return;
             if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection()) return;
+            if (IsWindRiding) return;
             
             // block dodge while charging ranged attack
             if (_playerCombat != null && _playerCombat.IsCharging) return;
@@ -676,11 +715,23 @@ namespace Category5.Player
             _controller.Move(_dodgeDirection * speed * Time.deltaTime);
         }
         
+        // sets the player velocity from an external system (wind riding exit momentum, knockback, etc)
+        public void SetExternalVelocity(Vector3 velocity)
+        {
+            _externalVelocity = new Vector3(velocity.x, 0f, velocity.z);
+
+            if (Mathf.Abs(velocity.y) > 0.001f)
+            {
+                _velocity.y = velocity.y;
+            }
+        }
+        
         private void OnSprint(InputAction.CallbackContext context)
         {
             // dont accept input if dead or blocked
             if (IsDead.Value) return;
             if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection()) return;
+            if (IsWindRiding) return;
             
             _isSprinting = !_isSprinting;
             
@@ -1033,6 +1084,11 @@ namespace Category5.Player
             {
                 anim.SetFloat(_animSpeedYHash, directionalY, 0.1f, Time.deltaTime);
             }
+
+            if (_hasAnimIsWindRiding)
+            {
+                anim.SetBool(_animIsWindRidingHash, IsWindRiding);
+            }
         }
 
         // caches which animator params exist on the currently assigned controller
@@ -1058,6 +1114,7 @@ namespace Category5.Player
             _hasAnimMoveY = false;
             _hasAnimSpeedX = false;
             _hasAnimSpeedY = false;
+            _hasAnimIsWindRiding = false;
 
             if (controller == null)
             {
@@ -1079,6 +1136,7 @@ namespace Category5.Player
                 if (parameter.nameHash == _animMoveYHash) _hasAnimMoveY = true;
                 if (parameter.nameHash == _animSpeedXHash) _hasAnimSpeedX = true;
                 if (parameter.nameHash == _animSpeedYHash) _hasAnimSpeedY = true;
+                if (parameter.nameHash == _animIsWindRidingHash) _hasAnimIsWindRiding = true;
             }
 
             LogMissingAnimatorParamsOnce();

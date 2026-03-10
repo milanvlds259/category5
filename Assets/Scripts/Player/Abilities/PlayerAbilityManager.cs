@@ -321,6 +321,11 @@ namespace Category5
                 Debug.Log("  -> Blocked: Player dead");
                 return;
             }
+            if (playerController.IsWindRiding)
+            {
+                Debug.Log("  -> Blocked: Wind riding");
+                return;
+            }
             if (playerCombat.IsCharging)
             {
                 Debug.Log("  -> Blocked: Currently charging");
