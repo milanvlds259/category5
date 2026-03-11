@@ -539,6 +539,11 @@ namespace Category5.Boss
                     ? RigidbodyConstraints.FreezeAll
                     : RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
             }
+
+            // hide/show minimap icon by toggling the trackable component
+            var trackable = GetComponent<MinimapTrackable>();
+            if (trackable != null)
+                trackable.enabled = !hidden;
         }
         
         // called by PowerUpManager to reset boss for new round with scaled hp
