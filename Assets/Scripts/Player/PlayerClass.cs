@@ -33,5 +33,9 @@ namespace Category5.Player
         
         [Tooltip("projectile data for ranged basic attack (only used if combatClass is Ranged)")]
         public ProjectileData basicAttackProjectile;
+        
+        [Header("Character Model")]
+        [Tooltip("model prefab to instantiate as the player's visual representation for this class")]
+        public GameObject modelPrefab;
     }
 }

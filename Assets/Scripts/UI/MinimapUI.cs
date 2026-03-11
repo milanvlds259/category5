@@ -109,11 +109,11 @@ namespace Category5.UI
         {
             Vector3 playerPos = _localPlayerTransform.position;
             
-            // mark icons for removal (trackables that are destroyed or out of range)
+            // mark icons for removal (trackables that are destroyed or disabled/out of range)
             _toRemove.Clear();
             foreach (var kvp in _activeIcons)
             {
-                if (kvp.Key == null)
+                if (kvp.Key == null || !kvp.Key.enabled)
                 {
                     _toRemove.Add(kvp.Key);
                 }

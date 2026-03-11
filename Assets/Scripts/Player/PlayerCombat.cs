@@ -42,7 +42,7 @@ namespace Category5.Player
         [Tooltip("projectile data defining arrow properties")]
         [SerializeField] private ProjectileData arrowData;
         
-        [Tooltip("transform where projectiles spawn from (should be near player's hand or bow)")]
+        [Tooltip("transform where projectiles spawn from (aka avatar joint in the hand or bow tip)")]
         [SerializeField] private Transform projectileSpawnPoint;
         
         [Tooltip("cooldown between ranged attacks in seconds")]
@@ -59,6 +59,7 @@ namespace Category5.Player
         // reference to player stats for damage modifiers
         private PlayerStats _playerStats;
         private PlayerController _playerController;
+        private OwnerPlayerNetworkAnimator _ownerNetworkAnimator;
         
         // charging state
         private bool _isCharging;
@@ -72,6 +73,35 @@ namespace Category5.Player
         private int _quickbowBurstCount = 0;
         private float _quickbowBurstInterval = 0.1f;
         private float _quickbowBurstDamageMult = 1f;
+
+        // pending attack data for animation event timing
+        private bool _hasPendingMeleeHit;
+        private int _pendingMeleeDamage;
+        private Vector3 _pendingMeleePosition;
+        private Vector3 _pendingMeleeDirection;
+
+        private bool _hasPendingRangedRelease;
+        private float _pendingRangedChargePercent;
+
+        // animator params for basic attack animation
+        private static readonly int _animAttackTriggerHash = Animator.StringToHash("Attack");
+        private static readonly int _animAttackAnimSpeedHash = Animator.StringToHash("AttackAnimSpeed");
+        private RuntimeAnimatorController _cachedAnimatorController;
+        private bool _animParamsCached;
+        private bool _hasAnimAttackTrigger;
+        private bool _hasAnimAttackAnimSpeed;
+
+        // buffered melee chain input
+        private bool _hasBufferedMeleeAttackInput;
+        private float _bufferedMeleeInputExpireTime;
+        private bool _meleeChainWindowOpen;
+
+        [Header("Attack Buffer")]
+        [SerializeField] private float meleeInputBufferTime = 0.25f;
+
+        [Header("Attack Animation Speed")]
+        [SerializeField] private float minAttackAnimationSpeed = 0.85f;
+        [SerializeField] private float maxAttackAnimationSpeed = 1.35f;
         
         // public accessors for combat class and charging state
         public CombatClass CurrentCombatClass => combatClass;
@@ -110,6 +140,7 @@ namespace Category5.Player
             _inputActions = new InputSystem_Actions();
             _playerStats = GetComponent<PlayerStats>();
             _playerController = GetComponent<PlayerController>();
+            _ownerNetworkAnimator = GetComponent<OwnerPlayerNetworkAnimator>();
         }
 
         public override void OnNetworkSpawn()
@@ -124,6 +155,34 @@ namespace Category5.Player
             if (_playerStats == null)
             {
                 _playerStats = GetComponent<PlayerStats>();
+            }
+            
+            // subscribe to model changes to update projectile spawn point
+            PlayerModelManager.OnModelLoaded += OnModelLoaded;
+            
+            // check if model already loaded (in case it loaded before us)
+            var modelManager = GetComponent<PlayerModelManager>();
+            if (modelManager != null && modelManager.ProjectileSpawnPoint != null)
+            {
+                projectileSpawnPoint = modelManager.ProjectileSpawnPoint;
+            }
+        }
+        
+        public override void OnNetworkDespawn()
+        {
+            PlayerModelManager.OnModelLoaded -= OnModelLoaded;
+        }
+        
+        // called when any player's model finishes loading
+        private void OnModelLoaded(PlayerController player, Animator animator)
+        {
+            // only care about our own player's model
+            if (player != _playerController) return;
+            
+            var modelManager = player.GetComponent<PlayerModelManager>();
+            if (modelManager != null && modelManager.ProjectileSpawnPoint != null)
+            {
+                projectileSpawnPoint = modelManager.ProjectileSpawnPoint;
             }
         }
 
@@ -173,6 +232,8 @@ namespace Category5.Player
                     OnChargeProgress?.Invoke(currentPercent, transform.position);
                 }
             }
+
+            UpdateMeleeInputBuffer();
         }
         
         private void OnAttackStarted(InputAction.CallbackContext context)
@@ -198,15 +259,22 @@ namespace Category5.Player
             // ranged uses started/canceled for charging, so skip performed
             if (combatClass == CombatClass.Ranged) return;
             
-            if (!CanAttack()) return;
+            if (CanAttack())
+            {
+                // melee attack on performed
+                PerformMeleeAttack();
+                return;
+            }
 
-            // melee attack on performed
-            PerformMeleeAttack();
+            // if cooldown is still running while animation is in chain window, buffer input
+            if (CanBufferMeleeAttackInput())
+            {
+                _hasBufferedMeleeAttackInput = true;
+                _bufferedMeleeInputExpireTime = Time.time + meleeInputBufferTime;
+            }
         }
         
-        /// <summary>
-        /// checks if the player can currently attack
-        /// </summary>
+        // checks if the player can currently attack
         private bool CanAttack()
         {
             if (_isAttacking) return false;
@@ -219,7 +287,45 @@ namespace Category5.Player
             // prevent attack input when dead
             if (_playerController != null && _playerController.IsDead.Value) return false;
             
+            // prevent attack input during wind riding
+            if (_playerController != null && _playerController.IsWindRiding) return false;
+            
             return true;
+        }
+
+        // strict checks for whether input buffering is allowed
+        private bool CanBufferMeleeAttackInput()
+        {
+            if (combatClass != CombatClass.Melee) return false;
+            if (!_meleeChainWindowOpen) return false;
+            if (Category5.UI.PauseMenu.GameIsPaused) return false;
+
+            if (Category5.Core.GameFlowManager.Instance != null &&
+                Category5.Core.GameFlowManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection)
+            {
+                return false;
+            }
+
+            if (_playerController != null && _playerController.IsDead.Value) return false;
+
+            return true;
+        }
+
+        private void UpdateMeleeInputBuffer()
+        {
+            if (!_hasBufferedMeleeAttackInput) return;
+
+            if (Time.time > _bufferedMeleeInputExpireTime)
+            {
+                _hasBufferedMeleeAttackInput = false;
+                return;
+            }
+
+            if (!_meleeChainWindowOpen) return;
+            if (!CanAttack()) return;
+
+            _hasBufferedMeleeAttackInput = false;
+            PerformMeleeAttack();
         }
         
 
@@ -285,6 +391,7 @@ namespace Category5.Player
             _isAttacking = true;
             _lastAttackTime = Time.time;
             _comboCounter++;
+            _meleeChainWindowOpen = false;
             
             // fire audio event for attack swing
             PlayerEvents.InvokeAttackSwing(transform.position);
@@ -305,11 +412,16 @@ namespace Category5.Player
             float attackSpeedMultiplier = _playerStats != null ? _playerStats.GetEffectiveAttackSpeedMultiplier() : 1f;
             duration /= Mathf.Max(0.01f, attackSpeedMultiplier);
 
+            // play a single basic attack animation for this attack
+            PlayBasicAttackAnimation(duration);
+
             // visuals (Placeholder)
             // Debug.Log($"Player Melee Attack! Combo: {_comboCounter-1} | Damage: {damage}");
 
-            // networked attack logic
-            RequestMeleeAttackServerRpc(damage, transform.position, transform.forward);
+            _hasPendingMeleeHit = true;
+            _pendingMeleeDamage = damage;
+            _pendingMeleePosition = transform.position;
+            _pendingMeleeDirection = transform.forward;
 
             // start cooldown coroutine
             StartCoroutine(AttackCooldown(duration));
@@ -329,6 +441,22 @@ namespace Category5.Player
             _isAttacking = true;
             _lastAttackTime = Time.time;
             
+            // start cooldown (modified by quickbow buff)
+            float attackSpeedMultiplier = _playerStats != null ? _playerStats.GetEffectiveAttackSpeedMultiplier() : 1f;
+            float effectiveCooldown = (rangedAttackCooldown * _quickbowAttackSpeedMult) / Mathf.Max(0.01f, attackSpeedMultiplier);
+
+            // play a single basic attack animation for this shot
+            PlayBasicAttackAnimation(effectiveCooldown);
+
+            _hasPendingRangedRelease = true;
+            _pendingRangedChargePercent = chargePercent;
+
+            StartCoroutine(AttackCooldown(effectiveCooldown));
+        }
+
+        // executes ranged attack logic once release timing is reached
+        private void ExecuteRangedAttack(float chargePercent)
+        {
             // check if this is a fully charged shot with quickbow active
             if (_quickbowActive && chargePercent >= 0.99f)
             {
@@ -340,11 +468,129 @@ namespace Category5.Player
                 // fire single arrow
                 FireSingleArrow(chargePercent);
             }
-            
-            // start cooldown (modified by quickbow buff)
+        }
+
+        // called from animation event relay on the model animator
+        public void OnAttackImpactAnimationEvent()
+        {
+            if (!IsOwner) return;
+
+            if (_hasPendingMeleeHit)
+            {
+                RequestMeleeAttackServerRpc(_pendingMeleeDamage, _pendingMeleePosition, _pendingMeleeDirection);
+                _hasPendingMeleeHit = false;
+                return;
+            }
+
+            if (_hasPendingRangedRelease)
+            {
+                ExecuteRangedAttack(_pendingRangedChargePercent);
+                _hasPendingRangedRelease = false;
+                return;
+            }
+
+            Debug.LogError("PlayerCombat: Received AttackImpact animation event but no pending melee/ranged attack was queued.");
+        }
+
+        // gets the active model animator from PlayerModelManager
+        private Animator GetModelAnimator()
+        {
+            var modelManager = GetComponent<PlayerModelManager>();
+            return modelManager != null ? modelManager.ModelAnimator : null;
+        }
+
+        // cache available animator params for the current controller
+        private void EnsureAttackAnimParamCache(Animator anim)
+        {
+            var controller = anim.runtimeAnimatorController;
+            if (_animParamsCached && _cachedAnimatorController == controller)
+            {
+                return;
+            }
+
+            _cachedAnimatorController = controller;
+            _animParamsCached = true;
+            _hasAnimAttackTrigger = false;
+            _hasAnimAttackAnimSpeed = false;
+
+            if (controller == null)
+            {
+                Debug.LogError("PlayerCombat: Model animator has no runtime animator controller. Cannot trigger attack animation.");
+                return;
+            }
+
+            var parameters = anim.parameters;
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                var parameter = parameters[i];
+                if (parameter.nameHash == _animAttackTriggerHash)
+                {
+                    _hasAnimAttackTrigger = true;
+                }
+
+                if (parameter.nameHash == _animAttackAnimSpeedHash)
+                {
+                    _hasAnimAttackAnimSpeed = true;
+                }
+            }
+        }
+
+        // plays one basic attack animation per attack input
+        private void PlayBasicAttackAnimation(float attackDuration)
+        {
+            var anim = GetModelAnimator();
+            if (anim == null)
+            {
+                Debug.LogError("PlayerCombat: No model animator available on PlayerModelManager. Cannot play attack animation.");
+                return;
+            }
+
+            EnsureAttackAnimParamCache(anim);
+
+            if (!_hasAnimAttackAnimSpeed)
+            {
+                Debug.LogError("PlayerCombat: Animator parameter 'AttackAnimSpeed' (Float) is missing. Add it to the active runtime animator controller.");
+                return;
+            }
+
+            float attackAnimSpeed = GetAttackAnimationSpeedMultiplier();
+            anim.SetFloat(_animAttackAnimSpeedHash, attackAnimSpeed);
+
+            if (_hasAnimAttackTrigger)
+            {
+                if (_ownerNetworkAnimator == null)
+                {
+                    Debug.LogError("PlayerCombat: Missing OwnerPlayerNetworkAnimator. Cannot sync attack trigger.");
+                    return;
+                }
+
+                _ownerNetworkAnimator.SetTrigger(_animAttackTriggerHash);
+                return;
+            }
+
+            Debug.LogError("PlayerCombat: Animator parameter 'Attack' (Trigger) is missing. Add it to the active runtime animator controller.");
+        }
+
+        // maps attack speed stat to animator attack speed with safe clamps
+        private float GetAttackAnimationSpeedMultiplier()
+        {
             float attackSpeedMultiplier = _playerStats != null ? _playerStats.GetEffectiveAttackSpeedMultiplier() : 1f;
-            float effectiveCooldown = (rangedAttackCooldown * _quickbowAttackSpeedMult) / Mathf.Max(0.01f, attackSpeedMultiplier);
-            StartCoroutine(AttackCooldown(effectiveCooldown));
+            return Mathf.Clamp(attackSpeedMultiplier, minAttackAnimationSpeed, maxAttackAnimationSpeed);
+        }
+
+        // animation event hook opens a chain window for buffered attack input
+        public void OnAttackChainWindowOpenAnimationEvent()
+        {
+            if (!IsOwner) return;
+            _meleeChainWindowOpen = true;
+            UpdateMeleeInputBuffer();
+        }
+
+        // animation event hook closes the chain window
+        public void OnAttackChainWindowCloseAnimationEvent()
+        {
+            if (!IsOwner) return;
+            _meleeChainWindowOpen = false;
         }
         
         // fires a single arrow with the given charge

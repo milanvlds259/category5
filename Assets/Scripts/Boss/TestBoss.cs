@@ -46,6 +46,8 @@ namespace Category5.Boss
         
         // telegraph visual instance
         private GameObject _telegraphInstance;
+        // procedural ground indicator, always spawned regardless of prefab assignment
+        private BossTelegraphIndicator _telegraphIndicator;
 
         // =====================================
         // events for artists/designers to hook into
@@ -190,26 +192,63 @@ namespace Category5.Boss
         private void SpawnTelegraphVisual()
         {
             CleanupTelegraph();
-            
+
             if (_currentAttack == null) return;
-            if (_currentAttack.telegraphPrefab == null) return;
-            
-            Vector3 spawnPos = GetTelegraphPosition();
-            _telegraphInstance = Instantiate(_currentAttack.telegraphPrefab, spawnPos, Quaternion.identity);
-            
-            // scale telegraph based on damage radius
-            float scale = _currentAttack.damageRadius * 2f;
-            _telegraphInstance.transform.localScale = new Vector3(scale, 1f, scale);
-            
-            // apply telegraph color if there's a renderer
-            var renderer = _telegraphInstance.GetComponent<Renderer>();
-            if (renderer != null)
+
+            // always spawn the procedural indicator so players can see the telegraph
+            // use collider bottom for correct ground-level Y, falling back to pivot if none found
+            Collider bossCol = GetComponent<Collider>() ?? GetComponentInChildren<Collider>();
+            float groundY = bossCol != null ? bossCol.bounds.min.y + 0.02f : transform.position.y + 0.02f;
+
+            if (_currentAttack.isSweep)
             {
-                renderer.material.color = _currentAttack.telegraphColor;
+                // arc fan originates from the boss's position, centered on its forward direction
+                Vector3 indicatorPos = new Vector3(transform.position.x, groundY, transform.position.z);
+                _telegraphIndicator = BossTelegraphIndicator.Create(
+                    BossTelegraphIndicator.IndicatorShape.Arc,
+                    _currentAttack.sweepLength,
+                    _currentAttack.sweepAngle,
+                    _currentAttack.telegraphColor,
+                    _currentAttack.telegraphDuration,
+                    indicatorPos);
+                // sweep originates from boss center - no XZ offset
+                _telegraphIndicator.SetFollowTarget(transform, Vector3.zero);
             }
-            
-            // fire event for artists
-            OnAttackTelegraphStart?.Invoke(_currentAttack, spawnPos);
+            else
+            {
+                // disc centered at the damage offset position, XZ only (always flat on ground)
+                Vector3 attackCenter = GetTelegraphPosition();
+                Vector3 indicatorPos = new Vector3(attackCenter.x, groundY, attackCenter.z);
+                _telegraphIndicator = BossTelegraphIndicator.Create(
+                    BossTelegraphIndicator.IndicatorShape.Circle,
+                    _currentAttack.damageRadius,
+                    0f,
+                    _currentAttack.telegraphColor,
+                    _currentAttack.telegraphDuration,
+                    indicatorPos);
+                // circle follows boss with the attack's XZ offset in local space
+                _telegraphIndicator.SetFollowTarget(transform, _currentAttack.damageOffset);
+            }
+
+            // orient flat along world XZ but rotated to match boss facing
+            _telegraphIndicator.transform.rotation = Quaternion.Euler(0f, transform.eulerAngles.y, 0f);
+
+            // optionally also spawn our own vfx prefab on top
+            if (_currentAttack.telegraphPrefab != null)
+            {
+                Vector3 spawnPos = GetTelegraphPosition();
+                _telegraphInstance = Instantiate(_currentAttack.telegraphPrefab, spawnPos, Quaternion.identity);
+
+                float scale = _currentAttack.damageRadius * 2f;
+                _telegraphInstance.transform.localScale = new Vector3(scale, 1f, scale);
+
+                var renderer = _telegraphInstance.GetComponent<Renderer>();
+                if (renderer != null)
+                    renderer.material.color = _currentAttack.telegraphColor;
+            }
+
+            // fire event for summer
+            OnAttackTelegraphStart?.Invoke(_currentAttack, GetTelegraphPosition());
         }
         
         private Vector3 GetTelegraphPosition()
@@ -225,13 +264,20 @@ namespace Category5.Boss
                 Destroy(_telegraphInstance);
                 _telegraphInstance = null;
             }
+
+            if (_telegraphIndicator != null)
+            {
+                Destroy(_telegraphIndicator.gameObject);
+                _telegraphIndicator = null;
+            }
         }
         
         protected override void OnTelegraphUpdate()
         {
             base.OnTelegraphUpdate();
-            
-            // update telegraph position to follow boss
+
+            // procedural indicator self-tracks the boss via SetFollowTarget
+            // only the optional prefab instance needs manual tracking here
             if (_telegraphInstance != null)
             {
                 _telegraphInstance.transform.position = GetTelegraphPosition();
@@ -448,8 +494,11 @@ namespace Category5.Boss
         // editor gizmos
         // =====================================
         
-        private void OnDrawGizmosSelected()
+        protected override void OnDrawGizmosSelected()
         {
+            // draw ground check sphere from base class
+            base.OnDrawGizmosSelected();
+
             if (!showAttackGizmos) return;
             
             // show current attack range

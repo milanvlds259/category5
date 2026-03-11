@@ -25,9 +25,10 @@ MonoBehaviour:
   damageRadius: 5
   damageOffset: {x: 0, y: -1, z: 3}
   hasLunge: 1
-  lungeSpeed: 8
-  lungeDistance: 2
+  lungeSpeed: 10
+  lungeDistance: 10
   isSweep: 0
+  sweepOffset: {x: 0, y: -1, z: 0}
   sweepAngle: 180
   sweepLength: 10
   sweepWidth: 2
