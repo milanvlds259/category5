@@ -1,6 +1,5 @@
 using Unity.Netcode;
 using UnityEngine;
-using Category5.PowerUps;
 using Category5.Core;
 
 namespace Category5.Player

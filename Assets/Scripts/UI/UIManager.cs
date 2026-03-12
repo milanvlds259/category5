@@ -4,7 +4,6 @@ using TMPro;
 using Unity.Netcode;
 using Category5.Player;
 using Category5.Boss;
-using Category5.PowerUps;
 using System.Collections.Generic;
 
 namespace Category5.UI

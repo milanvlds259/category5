@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Unity.Netcode;
-using Category5.PowerUps;
 using Category5.Player;
 using Category5.Player.WindRiding;
 using System.Collections.Generic;

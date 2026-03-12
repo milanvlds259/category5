@@ -1,6 +1,5 @@
 using UnityEngine;
 using Category5.Player;
-using Category5.PowerUps;
 
 namespace Category5
 {

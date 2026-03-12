@@ -4,7 +4,7 @@ using Unity.Netcode;
 using System;
 using Category5.Items;
 
-namespace Category5.PowerUps
+namespace Category5.Player
 {
     // component attached to player to calculate all stat modifications
     // reads from PlayerInventory (items) and manages temporary stat buffs

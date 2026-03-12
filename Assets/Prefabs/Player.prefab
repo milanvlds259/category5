@@ -454,6 +454,9 @@ MonoBehaviour:
   jumpHeight: 3
   gravity: -20
   rotationSpeed: 15
+  groundedMomentumDecay: 18
+  airborneMomentumDecay: 4
+  movementMomentumCancelRate: 24
   groundCheckRadius: 0.2
   groundCheckOffset: {x: 0, y: -0.95, z: 0}
   groundLayers:
@@ -576,6 +579,8 @@ MonoBehaviour:
   ability2: {fileID: 0}
   ability3: {fileID: 0}
   critshotArrowData: {fileID: 11400000, guid: 280db4f33df073544a185ffd626b9d10, type: 2}
+  rangerEArrowPrefab: {fileID: 773458864881063007, guid: d8bf3867a02c57b4c9312e7e8b561418, type: 3}
+  rangerEZonePrefab: {fileID: 773458864881063007, guid: 72ddedd957d2bdc429371e75ae5ac6d4, type: 3}
   ability1Cooldown:
     m_InternalValue: 0
   ability2Cooldown:

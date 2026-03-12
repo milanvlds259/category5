@@ -6,7 +6,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Category5.Player;
-using Category5.PowerUps;
 using Category5.Items;
 using Category5.UI;
 using Category5.Audio;
@@ -32,6 +31,10 @@ namespace Category5
         
         [Header("Critshot Projectile Data")]
         [SerializeField] private ProjectileData critshotArrowData;
+
+        [Header("Ranger Prefabs")]
+        [SerializeField] private GameObject rangerEArrowPrefab;
+        [SerializeField] private GameObject rangerEZonePrefab;
 
         [Header("Cooldown Tracking")]
         public NetworkVariable<float> ability1Cooldown = new NetworkVariable<float>(0f);
@@ -587,6 +590,46 @@ namespace Category5
             netObj.Spawn();
             
             Debug.Log($"Critshot fired for client {OwnerClientId}! Piercing arrow with {damageMultiplier}x damage!");
+        }
+
+        [Rpc(SendTo.Server)]
+        public void SpawnRangerEArrowServerRpc(Vector3 position, Vector3 direction, int baseDamage,
+            float arrowSpeed, float arrowLifetime, float zoneRadius, float zoneDuration,
+            float tickInterval, float slowMultiplier)
+        {
+            if (rangerEArrowPrefab == null)
+            {
+                Debug.LogError("PlayerAbilityManager: rangerEArrowPrefab is not assigned!");
+                return;
+            }
+
+            if (rangerEZonePrefab == null)
+            {
+                Debug.LogError("PlayerAbilityManager: rangerEZonePrefab is not assigned!");
+                return;
+            }
+
+            if (playerStats == null)
+            {
+                Debug.LogError("PlayerAbilityManager: playerStats is null!");
+                return;
+            }
+
+            GameObject obj = Instantiate(rangerEArrowPrefab, position, Quaternion.LookRotation(direction));
+            NetworkObject netObj = obj.GetComponent<NetworkObject>();
+            RangerEArrow arrow = obj.GetComponent<RangerEArrow>();
+
+            if (netObj == null || arrow == null)
+            {
+                Debug.LogError("PlayerAbilityManager: ranger e arrow prefab missing NetworkObject or RangerEArrow component!");
+                Destroy(obj);
+                return;
+            }
+
+            arrow.Initialize(OwnerClientId, playerStats, rangerEZonePrefab, baseDamage, arrowSpeed,
+                arrowLifetime, zoneRadius, zoneDuration, tickInterval, slowMultiplier);
+
+            netObj.Spawn();
         }
 
         [Rpc(SendTo.Server)]

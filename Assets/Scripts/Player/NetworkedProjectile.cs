@@ -1,7 +1,6 @@
 ﻿using UnityEngine;
 using Unity.Netcode;
 using Category5.Core;
-using Category5.PowerUps;
 using Category5.Items;
 using Category5.Boss;
 

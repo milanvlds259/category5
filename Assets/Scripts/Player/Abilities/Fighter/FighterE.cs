@@ -6,7 +6,6 @@ using Category5.Enemies;
 using Category5.Boss;
 using Category5.Player;
 using Category5.Player.Abilities;
-using Category5.PowerUps;
 using Category5.Items;
 using System.Linq;
 

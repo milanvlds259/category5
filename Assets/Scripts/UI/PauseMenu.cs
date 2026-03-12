@@ -4,7 +4,6 @@ using UnityEngine.InputSystem;
 using Unity.Netcode;
 using Category5.Core;
 using Category5.Player;
-using Category5.PowerUps;
 
 namespace Category5.UI
 {

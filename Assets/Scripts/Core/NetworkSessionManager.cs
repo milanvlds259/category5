@@ -4,7 +4,6 @@ using UnityEngine.SceneManagement;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Category5.PowerUps;
 using Category5.Player;
 using Category5.UI;
 

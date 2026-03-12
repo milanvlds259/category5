@@ -4,27 +4,23 @@ using Category5.Player;
 
 namespace Category5
 {
-    // black hole projectile that travels forward and spawns a black hole zone on impact
+    // networked arrow that spawns the ranger e zone on impact
     [RequireComponent(typeof(NetworkObject))]
     [RequireComponent(typeof(Rigidbody))]
-    public class BlackHoleProjectile : NetworkBehaviour
+    public class RangerEArrow : NetworkBehaviour
     {
         [Header("projectile settings")]
-        [SerializeField] private float speed = 14f;
+        [SerializeField] private float speed = 20f;
         [SerializeField] private float lifetime = 5f;
-
-        [Header("detonation")]
-        [SerializeField] private LayerMask detonationLayers = ~0;
 
         private ulong _ownerClientId;
         private PlayerStats _ownerStats;
-        private GameObject _blackHoleZonePrefab;
+        private GameObject _zonePrefab;
         private int _baseDamage;
-        private float _pullRadius;
-        private float _pullForce;
-        private float _pullDuration;
-        private float _pullStrengthRampUp;
-        private float _explosionRadius;
+        private float _zoneRadius;
+        private float _zoneDuration;
+        private float _tickInterval;
+        private float _slowMultiplier;
 
         private bool _hasDetonated;
         private Rigidbody _rigidbody;
@@ -59,32 +55,29 @@ namespace Category5
         }
 
         public void Initialize(ulong ownerClientId, PlayerStats ownerStats, GameObject zonePrefab,
-            int baseDamage, float projectileSpeed, float projectileLifetime, float pullRadius,
-            float pullForce, float pullDuration, float pullStrengthRampUp, float explosionRadius)
+            int baseDamage, float projectileSpeed, float projectileLifetime, float zoneRadius,
+            float zoneDuration, float tickInterval, float slowMultiplier)
         {
             _ownerClientId = ownerClientId;
             _ownerStats = ownerStats;
-            _blackHoleZonePrefab = zonePrefab;
+            _zonePrefab = zonePrefab;
             _baseDamage = baseDamage;
             speed = projectileSpeed;
             lifetime = projectileLifetime;
-            _pullRadius = pullRadius;
-            _pullForce = pullForce;
-            _pullDuration = pullDuration;
-            _pullStrengthRampUp = pullStrengthRampUp;
-            _explosionRadius = explosionRadius;
+            _zoneRadius = zoneRadius;
+            _zoneDuration = zoneDuration;
+            _tickInterval = tickInterval;
+            _slowMultiplier = slowMultiplier;
         }
 
         private void OnTriggerEnter(Collider other)
         {
             if (!IsServer) return;
             if (_hasDetonated) return;
-
             if (IsPlayerCollider(other)) return;
 
             _hasDetonated = true;
-            Vector3 hitPoint = other.ClosestPoint(transform.position);
-            SpawnZone(hitPoint);
+            Detonate(other.ClosestPoint(transform.position));
         }
 
         private void FixedUpdate()
@@ -95,42 +88,57 @@ namespace Category5
             Vector3 velocity = _rigidbody.linearVelocity;
             if (velocity.sqrMagnitude < 0.001f) return;
 
-            Vector3 dir = velocity.normalized;
+            Vector3 direction = velocity.normalized;
             float distance = velocity.magnitude * Time.fixedDeltaTime;
 
-            if (Physics.SphereCast(transform.position, _castRadius, dir, out RaycastHit hit, distance, detonationLayers, QueryTriggerInteraction.Ignore))
+            if (Physics.SphereCast(transform.position, _castRadius, direction, out RaycastHit hit, distance, ~0, QueryTriggerInteraction.Ignore))
             {
                 if (IsPlayerCollider(hit.collider)) return;
 
                 _hasDetonated = true;
-                SpawnZone(hit.point);
+                Detonate(hit.point);
             }
+        }
+
+        private void Detonate(Vector3 hitPoint)
+        {
+            Vector3 zonePosition = hitPoint;
+            Vector3 rayOrigin = hitPoint + Vector3.up;
+
+            if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit groundHit, 20f, ~0, QueryTriggerInteraction.Ignore))
+            {
+                zonePosition = groundHit.point;
+            }
+            else
+            {
+                zonePosition.y = 0f;
+            }
+
+            SpawnZone(zonePosition);
         }
 
         private void SpawnZone(Vector3 position)
         {
-            if (_blackHoleZonePrefab == null)
+            if (_zonePrefab == null)
             {
-                Debug.LogError("[BlackHoleProjectile] black hole zone prefab is not assigned");
+                Debug.LogError("[RangerEArrow] ranger e zone prefab is not assigned");
                 DespawnProjectile();
                 return;
             }
 
-            GameObject obj = Instantiate(_blackHoleZonePrefab, position, Quaternion.identity);
+            GameObject obj = Instantiate(_zonePrefab, position, Quaternion.identity);
             NetworkObject netObj = obj.GetComponent<NetworkObject>();
-            BlackHoleZone zone = obj.GetComponent<BlackHoleZone>();
+            RangerEZone zone = obj.GetComponent<RangerEZone>();
 
             if (netObj == null || zone == null)
             {
-                Debug.LogError("[BlackHoleProjectile] zone prefab missing NetworkObject or BlackHoleZone");
+                Debug.LogError("[RangerEArrow] zone prefab missing NetworkObject or RangerEZone");
                 Destroy(obj);
                 DespawnProjectile();
                 return;
             }
 
-            zone.Initialize(_ownerClientId, _ownerStats, _baseDamage, _pullRadius, _pullForce,
-                _pullDuration, _pullStrengthRampUp, _explosionRadius);
-
+            zone.Initialize(_ownerClientId, _ownerStats, _baseDamage, _zoneRadius, _zoneDuration, _tickInterval, _slowMultiplier);
             netObj.Spawn();
             DespawnProjectile();
         }
@@ -138,6 +146,7 @@ namespace Category5
         private void DespawnProjectile()
         {
             if (!IsServer) return;
+
             CancelInvoke(nameof(DespawnProjectile));
             if (NetworkObject != null && NetworkObject.IsSpawned)
             {
@@ -147,7 +156,6 @@ namespace Category5
 
         private static bool IsPlayerCollider(Collider collider)
         {
-            if (collider == null) return false;
             if (collider.GetComponent<PlayerController>() != null) return true;
             if (collider.GetComponentInParent<PlayerController>() != null) return true;
             return false;

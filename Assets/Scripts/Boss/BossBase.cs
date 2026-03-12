@@ -59,6 +59,23 @@ namespace Category5.Boss
         [SerializeField] protected bool movesDuringIdle = true;
         [SerializeField] protected bool movesDuringTelegraph = false;
         [SerializeField] protected BossMovementStyle movementStyle = BossMovementStyle.Direct;
+        protected float _effectiveMoveSpeed;
+
+        protected struct MovementModifier
+        {
+            public string sourceId;
+            public float multiplier;
+            public float remainingDuration;
+
+            public MovementModifier(string sourceId, float multiplier, float duration)
+            {
+                this.sourceId = sourceId;
+                this.multiplier = multiplier;
+                remainingDuration = duration;
+            }
+        }
+
+        protected readonly Dictionary<string, MovementModifier> _movementModifiers = new Dictionary<string, MovementModifier>();
         
         // rigidbody for physics collision
         protected Rigidbody _rigidbody;
@@ -174,6 +191,8 @@ namespace Category5.Boss
         {
             if (!IsServer) return;
             if (_isHidden) return;
+
+            UpdateMovementModifiers();
 
             // ground check and gravity run before state logic so vertical displacement
             // is always applied regardless of what state the boss is in
@@ -405,7 +424,7 @@ namespace Category5.Boss
         {
             if (direction.sqrMagnitude < 0.001f) return;
             
-            Vector3 movement = direction * moveSpeed * Time.deltaTime;
+            Vector3 movement = direction * _effectiveMoveSpeed * Time.deltaTime;
             
             if (_rigidbody != null)
             {
@@ -417,6 +436,48 @@ namespace Category5.Boss
                 // fallback to direct transform movement just in case
                 transform.position += movement;
             }
+        }
+
+        protected virtual void UpdateMovementModifiers()
+        {
+            List<string> toRemove = new List<string>();
+            foreach (var kvp in _movementModifiers)
+            {
+                MovementModifier modifier = kvp.Value;
+                modifier.remainingDuration -= Time.deltaTime;
+
+                if (modifier.remainingDuration <= 0f)
+                {
+                    toRemove.Add(kvp.Key);
+                    continue;
+                }
+
+                _movementModifiers[kvp.Key] = modifier;
+            }
+
+            foreach (string key in toRemove)
+            {
+                _movementModifiers.Remove(key);
+            }
+
+            float lowestMultiplier = 1f;
+            foreach (MovementModifier modifier in _movementModifiers.Values)
+            {
+                if (modifier.multiplier < lowestMultiplier)
+                {
+                    lowestMultiplier = modifier.multiplier;
+                }
+            }
+
+            _effectiveMoveSpeed = moveSpeed * lowestMultiplier;
+        }
+
+        public void ApplyMovementModifier(float multiplier, float duration, string sourceId)
+        {
+            if (!IsServer) return;
+
+            _movementModifiers[sourceId] = new MovementModifier(sourceId, multiplier, duration);
+            UpdateMovementModifiers();
         }
         
         // helper to get distance to current target
