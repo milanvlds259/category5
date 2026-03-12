@@ -66,13 +66,13 @@ namespace Category5.Player
         private float _chargeStartTime;
         private float _lastChargePercent;
         
-        // quickbow buff state
-        private bool _quickbowActive;
-        private float _quickbowAttackSpeedMult = 1f;
-        private float _quickbowChargeSpeedMult = 1f;
-        private int _quickbowBurstCount = 0;
-        private float _quickbowBurstInterval = 0.1f;
-        private float _quickbowBurstDamageMult = 1f;
+        // ranger q buff state
+        private bool _rangerQActive;
+        private float _rangerQAttackSpeedMult = 1f;
+        private float _rangerQChargeSpeedMult = 1f;
+        private int _rangerQBurstCount = 0;
+        private float _rangerQBurstInterval = 0.1f;
+        private float _rangerQBurstDamageMult = 1f;
 
         // pending attack data for animation event timing
         private bool _hasPendingMeleeHit;
@@ -107,7 +107,7 @@ namespace Category5.Player
         public CombatClass CurrentCombatClass => combatClass;
         public bool IsCharging => _isCharging;
         public float ChargePercent => _isCharging && arrowData != null 
-            ? Mathf.Clamp01((Time.time - _chargeStartTime) / (arrowData.MaxChargeTime * _quickbowChargeSpeedMult)) 
+            ? Mathf.Clamp01((Time.time - _chargeStartTime) / (arrowData.MaxChargeTime * _rangerQChargeSpeedMult)) 
             : 0f;
         
         // public accessor for charge movement multiplier (used by playercontroller)
@@ -441,9 +441,9 @@ namespace Category5.Player
             _isAttacking = true;
             _lastAttackTime = Time.time;
             
-            // start cooldown (modified by quickbow buff)
+            // start cooldown (modified by ranger q buff)
             float attackSpeedMultiplier = _playerStats != null ? _playerStats.GetEffectiveAttackSpeedMultiplier() : 1f;
-            float effectiveCooldown = (rangedAttackCooldown * _quickbowAttackSpeedMult) / Mathf.Max(0.01f, attackSpeedMultiplier);
+            float effectiveCooldown = (rangedAttackCooldown * _rangerQAttackSpeedMult) / Mathf.Max(0.01f, attackSpeedMultiplier);
 
             // play a single basic attack animation for this shot
             PlayBasicAttackAnimation(effectiveCooldown);
@@ -457,8 +457,8 @@ namespace Category5.Player
         // executes ranged attack logic once release timing is reached
         private void ExecuteRangedAttack(float chargePercent)
         {
-            // check if this is a fully charged shot with quickbow active
-            if (_quickbowActive && chargePercent >= 0.99f)
+            // check if this is a fully charged shot with ranger q active
+            if (_rangerQActive && chargePercent >= 0.99f)
             {
                 // fire burst of arrows
                 StartCoroutine(FireBurstArrows());
@@ -617,10 +617,10 @@ namespace Category5.Player
             RequestChargedRangedAttackServerRpc(spawnPos, direction, damageMultiplier, speedMultiplier);
         }
         
-        // fires a burst of arrows rapidly (quickbow ability)
+        // fires a burst of arrows rapidly (ranger q ability)
         private IEnumerator FireBurstArrows()
         {
-            for (int i = 0; i < _quickbowBurstCount; i++)
+            for (int i = 0; i < _rangerQBurstCount; i++)
             {
                 // get spawn position for each arrow
                 Vector3 spawnPos = projectileSpawnPoint != null 
@@ -633,16 +633,16 @@ namespace Category5.Player
                 Vector3 direction = GetAimDirection(1f, 1f); // full charge stats
                 
                 // apply burst damage multiplier
-                float damageMultiplier = _quickbowBurstDamageMult;
+                float damageMultiplier = _rangerQBurstDamageMult;
                 float speedMultiplier = 1f;
                 
                 // spawn arrow
                 RequestChargedRangedAttackServerRpc(spawnPos, direction, damageMultiplier, speedMultiplier);
                 
                 // wait before next arrow
-                if (i < _quickbowBurstCount - 1)
+                if (i < _rangerQBurstCount - 1)
                 {
-                    yield return new WaitForSeconds(_quickbowBurstInterval);
+                    yield return new WaitForSeconds(_rangerQBurstInterval);
                 }
             }
         }
@@ -1036,31 +1036,31 @@ namespace Category5.Player
         }
         
         // =====================================
-        // quickbow ability buff methods
+        // ranger q ability buff methods
         // =====================================
         
-        public void ApplyQuickbowBuff(float attackSpeedMult, float chargeSpeedMult, int burstCount, float burstInterval, float burstDamageMult)
+        public void ApplyRangerQBuff(float attackSpeedMult, float chargeSpeedMult, int burstCount, float burstInterval, float burstDamageMult)
         {
-            _quickbowActive = true;
-            _quickbowAttackSpeedMult = attackSpeedMult;
-            _quickbowChargeSpeedMult = chargeSpeedMult;
-            _quickbowBurstCount = burstCount;
-            _quickbowBurstInterval = burstInterval;
-            _quickbowBurstDamageMult = burstDamageMult;
+            _rangerQActive = true;
+            _rangerQAttackSpeedMult = attackSpeedMult;
+            _rangerQChargeSpeedMult = chargeSpeedMult;
+            _rangerQBurstCount = burstCount;
+            _rangerQBurstInterval = burstInterval;
+            _rangerQBurstDamageMult = burstDamageMult;
             
-            // Debug.Log("Quickbow buff applied! Attack speed and charge speed increased, burst fire enabled.");
+            // Debug.Log("RangerQ buff applied! Attack speed and charge speed increased, burst fire enabled.");
         }
         
-        public void RemoveQuickbowBuff()
+        public void RemoveRangerQBuff()
         {
-            _quickbowActive = false;
-            _quickbowAttackSpeedMult = 1f;
-            _quickbowChargeSpeedMult = 1f;
-            _quickbowBurstCount = 0;
-            _quickbowBurstInterval = 0.1f;
-            _quickbowBurstDamageMult = 1f;
+            _rangerQActive = false;
+            _rangerQAttackSpeedMult = 1f;
+            _rangerQChargeSpeedMult = 1f;
+            _rangerQBurstCount = 0;
+            _rangerQBurstInterval = 0.1f;
+            _rangerQBurstDamageMult = 1f;
             
-            // Debug.Log("Quickbow buff removed.");
+            // Debug.Log("RangerQ buff removed.");
         }
     }
 }
