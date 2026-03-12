@@ -11,7 +11,7 @@ using Category5.Boss;
 namespace Category5
 {
     // ranger e ability - tracker arrow with dot zone and slow
-    public class SpiralbowAbility : AbilityBase
+    public class RangerE : AbilityBase
     {
         [Header("Spiralbow Settings")]
         [SerializeField] private float zoneRadius = 5f;
@@ -40,7 +40,7 @@ namespace Category5
         
         public override void Execute()
         {
-            Debug.Log("SpiralbowAbility.Execute() called");
+            Debug.Log("RangerE.Execute() called");
             
             // get aim direction from camera
             Vector3 spawnPos = playerController.transform.position + Vector3.up * 1.5f + playerController.transform.forward * 0.5f;
@@ -261,7 +261,7 @@ namespace Category5
             hitboxRb.isKinematic = true;
             
             // add dot zone component to HITBOX (where the collider is), not the visual
-            SpiralbowDotZone dotZone = hitbox.AddComponent<SpiralbowDotZone>();
+            RangerEDotZone dotZone = hitbox.AddComponent<RangerEDotZone>();
             dotZone.Initialize(zoneDuration, zoneRadius, damageTickInterval, slowMultiplier, baseDamage, ownerStats, ownerClientId);
             
             // destroy the visual cylinder after duration (which also destroys the hitbox child)
@@ -270,7 +270,7 @@ namespace Category5
     }
     
     // dot zone that damages and slows enemies over time
-    public class SpiralbowDotZone : MonoBehaviour
+    public class RangerEDotZone : MonoBehaviour
     {
         private float zoneDuration;
         private float zoneRadius;
@@ -332,7 +332,7 @@ namespace Category5
                 enemiesInZone.Add(enemy);
                 Debug.Log($"Spiralbow zone hit enemy");
                 // apply slow
-                enemy.ApplyMovementModifier(slowMultiplier, zoneDuration, $"Spiralbow_{ownerClientId}");
+                enemy.ApplyMovementModifier(slowMultiplier, zoneDuration, $"RangerE_{ownerClientId}");
             }
         }
         

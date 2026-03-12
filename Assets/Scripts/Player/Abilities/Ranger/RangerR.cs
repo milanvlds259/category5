@@ -7,7 +7,7 @@ using Category5.Items;
 namespace Category5
 {
     // ranger r ability - instant piercing arrow that only stops on bosses
-    public class CritshotAbility : AbilityBase
+    public class RangerR : AbilityBase
     {
         [Header("Critshot Settings")]
         [SerializeField] private float damageMultiplier = 3f; // 3x damage
@@ -37,7 +37,7 @@ namespace Category5
             if (playerCombat.CurrentCombatClass != CombatClass.Ranged) return false;
             if (arrowData == null)
             {
-                Debug.LogWarning("CritshotAbility: No arrow data assigned!");
+                Debug.LogWarning("RangerR: No arrow data assigned!");
                 return false;
             }
             
@@ -46,7 +46,7 @@ namespace Category5
         
         public override void Execute()
         {
-            Debug.Log("CritshotAbility.Execute() called");
+            Debug.Log("RangerR.Execute() called");
             
             // get spawn position
             Vector3 spawnPos = projectileSpawnPoint != null 

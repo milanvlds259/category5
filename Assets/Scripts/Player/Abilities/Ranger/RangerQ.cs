@@ -8,7 +8,7 @@ using Category5.Items;
 namespace Category5
 {
     // ranger q ability - attack speed buff + burst fire mode
-    public class QuickbowAbility : AbilityBase
+    public class RangerQ : AbilityBase
     {
         [Header("Quickbow Settings")]
         [SerializeField] private float buffDuration = 5f;
@@ -38,7 +38,7 @@ namespace Category5
         
         public override void Execute()
         {
-            Debug.Log("QuickbowAbility.Execute() called");
+            Debug.Log("RangerQ.Execute() called");
             
             // start the buff
             if (buffCoroutine != null)
@@ -55,13 +55,13 @@ namespace Category5
         private IEnumerator QuickbowBuffCoroutine()
         {
             // apply the buff
-            playerCombat.ApplyQuickbowBuff(attackSpeedMultiplier, chargeSpeedMultiplier, burstArrowCount, burstInterval, burstDamageMultiplier);
+            playerCombat.ApplyRangerQBuff(attackSpeedMultiplier, chargeSpeedMultiplier, burstArrowCount, burstInterval, burstDamageMultiplier);
             
             // wait for buff duration
             yield return new WaitForSeconds(buffDuration);
             
             // remove the buff
-            playerCombat.RemoveQuickbowBuff();
+            playerCombat.RemoveRangerQBuff();
         }
     }
 }
