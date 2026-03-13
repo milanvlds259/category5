@@ -15,14 +15,14 @@ MonoBehaviour:
   enemyName: BasicEnemy
   elementType: 0
   maxHealth: 80
-  moveSpeed: 2.5
+  moveSpeed: 3.5
   rotationSpeed: 360
-  damage: 2
+  damage: 4
   attackRange: 2
   attackCooldown: 2
-  staggerDuration: 0.5
-  detectionRange: 30
-  leashRange: 40
+  staggerDuration: 0.25
+  detectionRange: 45
+  leashRange: 60
   enemyPrefab: {fileID: 0}
   enemyColor: {r: 1, g: 1, b: 1, a: 1}
   scaleMultiplier: 1
