@@ -12,12 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: da4b3cd86bfbb504fbfa4e92f8d91186, type: 3}
   m_Name: FighterQ
   m_EditorClassIdentifier: Assembly-CSharp::Category5.AbilityData
-  abilityName: Overhead Smash
+  abilityName: Overhead Slam
   description: overhead smash attack that deals AoE damage and briefly stuns nearby
     regular enemies.
   abilityIcon: {fileID: 0}
-  cooldownDuration: 8
-  baseDamage: 50
+  cooldownDuration: 6
+  baseDamage: 35
   castTime: 0
   manaCost: 2
   vfxPrefab: {fileID: 0}

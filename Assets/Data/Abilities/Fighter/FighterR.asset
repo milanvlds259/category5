@@ -12,12 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: da4b3cd86bfbb504fbfa4e92f8d91186, type: 3}
   m_Name: FighterR
   m_EditorClassIdentifier: Assembly-CSharp::Category5.AbilityData
-  abilityName: Come Get Me!
+  abilityName: Tempest Engine
   description: summons a large AoE around the player that taunts enemies toward you
     and grants you a large temporary stat boost
   abilityIcon: {fileID: 0}
-  cooldownDuration: 8
-  baseDamage: 0
+  cooldownDuration: 25
+  baseDamage: 60
   castTime: 0
   manaCost: 7
   vfxPrefab: {fileID: 0}

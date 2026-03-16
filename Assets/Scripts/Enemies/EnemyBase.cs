@@ -261,6 +261,9 @@ namespace Category5.Enemies
             
             // handle grapple pulling
             HandleGrapplePull();
+            
+            // handle ability launch velocity (fighter q slam etc.)
+            HandleLaunchVelocity();
 
             // after state updates apply vertical displacement so enemies fall when not grounded
             ApplyVerticalDisplacement();
@@ -626,8 +629,9 @@ namespace Category5.Enemies
         {
             if (_isGrounded)
             {
-                // when grounded, prevent accumulation of downward velocity
-                _verticalVelocity = groundedStickForce;
+                // don't stomp an upward velocity - a launch may have just set it positive
+                if (_verticalVelocity <= 0f)
+                    _verticalVelocity = groundedStickForce;
                 return;
             }
             else
@@ -652,6 +656,13 @@ namespace Category5.Enemies
             // if currently considered grounded, avoid large downward raycasts which can cause toggling
             if (_isGrounded)
             {
+                // upward launch velocity - apply it even when grounded so the enemy actually lifts off
+                if (_verticalVelocity > 0f)
+                {
+                    transform.position += Vector3.up * deltaY;
+                    return;
+                }
+
                 // tiny correction to avoid being slightly below ground: do a short raycast
                 Collider colCheck = GetComponent<Collider>() ?? GetComponentInChildren<Collider>();
                 if (colCheck != null)
@@ -772,6 +783,42 @@ namespace Category5.Enemies
             {
                 rb.linearVelocity += knockbackForce;
             }
+        }
+        
+        // horizontal launch velocity applied by abilities (e.g. fighter q slam)
+        private Vector3 _launchHorizontalVelocity = Vector3.zero;
+        [SerializeField] private float launchDecayRate = 12f;
+        
+        // launch the enemy with a velocity impulse (server-only)
+        // horizontal component decays over time; vertical overrides gravity
+        public void ApplyLaunch(Vector3 velocity)
+        {
+            if (!IsServer) return;
+            if (_isDead) return;
+            
+            _launchHorizontalVelocity = new Vector3(velocity.x, 0f, velocity.z);
+            
+            // override vertical velocity so the enemy gets launched upward
+            if (velocity.y > 0f)
+            {
+                _verticalVelocity = velocity.y;
+                _isGrounded = false;
+                // reset debounce counters - otherwise UpdateGroundCheck re-confirms grounded
+                // on the very next frame before the enemy has had a chance to move
+                _groundedTrueCounter = 0;
+                _groundedFalseCounter = 0;
+            }
+            
+            // interrupt chasing/attacking
+            TransitionToStagger();
+        }
+        
+        private void HandleLaunchVelocity()
+        {
+            if (_launchHorizontalVelocity.sqrMagnitude < 0.01f) return;
+            
+            transform.position += _launchHorizontalVelocity * Time.deltaTime;
+            _launchHorizontalVelocity = Vector3.MoveTowards(_launchHorizontalVelocity, Vector3.zero, launchDecayRate * Time.deltaTime);
         }
         
         // grapple state for continuous pulling (used by fighter e grappling hook)

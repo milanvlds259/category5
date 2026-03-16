@@ -1,144 +1,143 @@
 using UnityEngine;
-using Unity.Netcode;
-using Category5.Core;
-using Category5.Audio;
 using Category5.Player;
+using Category5.Core;
 
 namespace Category5
 {
-    // fighter r ability (ultimate) - summons taunt aura that forces enemies to target the player
-    // also applies temporary stat boost
+    // fighter r - tempest engine (two-press ultimate)
+    // first press: resets q and e cooldowns, boosts movement speed, starts a timer
+    // second press (while active): executes a large box hitbox that deals damage scaled by distance traveled and current speed
+    // if the timer runs out without a second press the ult just goes on cooldown
     public class FighterR : AbilityBase
     {
-        [SerializeField] private GameObject tauntAuraPrefab;
-        [SerializeField] private float auraDuration = 4f;
-        [SerializeField] private float damageBoost = 0.4f; // 40% damage boost
-        [SerializeField] private float speedBoost = 0.25f; // 25% movement speed boost
-        
-        private TauntAura currentAura;
-        private float auraTimer;
-        private bool isActive;
-        
-        // events for vfx/sfx
-        public static event System.Action<Vector3> OnAuraActivate;
-        public static event System.Action<Vector3> OnAuraDeactivate;
-        
+        [Header("tempest engine")]
+        [SerializeField] private float ultDuration = 7f;
+        [SerializeField] private float speedBoostMultiplier = 0.5f; // 50% extra speed
+        [SerializeField] private float distanceScalingValue = 0.5f;
+        [SerializeField] private float velocityScalingValue = 0.3f;
+
+        [Header("big move hitbox")]
+        [SerializeField] private float bigMoveBoxWidth = 6f;
+        [SerializeField] private float bigMoveBoxHeight = 4f;
+        [SerializeField] private float bigMoveBoxDepth = 6f;
+        [SerializeField] private float bigMoveBoxForwardOffset = 2f;
+        [SerializeField] private LayerMask enemyLayers = 1 << 6;
+
+        // vfx/sfx events (use OnTempestActivate as event name to avoid clash with the instance callback method)
+        public static event System.Action<Vector3> OnTempestActivate;
+        public static event System.Action<Vector3, bool> OnTempestDeactivated; // bool = big move was used
+        public static event System.Action<Vector3, Vector3> OnTempestBigMove;
+
+        // public invoke helpers called from PlayerAbilityManager clientrpcs
+        public static void OnTempestBigMoveInvoke(Vector3 pos, Vector3 fwd) => OnTempestBigMove?.Invoke(pos, fwd);
+        public static void OnTempestDeactivatedInvoke(Vector3 pos, bool usedBigMove) => OnTempestDeactivated?.Invoke(pos, usedBigMove);
+
+        // only second press sets cooldown via server rpc; first press (activation) never starts cooldown here
+        public override bool StartCooldownOnExecute => false;
+
+        // state (owner-local)
+        private bool _isUltActive;
+        private float _ultTimer;
+        private float _distanceTraveled;
+        private Vector3 _lastPosition;
+
+        // read by PlayerAbilityManager to expose ult state to ui/other systems
+        public bool IsUltActive => _isUltActive;
+
         public override bool CanUse()
         {
+            if (playerController == null || playerController.IsDead.Value) return false;
+
+            // second press: always allowed while ult is active (bypasses cooldown gate)
+            if (_isUltActive) return true;
+
+            // first press: standard cooldown gate
             if (!base.CanUse()) return false;
-            if (isActive) return false; // can't use while active
-            
-            // check ability manager cooldown
             if (abilityManager.ability3Cooldown.Value > 0) return false;
-            
             return true;
         }
 
         public override void Execute()
         {
             if (!CanUse()) return;
-            
-            // activate aura on owner
-            ActivateAuraServerRpc();
-        }
 
-        [Rpc(SendTo.Server)]
-        private void ActivateAuraServerRpc()
-        {
-            if (!IsServer) return;
-            
-            isActive = true;
-            auraTimer = auraDuration;
-            
-            // notify all clients to play effects
-            TriggerAuraEffectsClientRpc(playerController.transform.position, true);
-            
-            // set cooldown
-            abilityManager.ability3Cooldown.Value = abilityData.cooldownDuration;
-        }
-        
-        [ClientRpc]
-        private void TriggerAuraEffectsClientRpc(Vector3 position, bool activate)
-        {
-            if (activate)
+            if (_isUltActive)
             {
-                OnAuraActivate?.Invoke(position);
-                
-                if (IsOwner)
-                {
-                    // create taunt aura if on owner
-                    if (tauntAuraPrefab != null)
-                    {
-                        // spawn at player feet position (not parented)
-                        Vector3 spawnPos = playerController.transform.position;
-                        spawnPos.y = playerController.transform.position.y + 0.1f; // slightly above ground
-                        
-                        var auraObj = Instantiate(tauntAuraPrefab, spawnPos, Quaternion.identity);
-                        currentAura = auraObj.GetComponent<TauntAura>();
-                        if (currentAura != null)
-                        {
-                            currentAura.Initialize(playerController);
-                        }
-                    }
-                    
-                    // apply temporary stat boost
-                    if (playerStats != null)
-                    {
-                        // create a temporary power-up effect
-                        ApplyStatBoost();
-                    }
-                    
-                    if (HitFeedbackManager.Instance != null)
-                    {
-                        HitFeedbackManager.Instance.TriggerHeavyHit(playerController.transform.position);
-                    }
-                }
+                // second press - execute big move
+                float currentSpeed = playerController.CurrentMovementSpeed;
+                int damage = playerStats.CalculateDamage(
+                    Mathf.RoundToInt(abilityData.baseDamage + (_distanceTraveled * distanceScalingValue) * (currentSpeed * velocityScalingValue))
+                );
+
+                Vector3 pos = playerController.transform.position;
+                Vector3 forward = playerController.transform.forward;
+
+                OnTempestBigMove?.Invoke(pos, forward);
+                SpawnVfx(pos);
+                PlayAudio(pos);
+
+                _isUltActive = false;
+                abilityManager.ExecuteTempestBigMoveServerRpc(pos, forward, damage,
+                    bigMoveBoxWidth, bigMoveBoxHeight, bigMoveBoxDepth, bigMoveBoxForwardOffset, enemyLayers.value);
             }
             else
             {
-                OnAuraDeactivate?.Invoke(position);
-                
-                if (IsOwner && currentAura != null)
-                {
-                    Destroy(currentAura.gameObject);
-                    currentAura = null;
-                }
+                // first press - activate ult
+                abilityManager.ActivateTempestEngineServerRpc();
             }
         }
-        
-        private void ApplyStatBoost()
+
+        // called by PlayerAbilityManager via a targeted clientrpc when the server confirms activation
+        public void OnTempestActivated()
         {
-            // apply temporary stat boosts via PlayerStats
-            if (playerStats != null)
-            {
-                playerStats.ApplyTemporaryMultiplier("damage", damageBoost, auraDuration);
-                playerStats.ApplyTemporaryMultiplier("speed", speedBoost, auraDuration);
-                
-                Debug.Log($"FighterR: Applied damage boost {damageBoost:P0} and speed boost {speedBoost:P0} for {auraDuration}s");
-            }
+            _isUltActive = true;
+            _ultTimer = ultDuration;
+            _distanceTraveled = 0f;
+            _lastPosition = playerController.transform.position;
+
+            playerStats.ApplyTemporaryMultiplier("speed", speedBoostMultiplier, ultDuration);
+
+            OnTempestActivate?.Invoke(playerController.transform.position);
+
+            if (HitFeedbackManager.Instance != null)
+                HitFeedbackManager.Instance.TriggerHeavyHit(playerController.transform.position);
         }
 
         private void Update()
         {
-            // note: only owner updates the timer
-            if (!IsOwner || !isActive) return;
-            
-            auraTimer -= Time.deltaTime;
-            if (auraTimer <= 0)
+            if (!IsOwner || !_isUltActive) return;
+
+            // accumulate distance traveled
+            Vector3 currentPos = playerController.transform.position;
+            _distanceTraveled += Vector3.Distance(currentPos, _lastPosition);
+            _lastPosition = currentPos;
+
+            // countdown timer
+            _ultTimer -= Time.deltaTime;
+            if (_ultTimer <= 0f)
             {
-                isActive = false;
-                
-                // notify all clients to clean up effects
-                DeactivateAuraServerRpc();
+                // timer expired without second press
+                _isUltActive = false;
+                OnTempestDeactivated?.Invoke(playerController.transform.position, false);
+                abilityManager.EndTempestEngineServerRpc();
             }
         }
-        
-        [Rpc(SendTo.Server)]
-        private void DeactivateAuraServerRpc()
+
+        private void OnDrawGizmosSelected()
         {
-            if (!IsServer) return;
-            
-            TriggerAuraEffectsClientRpc(playerController.transform.position, false);
+            if (playerController == null) return;
+
+            Vector3 pos = playerController.transform.position;
+            Vector3 forward = playerController.transform.forward;
+            Quaternion rot = Quaternion.LookRotation(forward);
+
+            Gizmos.color = new Color(0.8f, 0.2f, 1f, 0.5f);
+            Vector3 boxCenter = pos + forward * bigMoveBoxForwardOffset + Vector3.up * (bigMoveBoxHeight * 0.5f);
+            Gizmos.matrix = Matrix4x4.TRS(boxCenter, rot, Vector3.one);
+            Gizmos.DrawWireCube(Vector3.zero, new Vector3(bigMoveBoxWidth, bigMoveBoxHeight, bigMoveBoxDepth));
+            Gizmos.matrix = Matrix4x4.identity;
         }
+
+        // note: cooldowns managed by PlayerAbilityManager
     }
 }

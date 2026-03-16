@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Category5.Player;
+using Category5.Player.Abilities;
 using Category5.Items;
 using Category5.UI;
 using Category5.Audio;
@@ -640,173 +641,335 @@ namespace Category5
         }
 
         [Rpc(SendTo.Server)]
-        public void ExecuteFighterQSmashServerRpc(Vector3 executePosition, int adjustedDamage, float aoeRadius, float stunDuration, int enemyLayerMask)
+        public void ExecuteFighterQSlamGroundedServerRpc(Vector3 playerPos, Vector3 forward, int adjustedDamage,
+            float boxWidth, float boxHeight, float boxDepth, float boxForwardOffset,
+            float launchForceUp, float launchForceForward, int enemyLayerMask)
         {
             if (!IsServer) return;
-            
-            Debug.Log($"[FighterQ Server] Executing smash at {executePosition}, damage={adjustedDamage}, radius={aoeRadius}, layerMask={enemyLayerMask}");
-            
-            // always trigger execute telegraph/vfx (even with 0 hits)
-            TriggerFighterQExecuteClientRpc(executePosition);
-            
-            // find enemies in aoe using layermask
-            Collider[] hitColliders = Physics.OverlapSphere(executePosition, aoeRadius, enemyLayerMask);
-            Debug.Log($"[FighterQ Server] Found {hitColliders.Length} colliders with layerMask");
-            
-            // also try without layermask to see all colliders
-            Collider[] allColliders = Physics.OverlapSphere(executePosition, aoeRadius);
-            Debug.Log($"[FighterQ Server] Found {allColliders.Length} total colliders (no mask)");
-            
-            foreach (Collider col in allColliders)
+
+            Vector3 boxCenter = playerPos + forward * boxForwardOffset + Vector3.up * (boxHeight * 0.5f);
+            Quaternion rotation = forward != Vector3.zero ? Quaternion.LookRotation(forward) : Quaternion.identity;
+            Vector3 halfExtents = new Vector3(boxWidth * 0.5f, boxHeight * 0.5f, boxDepth * 0.5f);
+
+            Collider[] hits = Physics.OverlapBox(boxCenter, halfExtents, rotation, enemyLayerMask, QueryTriggerInteraction.Ignore);
+            HashSet<int> processed = new HashSet<int>();
+
+            foreach (Collider col in hits)
             {
-                Debug.Log($"  - Collider: {col.gameObject.name}, Layer: {col.gameObject.layer} ({LayerMask.LayerToName(col.gameObject.layer)}), Has EnemyBase: {col.GetComponent<EnemyBase>() != null}, Has BossBase: {col.GetComponent<BossBase>() != null}");
-            }
-            
-            int enemiesHit = 0;
-            foreach (Collider collider in hitColliders)
-            {
-                // try enemy base first
-                if (collider.TryGetComponent<EnemyBase>(out var enemy) && !enemy.IsDead)
+                EnemyBase enemy = col.GetComponentInParent<EnemyBase>();
+                if (enemy != null && !enemy.IsDead)
                 {
-                    Debug.Log($"[FighterQ Server] Hitting enemy: {collider.gameObject.name}");
-                    enemy.ApplyStun(stunDuration);
+                    if (!processed.Add(enemy.GetInstanceID())) continue;
                     enemy.TakeDamage(adjustedDamage);
-                    
-                    // show damage number to the attacking player
-                    ShowFighterQDamageNumberClientRpc(adjustedDamage, enemy.transform.position, new ClientRpcParams
+                    enemy.ApplyLaunch(forward * launchForceForward + Vector3.up * launchForceUp);
+                    ShowFighterDamageNumberClientRpc(adjustedDamage, enemy.transform.position, new ClientRpcParams
                     {
-                        Send = new ClientRpcSendParams
-                        {
-                            TargetClientIds = new ulong[] { OwnerClientId }
-                        }
+                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
                     });
-                    
-                    enemiesHit++;
+                    continue;
                 }
-                // also check for boss base (bosses inherit from BossBase which implements IDamageable)
-                else if (collider.TryGetComponent<BossBase>(out var boss))
+
+                BossBase boss = col.GetComponentInParent<BossBase>();
+                if (boss != null && processed.Add(boss.GetInstanceID()))
                 {
-                    Debug.Log($"[FighterQ Server] Hitting boss: {collider.gameObject.name}");
                     boss.TakeDamage(adjustedDamage);
-                    
-                    // show damage number to the attacking player
-                    ShowFighterQDamageNumberClientRpc(adjustedDamage, boss.transform.position, new ClientRpcParams
+                    ShowFighterDamageNumberClientRpc(adjustedDamage, boss.transform.position, new ClientRpcParams
                     {
-                        Send = new ClientRpcSendParams
-                        {
-                            TargetClientIds = new ulong[] { OwnerClientId }
-                        }
+                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
                     });
-                    
-                    enemiesHit++;
                 }
-                
             }
-            
-            Debug.Log($"[FighterQ Server] Total enemies hit: {enemiesHit}");
-            
-            // notify clients for hit effects only if we hit something
-            if (enemiesHit > 0)
-            {
-                TriggerFighterQHitClientRpc(executePosition, enemiesHit);
 
+            TriggerFighterQSlamGroundedClientRpc(playerPos);
+        }
 
-                //RYLAN CODE - reset cooldown for grapple on smash hit
-                
-                Debug.Log("cooldown reset!");
-                ResetAbilityCooldown(AbilitySlot.Ability2);
-                
-            }
-        }
-        
-        [Rpc(SendTo.Everyone)]
-        private void TriggerFighterQExecuteClientRpc(Vector3 position)
+        [Rpc(SendTo.Server)]
+        public void ExecuteFighterQSlamAirborneServerRpc(Vector3 playerPos, Vector3 forward, int adjustedDamage,
+            float sphereRadius, Vector3 sphereOffset, float launchForceUp,
+            float selfLaunchUp, float selfLaunchForward, int enemyLayerMask)
         {
-            // fire execute event for vfx/sfx (telegraph/impact)
-            FighterQ.InvokeSmashExecute(position, 0);
-            
-            // temporary debug visualization - create a red sphere at impact location
-            GameObject debugSphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            debugSphere.transform.position = position;
-            debugSphere.transform.localScale = Vector3.one * 10f; // 5m radius = 10m diameter
-            
-            // make it semi-transparent red
-            Renderer renderer = debugSphere.GetComponent<Renderer>();
-            if (renderer != null)
-            {
-                Material mat = new Material(Shader.Find("Standard"));
-                mat.color = new Color(1f, 0f, 0f, 0.3f); // red with alpha
-                mat.SetFloat("_Mode", 3); // transparent rendering mode
-                mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-                mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                mat.SetInt("_ZWrite", 0);
-                mat.DisableKeyword("_ALPHATEST_ON");
-                mat.EnableKeyword("_ALPHABLEND_ON");
-                mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-                mat.renderQueue = 3000;
-                renderer.material = mat;
-            }
-            
-            // remove collider so it doesn't interfere with gameplay
-            Collider col = debugSphere.GetComponent<Collider>();
-            if (col != null) Destroy(col);
-            
-            // destroy after 1 second
-            Destroy(debugSphere, 1f);
-        }
-        
-        [Rpc(SendTo.Everyone)]
-        private void TriggerFighterQHitClientRpc(Vector3 position, int enemiesHit)
-        {
-            // fire hit event for vfx/sfx
-            FighterQ.InvokeSmashHit(position);
-            
-            // trigger hit feedback for the owner only
-            if (IsOwner && HitFeedbackManager.Instance != null)
-            {
-                HitFeedbackManager.Instance.TriggerHeavyHit(position);
-            }
-        }
-        
-        [ClientRpc]
-        private void ShowFighterQDamageNumberClientRpc(int damage, Vector3 position, ClientRpcParams clientRpcParams = default)
-        {
-            // only the attacking player sees their damage numbers
-            if (Category5.UI.UIManager.Instance != null)
-            {
-                Category5.UI.UIManager.Instance.ShowDamageNumber(damage, position);
-            }
-        }
-        
-        // =====================================
-        // hook projectile callback for fighter e
-        // =====================================
-        
-        // called by HookProjectile when it hits an enemy or boss
-        // routes the callback to the FighterE ability (ability2)
-        public void OnHookHitTarget(Vector3 hitPosition, ulong targetNetworkObjectId, bool isBoss)
-        {
-            Debug.Log($"PlayerAbilityManager: OnHookHitTarget called. IsServer: {IsServer}, ability2: {ability2 != null}");
-            
             if (!IsServer) return;
-            
-            if (ability2 == null)
+
+            Vector3 sphereCenter = playerPos + sphereOffset;
+            Collider[] hits = Physics.OverlapSphere(sphereCenter, sphereRadius, enemyLayerMask, QueryTriggerInteraction.Ignore);
+            HashSet<int> processed = new HashSet<int>();
+
+            foreach (Collider col in hits)
             {
-                Debug.LogError("PlayerAbilityManager: ability2 is null, cannot route hook hit callback");
+                EnemyBase enemy = col.GetComponentInParent<EnemyBase>();
+                if (enemy != null && !enemy.IsDead)
+                {
+                    if (!processed.Add(enemy.GetInstanceID())) continue;
+                    enemy.TakeDamage(adjustedDamage);
+                    enemy.ApplyLaunch(Vector3.up * launchForceUp);
+                    ShowFighterDamageNumberClientRpc(adjustedDamage, enemy.transform.position, new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+                    });
+                    continue;
+                }
+
+                BossBase boss = col.GetComponentInParent<BossBase>();
+                if (boss != null && processed.Add(boss.GetInstanceID()))
+                {
+                    boss.TakeDamage(adjustedDamage);
+                    ShowFighterDamageNumberClientRpc(adjustedDamage, boss.transform.position, new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+                    });
+                }
+            }
+
+            // launch the player upward + forward, sent exclusively to the owning client
+            TriggerFighterQAirborneSelfLaunchClientRpc(forward, selfLaunchUp, selfLaunchForward, new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+            });
+
+            TriggerFighterQSlamAirborneClientRpc(playerPos);
+        }
+
+        [ClientRpc]
+        private void TriggerFighterQSlamGroundedClientRpc(Vector3 position)
+        {
+            FighterQ.InvokeSlamGrounded(position);
+            if (IsOwner && HitFeedbackManager.Instance != null)
+                HitFeedbackManager.Instance.TriggerHeavyHit(position);
+        }
+
+        [ClientRpc]
+        private void TriggerFighterQSlamAirborneClientRpc(Vector3 position)
+        {
+            FighterQ.InvokeSlamAirborne(position);
+            if (IsOwner && HitFeedbackManager.Instance != null)
+                HitFeedbackManager.Instance.TriggerHeavyHit(position);
+        }
+
+        [ClientRpc]
+        private void TriggerFighterQAirborneSelfLaunchClientRpc(Vector3 forward, float launchUp, float launchForward, ClientRpcParams rpcParams = default)
+        {
+            if (!IsOwner) return;
+            playerController.SetExternalVelocity(Vector3.up * launchUp + forward * launchForward);
+        }
+
+        [ClientRpc]
+        private void ShowFighterDamageNumberClientRpc(int damage, Vector3 position, ClientRpcParams clientRpcParams = default)
+        {
+            if (Category5.UI.UIManager.Instance != null)
+                Category5.UI.UIManager.Instance.ShowDamageNumber(damage, position);
+        }
+
+        // =====================================
+        // fighter e - magnetic grapple
+        // =====================================
+
+        [Rpc(SendTo.Server)]
+        public void FireMagneticGrappleServerRpc(Vector3 spawnPosition, Vector3 aimDirection, float hookSpeed, float hookLifetime)
+        {
+            if (!IsServer) return;
+
+            var fighterE = ability2 as FighterE;
+            if (fighterE == null)
+            {
+                Debug.LogError("PlayerAbilityManager: FireMagneticGrappleServerRpc called but ability2 is not FighterE");
                 return;
             }
-            
-            // check if ability2 is FighterE
-            var fighterE = ability2 as FighterE;
-            if (fighterE != null)
+
+            GameObject hookPrefab = fighterE.HookProjectilePrefab;
+            if (hookPrefab == null)
             {
-                Debug.Log("PlayerAbilityManager: Routing to FighterE");
-                fighterE.OnHookHitTargetFromProjectile(hitPosition, targetNetworkObjectId, isBoss);
+                Debug.LogError("PlayerAbilityManager: FighterE hookProjectilePrefab not assigned");
+                return;
+            }
+
+            var hookObj = Instantiate(hookPrefab, spawnPosition, Quaternion.LookRotation(aimDirection));
+            var networkObj = hookObj.GetComponent<NetworkObject>();
+            var hookProjectile = hookObj.GetComponent<HookProjectile>();
+
+            if (networkObj == null || hookProjectile == null)
+            {
+                Debug.LogError("PlayerAbilityManager: hook prefab missing NetworkObject or HookProjectile");
+                Destroy(hookObj);
+                return;
+            }
+
+            networkObj.Spawn();
+            hookProjectile.Initialize(playerController.NetworkObjectId, aimDirection, hookSpeed, hookLifetime);
+
+            TriggerHookFiredClientRpc(spawnPosition, aimDirection);
+        }
+
+        // called by HookProjectile when it hits a target (server only, not an rpc)
+        public void OnHookHitTarget(Vector3 hitPosition, ulong targetNetworkObjectId, bool isBoss)
+        {
+            if (!IsServer) return;
+
+            var fighterE = ability2 as FighterE;
+            if (fighterE == null)
+            {
+                Debug.LogWarning("PlayerAbilityManager: OnHookHitTarget - ability2 is not FighterE");
+                return;
+            }
+
+            fighterE.OnHookHitTargetFromProjectile(hitPosition, targetNetworkObjectId, isBoss);
+        }
+
+        // server-side pull logic called by FighterE.OnHookHitTargetFromProjectile
+        public void HandleFighterEHookHitServerSide(Vector3 hitPosition, ulong targetNetworkObjectId, bool isBoss,
+            Transform playerTransform, float pullForce)
+        {
+            if (!IsServer) return;
+
+            TriggerHookHitClientRpc(hitPosition);
+
+            if (isBoss)
+            {
+                if (playerController.IsDead.Value) return;
+
+                if (!NetworkManager.Singleton.SpawnManager.SpawnedObjects.ContainsKey(targetNetworkObjectId))
+                {
+                    Debug.LogError("PlayerAbilityManager: HandleFighterEHookHitServerSide - boss NetworkObject not found");
+                    return;
+                }
+
+                NotifyFighterEBossPullClientRpc(targetNetworkObjectId, new ClientRpcParams
+                {
+                    Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+                });
             }
             else
             {
-                Debug.LogWarning($"PlayerAbilityManager: ability2 is not FighterE, it's {ability2.GetType().Name}");
+                if (!NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(targetNetworkObjectId, out var netObj)) return;
+                EnemyBase enemy = netObj.GetComponent<EnemyBase>();
+                if (enemy != null && !enemy.IsDead)
+                    enemy.StartGrapple(playerTransform, pullForce);
             }
+        }
+
+        [ClientRpc]
+        private void TriggerHookFiredClientRpc(Vector3 position, Vector3 direction)
+        {
+            FighterE.OnHookFireInvoke(position);
+            if (IsOwner && HitFeedbackManager.Instance != null)
+                HitFeedbackManager.Instance.TriggerLightHit(position);
+        }
+
+        [ClientRpc]
+        private void TriggerHookHitClientRpc(Vector3 hitPosition)
+        {
+            FighterE.OnHookHitInvoke(hitPosition);
+        }
+
+        [ClientRpc]
+        private void NotifyFighterEBossPullClientRpc(ulong bossNetworkObjectId, ClientRpcParams rpcParams = default)
+        {
+            if (!IsOwner) return;
+            if (!NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(bossNetworkObjectId, out var netObj)) return;
+            var fighterE = ability2 as FighterE;
+            fighterE?.StartGrapplePull(netObj.transform);
+        }
+
+        // =====================================
+        // fighter r - tempest engine
+        // =====================================
+
+        [Rpc(SendTo.Server)]
+        public void ActivateTempestEngineServerRpc()
+        {
+            if (!IsServer) return;
+
+            // reset q and e cooldowns so they are immediately usable again
+            ability1Cooldown.Value = 0f;
+            ability2Cooldown.Value = 0f;
+            NotifyCooldownChangedClientRpc(AbilitySlot.Ability1, 0f, ability1?.Data?.cooldownDuration ?? 0f);
+            NotifyCooldownChangedClientRpc(AbilitySlot.Ability2, 0f, ability2?.Data?.cooldownDuration ?? 0f);
+
+            // notify owner to activate local ult state
+            NotifyTempestActivatedClientRpc(new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+            });
+        }
+
+        [ClientRpc]
+        private void NotifyTempestActivatedClientRpc(ClientRpcParams rpcParams = default)
+        {
+            if (!IsOwner) return;
+            var fighterR = ability3 as FighterR;
+            fighterR?.OnTempestActivated();
+        }
+
+        [Rpc(SendTo.Server)]
+        public void ExecuteTempestBigMoveServerRpc(Vector3 playerPos, Vector3 forward, int adjustedDamage,
+            float boxWidth, float boxHeight, float boxDepth, float boxForwardOffset, int enemyLayerMask)
+        {
+            if (!IsServer) return;
+
+            Vector3 boxCenter = playerPos + forward * boxForwardOffset + Vector3.up * (boxHeight * 0.5f);
+            Quaternion rotation = forward != Vector3.zero ? Quaternion.LookRotation(forward) : Quaternion.identity;
+            Vector3 halfExtents = new Vector3(boxWidth * 0.5f, boxHeight * 0.5f, boxDepth * 0.5f);
+
+            Collider[] hits = Physics.OverlapBox(boxCenter, halfExtents, rotation, enemyLayerMask, QueryTriggerInteraction.Ignore);
+            HashSet<int> processed = new HashSet<int>();
+
+            foreach (Collider col in hits)
+            {
+                EnemyBase enemy = col.GetComponentInParent<EnemyBase>();
+                if (enemy != null && !enemy.IsDead)
+                {
+                    if (!processed.Add(enemy.GetInstanceID())) continue;
+                    enemy.TakeDamage(adjustedDamage);
+                    ShowFighterDamageNumberClientRpc(adjustedDamage, enemy.transform.position, new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+                    });
+                    continue;
+                }
+
+                BossBase boss = col.GetComponentInParent<BossBase>();
+                if (boss != null && processed.Add(boss.GetInstanceID()))
+                {
+                    boss.TakeDamage(adjustedDamage);
+                    ShowFighterDamageNumberClientRpc(adjustedDamage, boss.transform.position, new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+                    });
+                }
+            }
+
+            // set r cooldown after big move executes
+            float rCooldown = ability3?.Data?.cooldownDuration ?? 0f;
+            ability3Cooldown.Value = rCooldown;
+            NotifyCooldownChangedClientRpc(AbilitySlot.Ability3, rCooldown, rCooldown);
+
+            TriggerTempestBigMoveClientRpc(playerPos, forward);
+        }
+
+        [Rpc(SendTo.Server)]
+        public void EndTempestEngineServerRpc()
+        {
+            if (!IsServer) return;
+
+            // set r cooldown when ult expires without the second press
+            float rCooldown = ability3?.Data?.cooldownDuration ?? 0f;
+            ability3Cooldown.Value = rCooldown;
+            NotifyCooldownChangedClientRpc(AbilitySlot.Ability3, rCooldown, rCooldown);
+
+            TriggerTempestDeactivatedClientRpc(playerController.transform.position);
+        }
+
+        [ClientRpc]
+        private void TriggerTempestBigMoveClientRpc(Vector3 position, Vector3 forward)
+        {
+            FighterR.OnTempestBigMoveInvoke(position, forward);
+            if (IsOwner && HitFeedbackManager.Instance != null)
+                HitFeedbackManager.Instance.TriggerHeavyHit(position);
+        }
+
+        [ClientRpc]
+        private void TriggerTempestDeactivatedClientRpc(Vector3 position)
+        {
+            FighterR.OnTempestDeactivatedInvoke(position, false);
         }
 
         // =====================================

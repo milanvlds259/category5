@@ -155,6 +155,14 @@ namespace Category5.Player
         
         // expose gravity value for external systems (wind riding lift calculations)
         public float Gravity => gravity;
+        
+        // whether the player is currently on the ground (used by fighter q dual-mode)
+        public bool IsGrounded => _isGrounded;
+        
+        // horizontal movement speed in world units per second (used by tempest engine damage formula)
+        public float CurrentMovementSpeed => _controller != null
+            ? new Vector3(_controller.velocity.x, 0f, _controller.velocity.z).magnitude
+            : 0f;
 
         private void Awake()
         {

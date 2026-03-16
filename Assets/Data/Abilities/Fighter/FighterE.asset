@@ -17,8 +17,8 @@ MonoBehaviour:
     you toward the enemy if it is a boss and pulls the enemy towrd you if it''s a
     regular enemy'
   abilityIcon: {fileID: 0}
-  cooldownDuration: 6
-  baseDamage: 5
+  cooldownDuration: 8
+  baseDamage: 0
   castTime: 0
   manaCost: 4
   vfxPrefab: {fileID: 0}
