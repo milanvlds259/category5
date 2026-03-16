@@ -342,19 +342,19 @@ namespace Category5
             
             Debug.Log($"  -> Requesting ability {slot} from server");
             
-            // validate cooldown locally
-            NetworkVariable<float> cooldown = GetCooldown(slot);
             AbilityBase ability = GetAbility(slot);
-            
-            if (cooldown.Value > 0f)
-            {
-                Debug.Log($"  -> Blocked: Ability on cooldown for {cooldown.Value}s more");
-                return;
-            }
-            
+
             if (ability == null)
             {
                 Debug.LogWarning($"PlayerAbilityManager: No ability assigned for slot {slot}!");
+                return;
+            }
+
+            // validate cooldown locally
+            NetworkVariable<float> cooldown = GetCooldown(slot);
+            if (ability.UsesManagerCooldownGate && cooldown.Value > 0f)
+            {
+                Debug.Log($"  -> Blocked: Ability on cooldown for {cooldown.Value}s more");
                 return;
             }
             
@@ -399,7 +399,7 @@ namespace Category5
         }
 
         [Rpc(SendTo.Server)]
-        private void RequestSetAbilityCooldownServerRpc(AbilitySlot slot, float cooldownDuration)
+        public void RequestSetAbilityCooldownServerRpc(AbilitySlot slot, float cooldownDuration)
         {
             // server finds the correct player's ability manager by OwnerClientId
             // and sets the cooldown on the NetworkVariable
@@ -499,6 +499,13 @@ namespace Category5
             }
 
             RequestSetAbilityCooldownServerRpc(slot, ability.Data.cooldownDuration);
+        }
+
+        public void SetAbilityCooldownDisplay(AbilitySlot slot, float cooldownDuration)
+        {
+            if (!IsOwner) return;
+
+            RequestSetAbilityCooldownServerRpc(slot, cooldownDuration);
         }
 
         public int GetEnchanterCharges()
@@ -890,6 +897,328 @@ namespace Category5
 
         [ClientRpc]
         private void ShowEnchanterQDamageNumberClientRpc(int damage, Vector3 position, ClientRpcParams clientRpcParams = default)
+        {
+            if (Category5.UI.UIManager.Instance != null)
+            {
+                Category5.UI.UIManager.Instance.ShowDamageNumber(damage, position);
+            }
+        }
+
+        [Rpc(SendTo.Server)]
+        public void ExecuteAssassinQDashServerRpc(Vector3 startPosition, Vector3 direction, float dashDistance,
+            int baseDamage, float hitRadius, int enemyLayerMask)
+        {
+            if (!IsServer) return;
+
+            if (direction == Vector3.zero)
+            {
+                direction = transform.forward;
+            }
+
+            direction.y = 0f;
+            direction.Normalize();
+
+            Vector3 endPosition = startPosition + direction * dashDistance;
+            int adjustedDamage = playerStats != null ? playerStats.CalculateDamage(baseDamage) : baseDamage;
+
+            TriggerAssassinQDashClientRpc(startPosition, direction, dashDistance);
+
+            Collider[] hitColliders = enemyLayerMask == 0
+                ? Physics.OverlapCapsule(startPosition, endPosition, hitRadius)
+                : Physics.OverlapCapsule(startPosition, endPosition, hitRadius, enemyLayerMask);
+
+            var hitTargets = new HashSet<int>();
+            int hits = 0;
+
+            foreach (Collider collider in hitColliders)
+            {
+                EnemyBase enemy = collider.GetComponentInParent<EnemyBase>();
+                if (enemy != null && !enemy.IsDead)
+                {
+                    int id = enemy.GetInstanceID();
+                    if (!hitTargets.Add(id)) continue;
+
+                    enemy.TakeDamage(adjustedDamage);
+                    ShowAssassinQDamageNumberClientRpc(adjustedDamage, enemy.transform.position, new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+                    });
+                    hits++;
+                    continue;
+                }
+
+                BossBase boss = collider.GetComponentInParent<BossBase>();
+                if (boss != null)
+                {
+                    int id = boss.GetInstanceID();
+                    if (!hitTargets.Add(id)) continue;
+
+                    boss.TakeDamage(adjustedDamage);
+                    ShowAssassinQDamageNumberClientRpc(adjustedDamage, boss.transform.position, new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+                    });
+                    hits++;
+                }
+            }
+
+            if (hits > 0)
+            {
+                TriggerAssassinQHitClientRpc(endPosition, hits);
+            }
+        }
+
+        [ClientRpc]
+        private void TriggerAssassinQDashClientRpc(Vector3 startPosition, Vector3 direction, float dashDistance)
+        {
+            AssassinQ.InvokeDashStarted(startPosition, direction, dashDistance);
+        }
+
+        [ClientRpc]
+        private void TriggerAssassinQHitClientRpc(Vector3 position, int hitCount)
+        {
+            AssassinQ.InvokeDashHit(position, hitCount);
+
+            if (IsOwner)
+            {
+                if (ability1 is AssassinQ assassinQ)
+                {
+                    assassinQ.OnDashHitResolved(hitCount);
+                }
+
+                if (HitFeedbackManager.Instance != null)
+                {
+                    HitFeedbackManager.Instance.TriggerLightHit(position);
+                }
+            }
+        }
+
+        [ClientRpc]
+        private void ShowAssassinQDamageNumberClientRpc(int damage, Vector3 position, ClientRpcParams clientRpcParams = default)
+        {
+            if (Category5.UI.UIManager.Instance != null)
+            {
+                Category5.UI.UIManager.Instance.ShowDamageNumber(damage, position);
+            }
+        }
+
+        // =====================================
+        // assassin ability rpcs
+        // =====================================
+        [Rpc(SendTo.Server)]
+        public void TriggerAssassinEWhirlwindStartServerRpc(Vector3 startPosition, Vector3 direction, float hitRadius)
+        {
+            // server triggers the start of the whirlwind dash for all clients
+            if (!IsServer) return;
+
+            if (direction == Vector3.zero)
+            {
+                direction = transform.forward;
+            }
+
+            direction.y = 0f;
+            direction.Normalize();
+
+            TriggerAssassinEWhirlwindStartClientRpc(startPosition, direction, hitRadius);
+        }
+
+        [ClientRpc]
+        private void TriggerAssassinEWhirlwindStartClientRpc(Vector3 startPosition, Vector3 direction, float hitRadius)
+        {
+            AssassinE.InvokeWhirlwindStarted(startPosition, direction, hitRadius);
+        }
+
+        [Rpc(SendTo.Server)]
+        public void ExecuteAssassinEWhirlwindServerRpc(Vector3 startPosition, Vector3 direction, float dashDistance,
+            int adjustedDamage, float hitRadius, int enemyLayerMask)
+        {
+            if (!IsServer) return;
+
+            if (direction == Vector3.zero)
+            {
+                direction = transform.forward;
+            }
+
+            direction.y = 0f;
+            direction.Normalize();
+
+            Vector3 hitPosition = startPosition + direction * dashDistance;
+            Collider[] hitColliders = enemyLayerMask == 0
+                ? Physics.OverlapCapsule(startPosition, hitPosition, hitRadius)
+                : Physics.OverlapCapsule(startPosition, hitPosition, hitRadius, enemyLayerMask);
+
+            var hitTargets = new HashSet<int>();
+            int hits = 0;
+
+            foreach (Collider collider in hitColliders)
+            {
+                EnemyBase enemy = collider.GetComponentInParent<EnemyBase>();
+                if (enemy != null && !enemy.IsDead)
+                {
+                    int id = enemy.GetInstanceID();
+                    if (!hitTargets.Add(id)) continue;
+
+                    enemy.TakeDamage(adjustedDamage);
+                    ShowAssassinEDamageNumberClientRpc(adjustedDamage, enemy.transform.position, new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+                    });
+                    hits++;
+                    continue;
+                }
+
+                BossBase boss = collider.GetComponentInParent<BossBase>();
+                if (boss != null)
+                {
+                    int id = boss.GetInstanceID();
+                    if (!hitTargets.Add(id)) continue;
+
+                    boss.TakeDamage(adjustedDamage);
+                    ShowAssassinEDamageNumberClientRpc(adjustedDamage, boss.transform.position, new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+                    });
+                    hits++;
+                }
+            }
+
+            TriggerAssassinEWhirlwindClientRpc(hitPosition, hits);
+        }
+
+        [ClientRpc]
+        private void TriggerAssassinEWhirlwindClientRpc(Vector3 position, int hitCount)
+        {
+            AssassinE.InvokeWhirlwindHit(position, hitCount);
+
+            if (IsOwner && hitCount > 0 && HitFeedbackManager.Instance != null)
+            {
+                HitFeedbackManager.Instance.TriggerLightHit(position);
+            }
+        }
+
+        [ClientRpc]
+        private void ShowAssassinEDamageNumberClientRpc(int damage, Vector3 position, ClientRpcParams clientRpcParams = default)
+        {
+            if (Category5.UI.UIManager.Instance != null)
+            {
+                Category5.UI.UIManager.Instance.ShowDamageNumber(damage, position);
+            }
+        }
+
+        [Rpc(SendTo.Server)]
+        public void ExecuteAssassinRConvergenceServerRpc(Vector3 startPosition, Vector3 direction, float dashDistance,
+            int adjustedDamage, float hitRadius, int enemyLayerMask)
+        {
+            if (!IsServer) return;
+
+            if (direction == Vector3.zero)
+            {
+                direction = transform.forward;
+            }
+
+            direction.y = 0f;
+            direction.Normalize();
+
+            Vector3 hitPosition = startPosition + direction * dashDistance;
+            Collider[] dashColliders = enemyLayerMask == 0
+                ? Physics.OverlapCapsule(startPosition, hitPosition, hitRadius)
+                : Physics.OverlapCapsule(startPosition, hitPosition, hitRadius, enemyLayerMask);
+
+            Collider[] explosionColliders = enemyLayerMask == 0
+                ? Physics.OverlapSphere(hitPosition, hitRadius)
+                : Physics.OverlapSphere(hitPosition, hitRadius, enemyLayerMask);
+
+            var hitTargets = new HashSet<int>();
+            int hits = 0;
+
+            foreach (Collider collider in dashColliders)
+            {
+                EnemyBase enemy = collider.GetComponentInParent<EnemyBase>();
+                if (enemy != null && !enemy.IsDead)
+                {
+                    int id = enemy.GetInstanceID();
+                    if (!hitTargets.Add(id)) continue;
+
+                    enemy.TakeDamage(adjustedDamage);
+                    ShowAssassinRDamageNumberClientRpc(adjustedDamage, enemy.transform.position, new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+                    });
+                    hits++;
+                    continue;
+                }
+
+                BossBase boss = collider.GetComponentInParent<BossBase>();
+                if (boss != null)
+                {
+                    int id = boss.GetInstanceID();
+                    if (!hitTargets.Add(id)) continue;
+
+                    boss.TakeDamage(adjustedDamage);
+                    ShowAssassinRDamageNumberClientRpc(adjustedDamage, boss.transform.position, new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+                    });
+                    hits++;
+                }
+            }
+
+            foreach (Collider collider in explosionColliders)
+            {
+                EnemyBase enemy = collider.GetComponentInParent<EnemyBase>();
+                if (enemy != null && !enemy.IsDead)
+                {
+                    int id = enemy.GetInstanceID();
+                    if (!hitTargets.Add(id)) continue;
+
+                    enemy.TakeDamage(adjustedDamage);
+                    ShowAssassinRDamageNumberClientRpc(adjustedDamage, enemy.transform.position, new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+                    });
+                    hits++;
+                    continue;
+                }
+
+                BossBase boss = collider.GetComponentInParent<BossBase>();
+                if (boss != null)
+                {
+                    int id = boss.GetInstanceID();
+                    if (!hitTargets.Add(id)) continue;
+
+                    boss.TakeDamage(adjustedDamage);
+                    ShowAssassinRDamageNumberClientRpc(adjustedDamage, boss.transform.position, new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+                    });
+                    hits++;
+                }
+            }
+
+            TriggerAssassinRExplosionClientRpc(hitPosition, hits, hits >= 3);
+        }
+
+        [ClientRpc]
+        private void TriggerAssassinRExplosionClientRpc(Vector3 position, int hitCount, bool resetCharges)
+        {
+            AssassinR.InvokeConvergenceExplosion(position, hitCount, resetCharges);
+
+            if (IsOwner)
+            {
+                if (resetCharges && ability1 is AssassinQ assassinQ)
+                {
+                    assassinQ.ResetAllCharges();
+                }
+
+                if (hitCount > 0 && HitFeedbackManager.Instance != null)
+                {
+                    HitFeedbackManager.Instance.TriggerHeavyHit(position);
+                }
+            }
+        }
+
+        [ClientRpc]
+        private void ShowAssassinRDamageNumberClientRpc(int damage, Vector3 position, ClientRpcParams clientRpcParams = default)
         {
             if (Category5.UI.UIManager.Instance != null)
             {

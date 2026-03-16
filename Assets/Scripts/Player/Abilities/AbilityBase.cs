@@ -21,6 +21,7 @@ namespace Category5
 
         public virtual bool ConsumeCostOnExecute => true;
         public virtual bool StartCooldownOnExecute => true;
+        public virtual bool UsesManagerCooldownGate => true;
 
         // delegate to ability manager for network checks
         protected bool IsServer => abilityManager != null && abilityManager.IsServer;

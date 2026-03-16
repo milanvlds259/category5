@@ -26,6 +26,8 @@ namespace Category5.UI
         private int _retryCount = 0;
         private int _maxRetries = 5;
         private bool _isEnchanter;
+        private bool _isAssassin;
+        private AssassinQ _assassinQ;
         
         private void Start()
         {
@@ -49,6 +51,8 @@ namespace Category5.UI
             PlayerAbilityManager.OnCooldownChanged += HandleCooldownChanged;
             ElementalistQ.OnElementChanged += HandleElementChanged;
             PlayerAbilityManager.OnEnchanterChargesChanged += HandleEnchanterChargesChanged;
+            AssassinQ.OnBuffStateChanged += HandleAssassinBuffStateChanged;
+            AssassinQ.OnChargesChanged += HandleAssassinChargesChanged;
         }
         
         private void OnDisable()
@@ -56,6 +60,8 @@ namespace Category5.UI
             PlayerAbilityManager.OnCooldownChanged -= HandleCooldownChanged;
             ElementalistQ.OnElementChanged -= HandleElementChanged;
             PlayerAbilityManager.OnEnchanterChargesChanged -= HandleEnchanterChargesChanged;
+            AssassinQ.OnBuffStateChanged -= HandleAssassinBuffStateChanged;
+            AssassinQ.OnChargesChanged -= HandleAssassinChargesChanged;
         }
         
         private void Update()
@@ -122,11 +128,19 @@ namespace Category5.UI
                 ability1Slot.Initialize(ability1.Data, "Q");
 
                 _isEnchanter = ability1 is EnchanterQ;
-                UpdateEnchanterChargeVisibility();
+                _assassinQ = ability1 as AssassinQ;
+                _isAssassin = _assassinQ != null;
+                UpdateAbility1ChargeVisibility();
+                ShowBuffIndicator(_assassinQ != null && _assassinQ.HasDamageBuff);
 
                 if (_isEnchanter)
                 {
                     UpdateEnchanterCharges(abilityManager.GetEnchanterCharges(), abilityManager.GetMaxEnchanterCharges());
+                }
+
+                if (_isAssassin)
+                {
+                    UpdateAbility1Charges(_assassinQ.CurrentCharges, _assassinQ.MaxCharges);
                 }
 
                 if (ability1 is ElementalistQ elementalistQ)
@@ -216,19 +230,41 @@ namespace Category5.UI
             if (source != abilityManager) return;
             if (!_isEnchanter) return;
 
-            UpdateEnchanterCharges(current, max);
+            UpdateAbility1Charges(current, max);
         }
 
         private void UpdateEnchanterCharges(int current, int max)
+        {
+            UpdateAbility1Charges(current, max);
+        }
+
+        private void UpdateAbility1Charges(int current, int max)
         {
             if (enchanterChargeText == null) return;
             enchanterChargeText.text = $"{current}/{max}";
         }
 
-        private void UpdateEnchanterChargeVisibility()
+        private void UpdateAbility1ChargeVisibility()
         {
             if (enchanterChargeText == null) return;
-            enchanterChargeText.gameObject.SetActive(_isEnchanter);
+            enchanterChargeText.gameObject.SetActive(_isEnchanter || _isAssassin);
+        }
+
+        private void HandleAssassinBuffStateChanged(AssassinQ source, bool isActive)
+        {
+            if (_assassinQ == null) return;
+            if (source != _assassinQ) return;
+
+            ShowBuffIndicator(isActive);
+        }
+
+        private void HandleAssassinChargesChanged(AssassinQ source, int current, int max)
+        {
+            if (_assassinQ == null) return;
+            if (source != _assassinQ) return;
+            if (!_isAssassin) return;
+
+            UpdateAbility1Charges(current, max);
         }
         
         // public method for abilities to show/hide buff indicator

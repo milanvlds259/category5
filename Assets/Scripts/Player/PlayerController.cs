@@ -975,6 +975,40 @@ namespace Category5.Player
                 // Debug.Log($"Ouch! Health: {newHealth}");
             }
         }
+
+        public Vector3 GetMovementInputDirection()
+        {
+            if (_inputActions == null)
+            {
+                return Vector3.zero;
+            }
+
+            Vector2 moveInput = _inputActions.Player.Move.ReadValue<Vector2>();
+            Vector3 move = Vector3.zero;
+
+            if (_cameraTransform != null)
+            {
+                Vector3 cameraEuler = _cameraTransform.eulerAngles;
+                Quaternion flatCameraRotation = Quaternion.Euler(0, cameraEuler.y, 0);
+                move = flatCameraRotation * new Vector3(moveInput.x, 0, moveInput.y);
+            }
+            else
+            {
+                move = new Vector3(moveInput.x, 0, moveInput.y);
+            }
+
+            if (invertMovement)
+            {
+                move = -move;
+            }
+
+            if (move.sqrMagnitude > 1f)
+            {
+                move.Normalize();
+            }
+
+            return move;
+        }
         
         // get the aim direction (forward direction the player is facing)
         public Vector3 GetAimDirection()
