@@ -27,6 +27,8 @@ namespace Category5
         public static event System.Action<Vector3> OnTempestActivate;
         public static event System.Action<Vector3, bool> OnTempestDeactivated; // bool = big move was used
         public static event System.Action<Vector3, Vector3> OnTempestBigMove;
+        // fires every frame while ult is active: (remainingSeconds, totalDuration)
+        public static event System.Action<float, float> OnTempestTimerTick;
 
         // public invoke helpers called from PlayerAbilityManager clientrpcs
         public static void OnTempestBigMoveInvoke(Vector3 pos, Vector3 fwd) => OnTempestBigMove?.Invoke(pos, fwd);
@@ -114,6 +116,7 @@ namespace Category5
 
             // countdown timer
             _ultTimer -= Time.deltaTime;
+            OnTempestTimerTick?.Invoke(Mathf.Max(_ultTimer, 0f), ultDuration);
             if (_ultTimer <= 0f)
             {
                 // timer expired without second press
