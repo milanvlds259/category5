@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using TMPro;
+using System;
 using System.Collections;
 using Category5.Core;
 
@@ -23,9 +24,11 @@ namespace Category5.UI
         [SerializeField] private Button backToTitleButton;
         [SerializeField] private Button hostButton;
         [SerializeField] private Button joinButton;
-        [SerializeField] private TMP_InputField ipInputField;
-        [SerializeField] private TMP_InputField portInputField;
+        [SerializeField] private TMP_InputField joinCodeInputField;
         [SerializeField] private TMP_InputField playerNameInputField;
+        
+        [Header("ui references - relay")]
+        [SerializeField] private TextMeshProUGUI joinCodeDisplayText; // shows join code in lobby for host
         
         [Header("ui references - lobby")]
         [SerializeField] private GameObject lobbyPanel; // the main "phone" panel
@@ -57,8 +60,7 @@ namespace Category5.UI
         
         [Header("settings")]
         [SerializeField] private string gameSceneName = "SampleScene";
-        [SerializeField] private string defaultIP = "127.0.0.1";
-        [SerializeField] private ushort defaultPort = 7777;
+        [SerializeField] private int maxRelayConnections = 4;
         
         [Header("connection timeout")]
         [SerializeField] private float connectionTimeout = 10f;
@@ -68,6 +70,8 @@ namespace Category5.UI
         private UnityTransport transport;
         private bool isInLobby = false;
         private bool isConnecting = false;
+        private bool isRelayReady = false;
+        private string currentJoinCode;
         private Coroutine connectionTimeoutCoroutine;
         
         private void Start()
@@ -85,16 +89,8 @@ namespace Category5.UI
                 transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
             }
             
-            // set default values
-            if (ipInputField != null)
-            {
-                ipInputField.text = defaultIP;
-            }
-            
-            if (portInputField != null)
-            {
-                portInputField.text = defaultPort.ToString();
-            }
+            // initialize relay services
+            InitializeRelayAsync();
             
             // load saved player name
             if (playerNameInputField != null)
@@ -170,8 +166,6 @@ namespace Category5.UI
             
             // show title screen initially
             ShowTitleScreen();
-            
-            UpdateStatus("Ready to connect");
         }
         
         // ensures PlayerNameManager singleton exists
@@ -275,8 +269,8 @@ namespace Category5.UI
         }
         
         // called when host button is clicked
-        // starts hosting and shows the lobby
-        public void OnHostClicked()
+        // creates a relay allocation and starts hosting
+        public async void OnHostClicked()
         {
             if (NetworkManager.Singleton == null)
             {
@@ -285,33 +279,43 @@ namespace Category5.UI
                 return;
             }
             
-            // configure port if specified
-            // use 0.0.0.0 to bind to all interfaces (required for internet play with port forwarding)
-            if (transport != null)
+            if (!isRelayReady)
             {
-                ushort port = defaultPort;
-                if (portInputField != null)
-                {
-                    ushort.TryParse(portInputField.text, out port);
-                }
-                transport.SetConnectionData("0.0.0.0", port);
-                // Debug.Log($"NetworkMenu: Host binding to 0.0.0.0:{port}");
+                UpdateStatus("Services still initializing, please wait...");
+                return;
             }
             
-            UpdateStatus("Starting host...");
+            UpdateStatus("Creating relay...");
             SetButtonsInteractable(false);
             
-            // register callback for when host starts
-            NetworkManager.Singleton.OnServerStarted += OnServerStarted;
-            
-            bool success = NetworkManager.Singleton.StartHost();
-            
-            if (!success)
+            try
             {
-                UpdateStatus("Failed to start host. Port may be in use.");
-                Debug.LogError("NetworkMenu: Failed to start host");
+                // create relay allocation and get join code
+                var (joinCode, serverData) = await RelayHelper.CreateRelayAsync(maxRelayConnections);
+                currentJoinCode = joinCode;
+                
+                // configure transport to use relay
+                transport.SetRelayServerData(serverData);
+                
+                // register callback for when host starts
+                NetworkManager.Singleton.OnServerStarted += OnServerStarted;
+                
+                bool success = NetworkManager.Singleton.StartHost();
+                
+                if (!success)
+                {
+                    UpdateStatus("Failed to start host.");
+                    Debug.LogError("NetworkMenu: Failed to start host");
+                    SetButtonsInteractable(true);
+                    NetworkManager.Singleton.OnServerStarted -= OnServerStarted;
+                    currentJoinCode = null;
+                }
+            }
+            catch (Exception e)
+            {
+                UpdateStatus($"Failed to create relay: {e.Message}");
+                Debug.LogError($"NetworkMenu: Relay creation failed - {e}");
                 SetButtonsInteractable(true);
-                NetworkManager.Singleton.OnServerStarted -= OnServerStarted;
             }
         }
         
@@ -363,8 +367,8 @@ namespace Category5.UI
         }
         
         // called when join button is clicked
-        // connects to a host at the specified ip address
-        public void OnJoinClicked()
+        // joins a relay using the provided join code
+        public async void OnJoinClicked()
         {
             if (NetworkManager.Singleton == null)
             {
@@ -373,58 +377,69 @@ namespace Category5.UI
                 return;
             }
             
-            string ip = ipInputField != null ? ipInputField.text : defaultIP;
-            ushort port = defaultPort;
-            
-            if (portInputField != null)
+            if (!isRelayReady)
             {
-                ushort.TryParse(portInputField.text, out port);
-            }
-            
-            // validate ip input
-            if (string.IsNullOrWhiteSpace(ip))
-            {
-                UpdateStatus("Please enter a valid IP address");
+                UpdateStatus("Services still initializing, please wait...");
                 return;
             }
             
-            // set connection data
-            if (transport != null)
+            string joinCode = joinCodeInputField != null ? joinCodeInputField.text : "";
+            
+            // validate join code
+            if (string.IsNullOrWhiteSpace(joinCode))
             {
-                transport.SetConnectionData(ip, port);
-                // Debug.Log($"NetworkMenu: Connecting to {ip}:{port}");
+                UpdateStatus("Please enter a join code");
+                return;
             }
             
-            UpdateStatus($"Connecting to {ip}:{port}...");
+            UpdateStatus($"Joining relay...");
             SetButtonsInteractable(false);
             ShowConnectingPanel(true);
             SetCancelButtonVisible(true);
             isConnecting = true;
             
-            // register callbacks for connection result
-            NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
-            NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
-            
-            bool success = NetworkManager.Singleton.StartClient();
-            
-            if (!success)
+            try
             {
-                UpdateStatus("Failed to start client");
-                Debug.LogError("NetworkMenu: Failed to start client");
+                // join the relay allocation
+                var serverData = await RelayHelper.JoinRelayAsync(joinCode);
+                
+                // configure transport to use relay
+                transport.SetRelayServerData(serverData);
+                
+                // register callbacks for connection result
+                NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+                NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
+                
+                bool success = NetworkManager.Singleton.StartClient();
+                
+                if (!success)
+                {
+                    UpdateStatus("Failed to start client");
+                    Debug.LogError("NetworkMenu: Failed to start client");
+                    SetButtonsInteractable(true);
+                    ShowConnectingPanel(false);
+                    isConnecting = false;
+                    UnregisterClientCallbacks();
+                }
+                else
+                {
+                    // start timeout countdown
+                    connectionTimeoutCoroutine = StartCoroutine(ConnectionTimeoutCoroutine(joinCode));
+                }
+            }
+            catch (Exception e)
+            {
+                UpdateStatus($"Failed to join relay: {e.Message}");
+                Debug.LogError($"NetworkMenu: Relay join failed - {e}");
                 SetButtonsInteractable(true);
                 ShowConnectingPanel(false);
+                SetCancelButtonVisible(false);
                 isConnecting = false;
-                UnregisterClientCallbacks();
-            }
-            else
-            {
-                // start timeout countdown
-                connectionTimeoutCoroutine = StartCoroutine(ConnectionTimeoutCoroutine(ip, port));
             }
         }
         
         // coroutine that handles connection timeout with countdown display
-        private IEnumerator ConnectionTimeoutCoroutine(string ip, ushort port)
+        private IEnumerator ConnectionTimeoutCoroutine(string joinCode)
         {
             float elapsed = 0f;
             
@@ -436,11 +451,11 @@ namespace Category5.UI
                 // update connecting status with countdown
                 if (connectingStatusText != null)
                 {
-                    connectingStatusText.text = $"Connecting to {ip}:{port}...\n({Mathf.CeilToInt(remaining)}s)";
+                    connectingStatusText.text = $"Joining {joinCode}...\n({Mathf.CeilToInt(remaining)}s)";
                 }
                 else
                 {
-                    UpdateStatus($"Connecting to {ip}:{port}... ({Mathf.CeilToInt(remaining)}s)");
+                    UpdateStatus($"Joining {joinCode}... ({Mathf.CeilToInt(remaining)}s)");
                 }
                 
                 yield return null;
@@ -449,8 +464,7 @@ namespace Category5.UI
             // if still connecting after timeout, cancel
             if (isConnecting)
             {
-                // Debug.Log("NetworkMenu: Connection timed out");
-                CancelConnection("Connection timed out. Check the IP address and port.");
+                CancelConnection("Connection timed out. Check the join code and try again.");
             }
         }
         
@@ -514,6 +528,14 @@ namespace Category5.UI
             
             // show the lobby instead of immediately loading the game
             ShowLobby(true);
+            
+            // display join code for the host so they can share it
+            if (joinCodeDisplayText != null && !string.IsNullOrEmpty(currentJoinCode))
+            {
+                joinCodeDisplayText.text = $"Join Code: {currentJoinCode}";
+                joinCodeDisplayText.gameObject.SetActive(true);
+            }
+            
             UpdateStatus("Waiting for players to join...");
         }
         
@@ -607,8 +629,7 @@ namespace Category5.UI
         {
             if (hostButton != null) hostButton.interactable = interactable;
             if (joinButton != null) joinButton.interactable = interactable;
-            if (ipInputField != null) ipInputField.interactable = interactable;
-            if (portInputField != null) portInputField.interactable = interactable;
+            if (joinCodeInputField != null) joinCodeInputField.interactable = interactable;
         }
         
         private void ShowConnectingPanel(bool show)
@@ -740,8 +761,8 @@ namespace Category5.UI
                 mainMenuPanel.SetActive(true);
             }
             
-            SetButtonsInteractable(true);
-            UpdateStatus("Ready to connect");
+            SetButtonsInteractable(isRelayReady);
+            UpdateStatus(isRelayReady ? "Ready to connect" : "Connecting to services...");
         }
         
         // placeholder for settings button
@@ -1005,6 +1026,26 @@ namespace Category5.UI
             {
                 allPlayersReadyText.text = allReady ? "All players ready!" : "Waiting for players...";
                 allPlayersReadyText.color = allReady ? new Color(0.4f, 1f, 0.4f) : new Color(1f, 0.8f, 0.4f);
+            }
+        }
+        
+        // initialize relay services in the background
+        private async void InitializeRelayAsync()
+        {
+            UpdateStatus("Connecting to services...");
+            SetButtonsInteractable(false);
+            
+            try
+            {
+                await RelayHelper.InitializeAsync();
+                isRelayReady = true;
+                UpdateStatus("Ready to connect");
+                SetButtonsInteractable(true);
+            }
+            catch (Exception e)
+            {
+                UpdateStatus($"Service error: {e.Message}");
+                Debug.LogError($"NetworkMenu: Failed to initialize relay services - {e}");
             }
         }
     }
