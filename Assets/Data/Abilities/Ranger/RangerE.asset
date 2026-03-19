@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: da4b3cd86bfbb504fbfa4e92f8d91186, type: 3}
   m_Name: RangerE
   m_EditorClassIdentifier: Assembly-CSharp::Category5.AbilityData
-  abilityName: Spiralbow
+  abilityName: Arrow Storm
   description: Fire a tracker arrow that creates a damage-over-time zone on impact.
     Enemies in the zone take damage every 0.5s and are slowed by 40%.
   abilityIcon: {fileID: 0}

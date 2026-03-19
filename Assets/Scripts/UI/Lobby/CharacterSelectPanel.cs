@@ -179,12 +179,12 @@ namespace Category5.UI
             
             var currentClass = _availableClasses[_currentIndex];
             
-            // update icon
+            // update icon - prefer portrait, fall back to classIcon, then defaultClassSprite
             if (currentClassIcon != null)
             {
-                currentClassIcon.sprite = currentClass.classIcon != null 
-                    ? currentClass.classIcon 
-                    : defaultClassSprite;
+                currentClassIcon.sprite = currentClass.classPortrait != null 
+                    ? currentClass.classPortrait 
+                    : (currentClass.classIcon != null ? currentClass.classIcon : defaultClassSprite);
             }
             
             // update name

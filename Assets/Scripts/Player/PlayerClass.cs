@@ -21,7 +21,8 @@ namespace Category5.Player
         [TextArea(3, 5)]
         public string classDescription;
         
-        public Sprite classIcon;
+        public Sprite classIcon; // full body art - used in character view panel
+        public Sprite classPortrait; // cropped portrait - used in character select carousel
         
         [Header("Ability Prefabs")]
         public GameObject ability1Prefab; // Q

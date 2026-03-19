@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: da4b3cd86bfbb504fbfa4e92f8d91186, type: 3}
   m_Name: RangerR
   m_EditorClassIdentifier: Assembly-CSharp::Category5.AbilityData
-  abilityName: Critshot
-  description: Fire an instant-charged piercing arrow that deals massive damage.
-    Pierces through all enemies and walls, only stops on bosses.
+  abilityName: One-Shot Blast
+  description: Fire a massive piercing arrow that deals massive damage. Pierces through
+    all enemies and walls, only stops on bosses.
   abilityIcon: {fileID: 0}
   cooldownDuration: 30
   baseDamage: 15

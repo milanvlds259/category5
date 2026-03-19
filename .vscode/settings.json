@@ -65,5 +65,5 @@
         "*.sln": "*.csproj",
         "*.slnx": "*.csproj"
     },
-    "dotnet.defaultSolution": "category5.slnx"
+    "dotnet.defaultSolution": "Category5.slnx"
 }
