@@ -77,9 +77,7 @@ namespace Category5.Player
         [SerializeField] private float dodgeDistance = 8f;
         [SerializeField] private float dodgeCooldown = 2f;
         
-        [Header("Mana Regeneration")]
-        [SerializeField] private float manaRegenInterval = 2f; // 1 mana every 2 seconds
-        private float _timeSinceLastManaRegen = 0f;
+        private float _manaRegenAccumulator = 0f;
 
         private CharacterController _controller;
         private InputSystem_Actions _inputActions;
@@ -210,6 +208,7 @@ namespace Category5.Player
                 CurrentMana.Value = MaxMana;
             }
             _lastMaxHealth = MaxHealth;
+            _lastMaxMana = MaxMana;
             CurrentHealth.OnValueChanged += OnHealthChanged;
             CurrentMana.OnValueChanged += OnManaValueChanged;
             IsDead.OnValueChanged += OnDeadStateChanged;
@@ -384,16 +383,25 @@ namespace Category5.Player
         
         // called when items change player stats
         private int _lastMaxHealth = 0;
+        private int _lastMaxMana = 0;
         private void OnStatsChanged()
         {
             int newMax = MaxHealth;
             int previousMax = _lastMaxHealth > 0 ? _lastMaxHealth : newMax;
+            int newMaxMana = MaxMana;
+            int previousMaxMana = _lastMaxMana > 0 ? _lastMaxMana : newMaxMana;
             
             // check if max health changed (track on all clients for UI updates)
             if (_lastMaxHealth != newMax)
             {
                 _lastMaxHealth = newMax;
                 OnMaxHealthChanged?.Invoke(newMax);
+            }
+
+            if (_lastMaxMana != newMaxMana)
+            {
+                _lastMaxMana = newMaxMana;
+                OnManaChanged?.Invoke(CurrentMana.Value, newMaxMana);
             }
             
             if (IsServer)
@@ -406,6 +414,15 @@ namespace Category5.Player
                 else if (CurrentHealth.Value > newMax)
                 {
                     CurrentHealth.Value = newMax;
+                }
+
+                if (newMaxMana > previousMaxMana)
+                {
+                    CurrentMana.Value = Mathf.Min(CurrentMana.Value + (newMaxMana - previousMaxMana), newMaxMana);
+                }
+                else if (CurrentMana.Value > newMaxMana)
+                {
+                    CurrentMana.Value = newMaxMana;
                 }
             }
         }
@@ -624,18 +641,30 @@ namespace Category5.Player
             // server-only mana regeneration
             if (!IsServer) return;
             if (IsDead.Value) return;
+            if (_playerStats == null) return;
             
-            // regenerate mana over time
-            if (CurrentMana.Value < MaxMana)
+            float manaPerSecond = Mathf.Max(0f, _playerStats.EffectiveManaRegenRate);
+            if (manaPerSecond <= 0f)
             {
-                _timeSinceLastManaRegen += Time.fixedDeltaTime;
-                
-                if (_timeSinceLastManaRegen >= manaRegenInterval)
-                {
-                    CurrentMana.Value = Mathf.Min(MaxMana, CurrentMana.Value + 1);
-                    _timeSinceLastManaRegen = 0f;
-                }
+                _manaRegenAccumulator = 0f;
+                return;
             }
+
+            if (CurrentMana.Value >= MaxMana)
+            {
+                _manaRegenAccumulator = 0f;
+                return;
+            }
+
+            _manaRegenAccumulator += manaPerSecond * Time.fixedDeltaTime;
+            int manaToRestore = Mathf.FloorToInt(_manaRegenAccumulator);
+            if (manaToRestore <= 0)
+            {
+                return;
+            }
+
+            CurrentMana.Value = Mathf.Min(MaxMana, CurrentMana.Value + manaToRestore);
+            _manaRegenAccumulator -= manaToRestore;
         }
 
         private void OnJump(InputAction.CallbackContext context)
@@ -878,7 +907,7 @@ namespace Category5.Player
             // reset health and mana to max and revive if dead
             CurrentHealth.Value = MaxHealth;
             CurrentMana.Value = MaxMana;
-            _timeSinceLastManaRegen = 0f;
+            _manaRegenAccumulator = 0f;
             IsDead.Value = false;
             
             // move to spawn point
@@ -919,7 +948,6 @@ namespace Category5.Player
             if (!IsServer) return;
             
             CurrentMana.Value = Mathf.Max(0, CurrentMana.Value - amount);
-            _timeSinceLastManaRegen = 0f; // reset regen timer
             
             // notify all clients
             NotifyManaChangedClientRpc(CurrentMana.Value, MaxMana);
