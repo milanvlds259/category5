@@ -246,7 +246,7 @@ public class MapGenerator : MonoBehaviour
             Arena arenaData = new Arena(arena.transform.position, arena, scaleFactor);
             arenas.Add(arenaData); // Store reference to the created arena
 
-            arena.tag = "Arena"; // Set the tag of the arena to "Arena" for easy reference
+            //arena.tag = "Arena"; // Set the tag of the arena to "Arena" for easy reference
 
             return true; // No overlap, return true
         }
@@ -429,6 +429,7 @@ public class MapGenerator : MonoBehaviour
 
     void CleanUpPath(Spline spline, SplineContainer splineContainer)
     {
+        /*
         // Clean up knots that are too sharp
         // Shouldn't take more than 50 tries
         int attempts = 0;
@@ -458,6 +459,7 @@ public class MapGenerator : MonoBehaviour
             }
             attempts++;
         }
+        */
     }
 
 
@@ -586,19 +588,25 @@ public class MapGenerator : MonoBehaviour
 
         // Now decide on the new angle of the entrance
         float newAngle = 0f;
-        // compare the final pos and neg angles, and choose the one that is farther from other path entrances
+        // compare the final pos and neg angles, and choose a random new angle that is farther from other path entrances
         if (Mathf.Abs(posAngle - angle) > Mathf.Abs(negAngle - angle))
         {
-            newAngle = Random.Range(angle + Mathf.Deg2Rad * 5, posAngle);
+            newAngle = Random.Range(angle + Mathf.Deg2Rad * 5, posAngle - Mathf.Deg2Rad * 5);
         }
-        else
+        else if (Mathf.Abs(posAngle - angle) < Mathf.Abs(negAngle - angle))
         {
-            newAngle = Random.Range(angle - Mathf.Deg2Rad * 5, negAngle);
+            newAngle = Random.Range(angle - Mathf.Deg2Rad * 5, negAngle + Mathf.Deg2Rad * 5);
+        }
+        else // If they were equal
+        {
+            // Don't move the entrance, exit the function
+            Debug.Log("PATH " + path.gameObjectRef.name + " DIDNT MOVE ON " + arena.gameObjectRef.name);
+            return;
         }
         
         // Get a point in the new direction to get 
         Vector3 newDirection = new Vector3(Mathf.Cos(newAngle), 0, Mathf.Sin(newAngle));
-        Vector3 newPoint = arena.position + newDirection * (arena.gameObjectRef.transform.localScale.x);
+        Vector3 newPoint = arena.position + newDirection * arena.gameObjectRef.transform.localScale.x;
                 
         entranceKnot.Position = arena.arenaBounds.ClosestPoint(newPoint);
         Debug.Log(
