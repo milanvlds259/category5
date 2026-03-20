@@ -16,7 +16,8 @@ MonoBehaviour:
   className: Enchanter
   classDescription: Close-range warden that augments allies and defends them from
     incoming threats.
-  classIcon: {fileID: 0}
+  classIcon: {fileID: 21300000, guid: a79e4d87d55a8df45b77fe7d6f93ce6f, type: 3}
+  classPortrait: {fileID: 21300000, guid: 9268d254f9080f243ab3443ba5b8d8e2, type: 3}
   ability1Prefab: {fileID: 53412344211962831, guid: 7e50bb98d7506f44bae29cddd4381921, type: 3}
   ability2Prefab: {fileID: 53412344211962831, guid: 2288a2e739dade64285a72fb5bae24e7, type: 3}
   ability3Prefab: {fileID: 53412344211962831, guid: 9f7b015e0fbb11246ab605ded1179083, type: 3}

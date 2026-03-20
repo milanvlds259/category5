@@ -16,6 +16,11 @@ namespace Category5.Player
             return false;
         }
 
+        // block the base networkanimator awake from running before we have a real animator
+        // the animator is assigned at runtime by playermodelmanager after the class model loads
+        // base.Awake() is called explicitly in BindRuntimeAnimator once the animator is ready
+        protected override void Awake() { }
+
         // networkanimator only builds its internal caches in awake
         // our real animator gets assigned later after the class model is spawned
         public void BindRuntimeAnimator(Animator animator)

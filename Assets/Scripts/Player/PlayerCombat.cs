@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 using UnityEngine.InputSystem;
@@ -76,8 +77,9 @@ namespace Category5.Player
         // pending attack data for animation event timing
         private bool _hasPendingMeleeHit;
         private int _pendingMeleeDamage;
-        private Vector3 _pendingMeleePosition;
-        private Vector3 _pendingMeleeDirection;
+
+        // safety timer in case the attack event is missed in builds
+        private Coroutine _meleeFallbackCoroutine;
 
         private bool _hasPendingRangedRelease;
         private float _pendingRangedChargePercent;
@@ -419,8 +421,13 @@ namespace Category5.Player
 
             _hasPendingMeleeHit = true;
             _pendingMeleeDamage = damage;
-            _pendingMeleePosition = transform.position;
-            _pendingMeleeDirection = transform.forward;
+
+            // safety net: if the animation event never fires, deal damage after ~95% of the attack duration
+            if (_meleeFallbackCoroutine != null)
+            {
+                StopCoroutine(_meleeFallbackCoroutine);
+            }
+            _meleeFallbackCoroutine = StartCoroutine(MeleeAttackFallback(duration * 0.95f));
 
             // start cooldown coroutine
             StartCoroutine(AttackCooldown(duration));
@@ -476,7 +483,7 @@ namespace Category5.Player
 
             if (_hasPendingMeleeHit)
             {
-                RequestMeleeAttackServerRpc(_pendingMeleeDamage, _pendingMeleePosition, _pendingMeleeDirection);
+                RequestMeleeAttackServerRpc(_pendingMeleeDamage, transform.position, transform.forward);
                 _hasPendingMeleeHit = false;
                 return;
             }
@@ -487,8 +494,6 @@ namespace Category5.Player
                 _hasPendingRangedRelease = false;
                 return;
             }
-
-            Debug.LogError("PlayerCombat: Received AttackImpact animation event but no pending melee/ranged attack was queued.");
         }
 
         // gets the active model animator from PlayerModelManager
@@ -754,6 +759,27 @@ namespace Category5.Player
             _isAttacking = false;
         }
 
+        // fires melee damage if the animation event was never received (e.g. dropped trigger in builds)
+        private IEnumerator MeleeAttackFallback(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+
+            if (_hasPendingMeleeHit)
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.LogWarning("PlayerCombat: Melee attack animation event was not received - firing hit via fallback timer.");
+#endif
+
+                if (IsOwner)
+                {
+                    RequestMeleeAttackServerRpc(_pendingMeleeDamage, transform.position, transform.forward);
+                    _hasPendingMeleeHit = false;
+                }
+            }
+
+            _meleeFallbackCoroutine = null;
+        }
+
         [ServerRpc]
         private void RequestChargedRangedAttackServerRpc(Vector3 spawnPosition, Vector3 direction, float damageMultiplier, float speedMultiplier)
         {
@@ -813,7 +839,7 @@ namespace Category5.Player
             // server performs the hit check to prevent cheating
             // for a simple prototype we use OverlapSphere in front of the player
             Vector3 attackPoint = position + direction * attackOffset;
-            Collider[] hitEnemies = Physics.OverlapSphere(attackPoint, attackRange, enemyLayers);
+            Collider[] hitEnemies = Physics.OverlapSphere(attackPoint, attackRange, enemyLayers, QueryTriggerInteraction.Collide);
 
             // get player stats for damage modifiers
             if (_playerStats == null)
@@ -830,41 +856,70 @@ namespace Category5.Player
 
             // determine if this is a heavy hit (combo finisher)
             bool isHeavyHit = baseDamage >= heavyDamage;
+            var hitTargetIds = new HashSet<int>();
+            int validTargetCount = 0;
             
             foreach (Collider enemy in hitEnemies)
             {
-                if (enemy.TryGetComponent<IDamageable>(out var damageable))
+                IDamageable damageable = null;
+                if (!enemy.TryGetComponent<IDamageable>(out damageable))
                 {
-                    damageable.TakeDamage(finalDamage);
-                    
-                    // apply lifesteal healing
-                    if (lifestealAmount > 0)
-                    {
-                        ApplyLifesteal(lifestealAmount);
-                    }
-                    
-                    // notify the attacking player to show damage number
-                    // use the enemy's position for the damage number
-                    ShowDamageNumberClientRpc(finalDamage, enemy.transform.position, new ClientRpcParams
-                    {
-                        Send = new ClientRpcSendParams
-                        {
-                            TargetClientIds = new ulong[] { OwnerClientId }
-                        }
-                    });
-                    
-                    // trigger hit feedback for the attacking player
-                    TriggerHitFeedbackClientRpc(enemy.transform.position, isHeavyHit, new ClientRpcParams
-                    {
-                        Send = new ClientRpcSendParams
-                        {
-                            TargetClientIds = new ulong[] { OwnerClientId }
-                        }
-                    });
-                    
-                    // notify hit feedback manager for vfx hooks (all clients)
-                    NotifyPlayerHitClientRpc(enemy.transform.position, finalDamage, isHeavyHit);
+                    damageable = enemy.GetComponentInParent<IDamageable>();
                 }
+
+                if (damageable == null)
+                {
+                    continue;
+                }
+
+                var damageableComponent = damageable as Component;
+                int targetId = damageableComponent != null
+                    ? damageableComponent.gameObject.GetInstanceID()
+                    : enemy.transform.root.gameObject.GetInstanceID();
+
+                if (!hitTargetIds.Add(targetId))
+                {
+                    continue;
+                }
+
+                validTargetCount++;
+                damageable.TakeDamage(finalDamage);
+                
+                // apply lifesteal healing
+                if (lifestealAmount > 0)
+                {
+                    ApplyLifesteal(lifestealAmount);
+                }
+
+                Vector3 hitPosition = damageableComponent != null ? damageableComponent.transform.position : enemy.transform.position;
+                
+                // notify the attacking player to show damage number
+                ShowDamageNumberClientRpc(finalDamage, hitPosition, new ClientRpcParams
+                {
+                    Send = new ClientRpcSendParams
+                    {
+                        TargetClientIds = new ulong[] { OwnerClientId }
+                    }
+                });
+                
+                // trigger hit feedback for the attacking player
+                TriggerHitFeedbackClientRpc(hitPosition, isHeavyHit, new ClientRpcParams
+                {
+                    Send = new ClientRpcSendParams
+                    {
+                        TargetClientIds = new ulong[] { OwnerClientId }
+                    }
+                });
+                
+                // notify hit feedback manager for vfx hooks (all clients)
+                NotifyPlayerHitClientRpc(hitPosition, finalDamage, isHeavyHit);
+            }
+
+            if (validTargetCount == 0)
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.LogWarning($"PlayerCombat: melee attack found no valid targets at {attackPoint} range {attackRange} mask {enemyLayers.value}. raw collider hits: {hitEnemies.Length}");
+#endif
             }
 
             // optional: notify clients to play VFX/Sound

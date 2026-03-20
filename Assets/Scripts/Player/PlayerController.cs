@@ -1186,15 +1186,16 @@ namespace Category5.Player
         // logs missing parameters once per controller assignment to make setup issues obvious
         private void LogMissingAnimatorParamsOnce()
         {
-            if (!_hasAnimSpeed) Debug.LogWarning("PlayerController: Animator parameter missing: Speed");
+            bool hasMovePair = _hasAnimMoveX && _hasAnimMoveY;
+            bool hasSpeedPair = _hasAnimSpeedX && _hasAnimSpeedY;
+
+            if (!_hasAnimSpeed && !hasMovePair && !hasSpeedPair) Debug.LogWarning("PlayerController: Animator parameter missing: Speed");
             if (!_hasAnimIsGrounded) Debug.LogWarning("PlayerController: Animator parameter missing: IsGrounded");
             if (!_hasAnimIsDodging) Debug.LogWarning("PlayerController: Animator parameter missing: IsDodging");
             if (!_hasAnimIsDead) Debug.LogWarning("PlayerController: Animator parameter missing: IsDead");
             if (!_hasAnimIsSprinting) Debug.LogWarning("PlayerController: Animator parameter missing: IsSprinting");
             if (!_hasAnimVerticalVelocity) Debug.LogWarning("PlayerController: Animator parameter missing: VerticalVelocity");
 
-            bool hasMovePair = _hasAnimMoveX && _hasAnimMoveY;
-            bool hasSpeedPair = _hasAnimSpeedX && _hasAnimSpeedY;
             if (!hasMovePair && !hasSpeedPair)
             {
                 Debug.LogWarning("PlayerController: Animator strafing parameters missing. add MoveX/MoveY (preferred) or SpeedX/SpeedY for strafe blend trees.");

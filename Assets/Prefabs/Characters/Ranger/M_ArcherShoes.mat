@@ -102,7 +102,7 @@ Material:
     - _DstBlendAlpha: 0
     - _EnvironmentReflections: 1
     - _G_Metallic: 0
-    - _G_Smoothness: 0.4
+    - _G_Smoothness: 0.087
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
@@ -111,7 +111,7 @@ Material:
     - _Parallax: 0.005
     - _QueueControl: 0
     - _QueueOffset: 0
-    - _R_Metallic: 0
+    - _R_Metallic: 0.212
     - _R_Smoothness: 0
     - _ReceiveShadows: 1
     - _Smoothness: 0.5
@@ -127,15 +127,15 @@ Material:
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _Color1: {r: 0.3433962, g: 0.12893552, b: 0.16463658, a: 1}
-    - _Color2: {r: 0.5568628, g: 0.8705883, b: 1, a: 1}
-    - _Color3: {r: 0.5566037, g: 0.8712671, b: 1, a: 1}
+    - _Color1: {r: 1, g: 1, b: 1, a: 1}
+    - _Color2: {r: 1, g: 1, b: 1, a: 1}
+    - _Color3: {r: 0, g: 0.85423136, b: 1, a: 1}
     - _CorneaColor: {r: 0.41713774, g: 0.64202803, b: 0.6679245, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _EyeWhiteColor: {r: 0.5622641, g: 0.41480234, b: 0.41480234, a: 0}
+    - _EyeWhiteColor: {r: 0.6132076, g: 0.50040054, b: 0.50040054, a: 0}
     - _Flash: {r: 1, g: 1, b: 1, a: 0}
     - _FlashColor: {r: 4, g: 4, b: 4, a: 0}
-    - _LipColor: {r: 0.335849, g: 0.237629, b: 0.237629, a: 1}
+    - _LipColor: {r: 0.5943396, g: 0.5943396, b: 0.5943396, a: 1}
     - _SpecColor: {r: 0.2, g: 0.2, b: 0.2, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

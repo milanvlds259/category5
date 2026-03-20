@@ -16,7 +16,7 @@ MonoBehaviour:
   className: Ranger
   classDescription: Long-range archer who can deal massive continuous damage from
     a distance.
-  classIcon: {fileID: 21300000, guid: 078223b791ed5074b8377bcf248e329c, type: 3}
+  classIcon: {fileID: 21300000, guid: 97893bdd1c745de4cae8a55128254948, type: 3}
   classPortrait: {fileID: 21300000, guid: 917628358e5748c4988499db62facd1c, type: 3}
   ability1Prefab: {fileID: 53412344211962831, guid: 0ec5371159efbd94db90813399a65147, type: 3}
   ability2Prefab: {fileID: 53412344211962831, guid: d6c001f49f785ca40ab6d2e3e6d544fd, type: 3}
