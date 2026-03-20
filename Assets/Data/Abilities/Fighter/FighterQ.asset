@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: FighterQ
   m_EditorClassIdentifier: Assembly-CSharp::Category5.AbilityData
   abilityName: Overhead Slam
-  description: overhead smash attack that deals AoE damage and briefly stuns nearby
-    regular enemies.
+  description: Slam your weapon on the ground, dealing damage and knocking up enemies.
+    If you are airborne, it launches you forward as well.
   abilityIcon: {fileID: 0}
   cooldownDuration: 6
-  baseDamage: 35
+  damageCoefficient: 2.4
   castTime: 0
-  manaCost: 2
+  manaCost: 0
   vfxPrefab: {fileID: 0}
   sfxClip: {fileID: 0}

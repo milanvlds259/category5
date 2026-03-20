@@ -13,13 +13,13 @@ MonoBehaviour:
   m_Name: FighterE
   m_EditorClassIdentifier: Assembly-CSharp::Category5.AbilityData
   abilityName: Grappling Hook
-  description: 'fire a grappling hook that upon hitting an enemy it either: pulls
+  description: 'Fire a grappling hook that upon hitting an enemy it either: pulls
     you toward the enemy if it is a boss and pulls the enemy towrd you if it''s a
     regular enemy'
   abilityIcon: {fileID: 0}
   cooldownDuration: 8
-  baseDamage: 0
+  damageCoefficient: 0
   castTime: 0
-  manaCost: 4
+  manaCost: 0
   vfxPrefab: {fileID: 0}
   sfxClip: {fileID: 0}

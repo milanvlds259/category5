@@ -45,10 +45,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.ElementalistE1
   abilityData: {fileID: 11400000, guid: ceda7cda25d00f648892e3d0b8920569, type: 2}
-  projectileSpeed: 18
+  projectileSpeed: 30
   projectileLifetime: 4
   explosionRadius: 4
-  burnDamagePerTick: 5
+  burnDamageCoeffPerTick: 0.5
   burnTickInterval: 0.5
   burnDuration: 3
   spawnHeightOffset: 1.5

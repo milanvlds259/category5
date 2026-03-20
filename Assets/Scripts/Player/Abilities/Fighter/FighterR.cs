@@ -65,11 +65,10 @@ namespace Category5
 
             if (_isUltActive)
             {
-                // second press - execute big move
+                // second press - execute big move with dynamic scaling on top of coefficient
                 float currentSpeed = playerController.CurrentMovementSpeed;
-                int damage = playerStats.CalculateDamage(
-                    Mathf.RoundToInt(abilityData.baseDamage + (_distanceTraveled * distanceScalingValue) * (currentSpeed * velocityScalingValue))
-                );
+                float scaledCoefficient = abilityData.damageCoefficient
+                    + (_distanceTraveled * distanceScalingValue) * (currentSpeed * velocityScalingValue) / playerStats.BaseAttackDamage;
 
                 Vector3 pos = playerController.transform.position;
                 Vector3 forward = playerController.transform.forward;
@@ -79,7 +78,7 @@ namespace Category5
                 PlayAudio(pos);
 
                 _isUltActive = false;
-                abilityManager.ExecuteTempestBigMoveServerRpc(pos, forward, damage,
+                abilityManager.ExecuteTempestBigMoveServerRpc(pos, forward, scaledCoefficient,
                     bigMoveBoxWidth, bigMoveBoxHeight, bigMoveBoxDepth, bigMoveBoxForwardOffset, enemyLayers.value);
             }
             else

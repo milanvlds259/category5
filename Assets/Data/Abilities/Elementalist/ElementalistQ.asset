@@ -15,8 +15,8 @@ MonoBehaviour:
   abilityName: Elementalism
   description: Cycles your active element, changing the effects of your E ability.
   abilityIcon: {fileID: 21300000, guid: f49981ed6f7d6814ba429004585db713, type: 3}
-  cooldownDuration: 1
-  baseDamage: 20
+  cooldownDuration: 0.75
+  damageCoefficient: 0
   castTime: 0
   manaCost: 0
   vfxPrefab: {fileID: 0}

@@ -16,7 +16,7 @@ namespace Category5
         private ulong _ownerClientId;
         private PlayerStats _ownerStats;
         private GameObject _zonePrefab;
-        private int _baseDamage;
+        private float _damageCoefficient;
         private float _zoneRadius;
         private float _zoneDuration;
         private float _tickInterval;
@@ -55,13 +55,13 @@ namespace Category5
         }
 
         public void Initialize(ulong ownerClientId, PlayerStats ownerStats, GameObject zonePrefab,
-            int baseDamage, float projectileSpeed, float projectileLifetime, float zoneRadius,
+            float damageCoefficient, float projectileSpeed, float projectileLifetime, float zoneRadius,
             float zoneDuration, float tickInterval, float slowMultiplier)
         {
             _ownerClientId = ownerClientId;
             _ownerStats = ownerStats;
             _zonePrefab = zonePrefab;
-            _baseDamage = baseDamage;
+            _damageCoefficient = damageCoefficient;
             speed = projectileSpeed;
             lifetime = projectileLifetime;
             _zoneRadius = zoneRadius;
@@ -138,7 +138,7 @@ namespace Category5
                 return;
             }
 
-            zone.Initialize(_ownerClientId, _ownerStats, _baseDamage, _zoneRadius, _zoneDuration, _tickInterval, _slowMultiplier);
+            zone.Initialize(_ownerClientId, _ownerStats, _damageCoefficient, _zoneRadius, _zoneDuration, _tickInterval, _slowMultiplier);
             netObj.Spawn();
             DespawnProjectile();
         }

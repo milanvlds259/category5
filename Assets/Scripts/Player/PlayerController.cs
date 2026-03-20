@@ -29,11 +29,11 @@ namespace Category5.Player
         public event System.Action<int> OnMaxHealthChanged;
         
         [Header("Health")]
-        [SerializeField] private int baseMaxHealth = 100;
+        [SerializeField] private int baseMaxHealth = 100; // fallback before class data loads
         public NetworkVariable<int> CurrentHealth = new NetworkVariable<int>(100);
         
         [Header("Mana")]
-        [SerializeField] private int baseMaxMana = 10;
+        [SerializeField] private int baseMaxMana = 10; // fallback before class data loads
         public NetworkVariable<int> CurrentMana = new NetworkVariable<int>(10);
         
         // event fired when mana changes (for UI updates)
@@ -387,6 +387,7 @@ namespace Category5.Player
         private void OnStatsChanged()
         {
             int newMax = MaxHealth;
+            int previousMax = _lastMaxHealth > 0 ? _lastMaxHealth : newMax;
             
             // check if max health changed (track on all clients for UI updates)
             if (_lastMaxHealth != newMax)
@@ -397,10 +398,14 @@ namespace Category5.Player
             
             if (IsServer)
             {
-                // if max health increased, also increase current health
-                if (CurrentHealth.Value < newMax)
+                // preserve current missing-health ratio by applying only the max-health delta
+                if (newMax > previousMax)
                 {
-                    CurrentHealth.Value = Mathf.Min(CurrentHealth.Value + newMax - (newMax - _playerStats.MaxHealthBonus), newMax);
+                    CurrentHealth.Value = Mathf.Min(CurrentHealth.Value + (newMax - previousMax), newMax);
+                }
+                else if (CurrentHealth.Value > newMax)
+                {
+                    CurrentHealth.Value = newMax;
                 }
             }
         }
@@ -559,7 +564,7 @@ namespace Category5.Player
                 );
 
                 // apply charge movement speed reduction if charging
-                float effectiveSpeed = moveSpeed;
+                float effectiveSpeed = _playerStats != null ? _playerStats.EffectiveMoveSpeed : moveSpeed;
                 
                 // apply speed multiplier from inventory (items and abilities)
                 if (_playerStats != null)
@@ -776,8 +781,8 @@ namespace Category5.Player
                 return;
             }
 
-            CurrentHealth.Value -= damage;
-            Debug.Log($"Player took {damage} damage. Health: {CurrentHealth.Value}");
+            CurrentHealth.Value -= (_playerStats != null ? _playerStats.ApplyArmor(damage) : damage);
+            Debug.Log($"Player took {damage} damage (after armor). Health: {CurrentHealth.Value}");
             
             // cancel any charging attack when taking damage
             CancelChargeOnDamageClientRpc(new ClientRpcParams

@@ -61,11 +61,11 @@ namespace Category5
 
             transform.rotation = Quaternion.LookRotation(direction);
 
-            // calculate damage with potential buff
-            float adjustedDamage = CalculateDamage();
+            // calculate damage coefficient with potential buff
+            float coefficient = abilityData.damageCoefficient;
             if (_assassinQ != null && _assassinQ.ConsumeDamageBuff())
             {
-                adjustedDamage *= buffDamageMultiplier;
+                coefficient *= buffDamageMultiplier;
             }
 
             // execute the whirlwind dash on the server
@@ -75,7 +75,7 @@ namespace Category5
                 startPosition,
                 direction,
                 dashDistance,
-                Mathf.RoundToInt(adjustedDamage),
+                coefficient,
                 hitRadius,
                 enemyLayers.value
             );

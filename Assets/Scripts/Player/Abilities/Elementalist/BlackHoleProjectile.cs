@@ -19,7 +19,7 @@ namespace Category5
         private ulong _ownerClientId;
         private PlayerStats _ownerStats;
         private GameObject _blackHoleZonePrefab;
-        private int _baseDamage;
+        private float _damageCoefficient;
         private float _pullRadius;
         private float _pullForce;
         private float _pullDuration;
@@ -59,13 +59,13 @@ namespace Category5
         }
 
         public void Initialize(ulong ownerClientId, PlayerStats ownerStats, GameObject zonePrefab,
-            int baseDamage, float projectileSpeed, float projectileLifetime, float pullRadius,
+            float damageCoefficient, float projectileSpeed, float projectileLifetime, float pullRadius,
             float pullForce, float pullDuration, float pullStrengthRampUp, float explosionRadius)
         {
             _ownerClientId = ownerClientId;
             _ownerStats = ownerStats;
             _blackHoleZonePrefab = zonePrefab;
-            _baseDamage = baseDamage;
+            _damageCoefficient = damageCoefficient;
             speed = projectileSpeed;
             lifetime = projectileLifetime;
             _pullRadius = pullRadius;
@@ -128,7 +128,7 @@ namespace Category5
                 return;
             }
 
-            zone.Initialize(_ownerClientId, _ownerStats, _baseDamage, _pullRadius, _pullForce,
+            zone.Initialize(_ownerClientId, _ownerStats, _damageCoefficient, _pullRadius, _pullForce,
                 _pullDuration, _pullStrengthRampUp, _explosionRadius);
 
             netObj.Spawn();

@@ -18,9 +18,9 @@ MonoBehaviour:
 
 '
   abilityIcon: {fileID: 21300000, guid: 419f50639218e444ab13d90b5a9a625e, type: 3}
-  cooldownDuration: 2
-  baseDamage: 20
+  cooldownDuration: 2.5
+  damageCoefficient: 2
   castTime: 0
-  manaCost: 0
+  manaCost: 15
   vfxPrefab: {fileID: 0}
   sfxClip: {fileID: 0}

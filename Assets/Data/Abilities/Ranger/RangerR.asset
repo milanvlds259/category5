@@ -16,9 +16,9 @@ MonoBehaviour:
   description: Fire a massive piercing arrow that deals massive damage. Pierces through
     all enemies and walls, only stops on bosses.
   abilityIcon: {fileID: 0}
-  cooldownDuration: 30
-  baseDamage: 15
+  cooldownDuration: 24
+  damageCoefficient: 8
   castTime: 0
-  manaCost: 7
+  manaCost: 28
   vfxPrefab: {fileID: 0}
   sfxClip: {fileID: 0}

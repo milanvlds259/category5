@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: FighterR
   m_EditorClassIdentifier: Assembly-CSharp::Category5.AbilityData
   abilityName: Tempest Engine
-  description: summons a large AoE around the player that taunts enemies toward you
-    and grants you a large temporary stat boost
+  description: 'Starts a timer that stores distance traveled for 7 seconds after
+    casting. Recast before timer expires to release energy and deal damage. '
   abilityIcon: {fileID: 0}
   cooldownDuration: 25
-  baseDamage: 60
+  damageCoefficient: 2.5
   castTime: 0
-  manaCost: 7
+  manaCost: 0
   vfxPrefab: {fileID: 0}
   sfxClip: {fileID: 0}

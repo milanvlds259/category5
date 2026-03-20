@@ -17,9 +17,22 @@ MonoBehaviour:
   classDescription: Close-range juggernaut who devastates those foolish enough to
     get within their grasp.
   classIcon: {fileID: 0}
+  classPortrait: {fileID: 0}
   ability1Prefab: {fileID: 53412344211962831, guid: 9a663376fbbe20a48bcf1f52ee2b9f73, type: 3}
   ability2Prefab: {fileID: 53412344211962831, guid: 9c25bf68f3796d84ca13bec80cee6fe3, type: 3}
   ability3Prefab: {fileID: 53412344211962831, guid: 2f0a00e59aca9184d855076457dc183e, type: 3}
   combatClass: 0
   basicAttackProjectile: {fileID: 0}
+  baseAttackDamage: 15
+  baseMaxHealth: 150
+  baseMaxMana: 0
+  baseMoveSpeed: 6
+  baseAttackSpeed: 1
+  baseDodgeCooldown: 2.5
+  baseManaRegenRate: 0
+  baseArmor: 20
+  baseCritChance: 0.05
+  baseCritDamage: 1.5
+  lightAttackCoefficient: 1
+  heavyAttackCoefficient: 1
   modelPrefab: {fileID: 4248426805996765403, guid: 33b9fd489049a224c9bf7b43d3eb0f44, type: 3}

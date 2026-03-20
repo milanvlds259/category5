@@ -72,7 +72,7 @@ namespace Category5
                 startPosition,
                 direction,
                 dashDistance,
-                Mathf.RoundToInt(abilityData.baseDamage),
+                abilityData.damageCoefficient,
                 hitRadius,
                 enemyLayers.value
             );

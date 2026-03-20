@@ -17,7 +17,7 @@ namespace Category5.Player
     {
         [Header("Runtime Data (Set by Spawner)")]
         [SerializeField] private float speed = 20f;
-        [SerializeField] private int damage = 15;
+        private float _damageCoefficient = 1f;
         [SerializeField] private float lifetime = 5f;
         
         // piercing behavior for critshot
@@ -84,7 +84,7 @@ namespace Category5.Player
         public void Initialize(ProjectileData data, ulong ownerClientId, PlayerStats ownerStats)
         {
             speed = data.Speed;
-            damage = data.Damage;
+            _damageCoefficient = data.DamageCoefficient;
             lifetime = data.Lifetime;
             _ownerClientId = ownerClientId;
             _ownerInventory = ownerStats;
@@ -99,7 +99,7 @@ namespace Category5.Player
         {
             // apply multipliers to base values
             speed = data.Speed * speedMultiplier;
-            damage = Mathf.RoundToInt(data.Damage * damageMultiplier);
+            _damageCoefficient = data.DamageCoefficient * damageMultiplier;
             lifetime = data.Lifetime;
             _ownerClientId = ownerClientId;
             _ownerInventory = ownerStats;
@@ -113,7 +113,7 @@ namespace Category5.Player
         public void InitializePiercing(ProjectileData data, ulong ownerClientId, PlayerStats ownerStats, float damageMultiplier, bool ignoreEnemies = true, bool ignoreEnvironment = true)
         {
             speed = data.Speed;
-            damage = Mathf.RoundToInt(data.Damage * damageMultiplier);
+            _damageCoefficient = data.DamageCoefficient * damageMultiplier;
             lifetime = data.Lifetime;
             _ownerClientId = ownerClientId;
             _ownerInventory = ownerStats;
@@ -200,10 +200,11 @@ namespace Category5.Player
         // helper method to apply damage and all effects
         private void ApplyDamageAndEffects(IDamageable damageable, Vector3 hitPosition)
         {
-            // calculate final damage with item modifiers
-            int finalDamage = _ownerInventory != null 
-                ? _ownerInventory.CalculateDamage(damage) 
-                : damage;
+            // calculate final damage using coefficient-based formula
+            DamageResult result = _ownerInventory != null 
+                ? _ownerInventory.CalculateDamage(_damageCoefficient) 
+                : new DamageResult { damage = Mathf.RoundToInt(_damageCoefficient * 100f), wasCrit = false };
+            int finalDamage = result.damage;
                 
             // deal damage
             damageable.TakeDamage(finalDamage);

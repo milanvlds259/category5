@@ -17,8 +17,8 @@ MonoBehaviour:
     Enemies in the zone take damage every 0.5s and are slowed by 40%.
   abilityIcon: {fileID: 0}
   cooldownDuration: 12
-  baseDamage: 4
+  damageCoefficient: 0.25
   castTime: 0
-  manaCost: 4
+  manaCost: 18
   vfxPrefab: {fileID: 0}
   sfxClip: {fileID: 0}

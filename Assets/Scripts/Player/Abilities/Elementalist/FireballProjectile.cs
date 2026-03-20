@@ -16,14 +16,14 @@ namespace Category5
     {
         [Header("projectile settings")]
         [SerializeField] private float speed = 18f;
-        [SerializeField] private int damage = 25;
+        private float _damageCoefficient = 1f;
         [SerializeField] private float lifetime = 4f;
 
         [Header("aoe explosion")]
         [SerializeField] private float explosionRadius = 4f;
 
         [Header("burn effect")]
-        [SerializeField] private int burnDamagePerTick = 5;
+        [SerializeField] private float burnDamageCoeffPerTick = 0.5f;
         [SerializeField] private float burnTickInterval = 0.5f;
         [SerializeField] private float burnDuration = 3f;
 
@@ -71,16 +71,16 @@ namespace Category5
         }
 
         // initialize fireball (called on server before spawn)
-        public void Initialize(ulong ownerClientId, PlayerStats ownerStats, int baseDamage, float projectileSpeed,
-            float projectileLifetime, float aoeRadius, int burnDmg, float burnInterval, float burnDur)
+        public void Initialize(ulong ownerClientId, PlayerStats ownerStats, float damageCoefficient, float projectileSpeed,
+            float projectileLifetime, float aoeRadius, float burnDmg, float burnInterval, float burnDur)
         {
             _ownerClientId = ownerClientId;
             _ownerStats = ownerStats;
-            damage = baseDamage;
+            _damageCoefficient = damageCoefficient;
             speed = projectileSpeed;
             lifetime = projectileLifetime;
             explosionRadius = aoeRadius;
-            burnDamagePerTick = burnDmg;
+            burnDamageCoeffPerTick = burnDmg;
             burnTickInterval = burnInterval;
             burnDuration = burnDur;
         }
@@ -145,7 +145,7 @@ namespace Category5
                     if (processed.Contains(instanceId)) continue;
                     processed.Add(instanceId);
 
-                    int finalDamage = _ownerStats != null ? _ownerStats.CalculateDamage(damage) : damage;
+                    int finalDamage = _ownerStats != null ? _ownerStats.CalculateDamage(_damageCoefficient).damage : Mathf.RoundToInt(_damageCoefficient * 100f);
                     enemy.TakeDamage(finalDamage);
                     ApplyBurn(enemy.gameObject);
 
@@ -168,7 +168,7 @@ namespace Category5
                     if (processed.Contains(instanceId)) continue;
                     processed.Add(instanceId);
 
-                    int finalDamage = _ownerStats != null ? _ownerStats.CalculateDamage(damage) : damage;
+                    int finalDamage = _ownerStats != null ? _ownerStats.CalculateDamage(_damageCoefficient).damage : Mathf.RoundToInt(_damageCoefficient * 100f);
                     boss.TakeDamage(finalDamage);
                     ApplyBurn(boss.gameObject);
 
@@ -270,12 +270,12 @@ namespace Category5
             BurnEffect existing = target.GetComponent<BurnEffect>();
             if (existing != null)
             {
-                existing.Refresh(burnDamagePerTick, burnTickInterval, burnDuration);
+                existing.Refresh(burnDamageCoeffPerTick, burnTickInterval, burnDuration);
             }
             else
             {
                 BurnEffect burn = target.AddComponent<BurnEffect>();
-                burn.Initialize(burnDamagePerTick, burnTickInterval, burnDuration, _ownerClientId, _ownerStats);
+                burn.Initialize(burnDamageCoeffPerTick, burnTickInterval, burnDuration, _ownerClientId, _ownerStats);
             }
         }
 

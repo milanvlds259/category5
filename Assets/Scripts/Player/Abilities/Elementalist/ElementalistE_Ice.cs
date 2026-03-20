@@ -37,7 +37,7 @@ namespace Category5
 
             // request server to spawn the ice projectile
             abilityManager.SpawnIceProjectileServerRpc(
-                spawnPos, direction, (int)abilityData.baseDamage, projectileSpeed,
+                spawnPos, direction, abilityData.damageCoefficient, projectileSpeed,
                 projectileLifetime, slowMultiplier, slowDuration
             );
         }

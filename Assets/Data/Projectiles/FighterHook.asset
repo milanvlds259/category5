@@ -14,12 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.ProjectileData
   projectilePrefab: {fileID: 773458864881063007, guid: 16d5e15a2b6bce74a8718b4eb5153e4c, type: 3}
   speed: 25
-  damage: 5
-  lifetime: 5
+  damageCoefficient: 0
+  lifetime: 2
   trailVfxPrefab: {fileID: 0}
   impactVfxPrefab: {fileID: 0}
   fireSound: {fileID: 0}
   impactSound: {fileID: 0}
+  allowCharge: 1
   maxChargeTime: 0
   maxDamageMultiplier: 1
   maxSpeedMultiplier: 1

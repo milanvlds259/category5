@@ -12,11 +12,13 @@ namespace Category5.Player
         
         private PlayerAbilityManager abilityManager;
         private PlayerCombat playerCombat;
+        private PlayerStats playerStats;
         
         private void Awake()
         {
             abilityManager = GetComponent<PlayerAbilityManager>();
             playerCombat = GetComponent<PlayerCombat>();
+            playerStats = GetComponent<PlayerStats>();
         }
         
         public override void OnNetworkSpawn()
@@ -88,10 +90,7 @@ namespace Category5.Player
         // load class and spawn its abilities (for the owner of this player)
         private void LoadClassLocally(PlayerClassType classType)
         {
-            // only instantiate for this player's owner (server can own, client can own their own player)
-            if (!IsOwner) return;
-            
-            Debug.Log($"PlayerClassManager.LoadClassLocally: Owner loading class {classType} for player {OwnerClientId}");
+            Debug.Log($"PlayerClassManager.LoadClassLocally: Applying class {classType} for player {OwnerClientId} (IsOwner={IsOwner}, IsServer={IsServer})");
             
             PlayerClass classData = GetClassData(classType);
             if (classData == null)
@@ -107,6 +106,36 @@ namespace Category5.Player
             
             // clear existing abilities and reset ability manager references
             ClearAbilities();
+            
+            // push class data to stats system so all base stats update
+            if (playerStats != null)
+            {
+                playerStats.SetClassData(classData);
+            }
+            
+            // push melee coefficients to combat system
+            if (playerCombat != null)
+            {
+                playerCombat.SetMeleeCoefficients(classData.lightAttackCoefficient, classData.heavyAttackCoefficient);
+            }
+
+            // all instances need the correct combat class for stat-dependent gameplay,
+            // but only the owner should spawn local ability objects.
+            if (playerCombat != null)
+            {
+                playerCombat.SetCombatClass(classData.combatClass);
+
+                if (classData.combatClass == CombatClass.Ranged)
+                {
+                    playerCombat.SetArrowData(classData.basicAttackProjectile);
+                }
+            }
+
+            if (!IsOwner)
+            {
+                Debug.Log($"PlayerClassManager: Applied non-owner class data for player {OwnerClientId}");
+                return;
+            }
             
             // spawn new abilities locally
             if (classData.ability1Prefab != null)
@@ -133,18 +162,6 @@ namespace Category5.Player
             // notify ability manager that abilities have been loaded
             Debug.Log($"PlayerClassManager: Calling FindAbilitiesAfterClassLoad");
             abilityManager.FindAbilitiesAfterClassLoad();
-            
-            // set combat class based on class data
-            if (playerCombat != null)
-            {
-                playerCombat.SetCombatClass(classData.combatClass);
-                
-                // set basic attack projectile for ranged classes
-                if (classData.combatClass == CombatClass.Ranged)
-                {
-                    playerCombat.SetArrowData(classData.basicAttackProjectile);
-                }
-            }
             
             Debug.Log($"Loaded class: {classData.className}");
         }        

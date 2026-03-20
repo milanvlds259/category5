@@ -45,8 +45,8 @@ namespace Category5
         {
             if (!CanUse()) return;
 
-            // calculate damage based on player stats
-            int damage = playerStats.CalculateDamage((int)abilityData.baseDamage);
+            // send coefficient to server, server calculates final damage
+            float coefficient = abilityData.damageCoefficient;
             Vector3 pos = playerController.transform.position;
             Vector3 forward = playerController.transform.forward;
 
@@ -54,7 +54,7 @@ namespace Category5
             if (playerController.IsGrounded)
             {
                 abilityManager.ExecuteFighterQSlamGroundedServerRpc(
-                    pos, forward, damage,
+                    pos, forward, coefficient,
                     groundedBoxWidth, groundedBoxHeight, groundedBoxDepth, groundedBoxForwardOffset,
                     groundedLaunchForceUp, groundedLaunchForceForward, enemyLayers.value
                 );
@@ -62,7 +62,7 @@ namespace Category5
             else
             {
                 abilityManager.ExecuteFighterQSlamAirborneServerRpc(
-                    pos, forward, damage,
+                    pos, forward, coefficient,
                     airborneRadius, airborneOffset, airborneLaunchForceUp,
                     selfLaunchForceUp, selfLaunchForceForward, enemyLayers.value
                 );

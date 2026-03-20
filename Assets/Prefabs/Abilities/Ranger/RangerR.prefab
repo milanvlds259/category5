@@ -45,6 +45,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.CritshotAbility
   abilityData: {fileID: 11400000, guid: a57ea188b16c8a54cbfdfebe69bf800b, type: 2}
-  damageMultiplier: 4
+  damageMultiplier: 8
   arrowData: {fileID: 11400000, guid: 280db4f33df073544a185ffd626b9d10, type: 2}
   projectileSpawnPoint: {fileID: 0}

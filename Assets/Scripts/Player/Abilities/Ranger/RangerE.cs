@@ -42,7 +42,7 @@ namespace Category5
             abilityManager.SpawnRangerEArrowServerRpc(
                 spawnPos,
                 direction,
-                (int)abilityData.baseDamage,
+                abilityData.damageCoefficient,
                 arrowSpeed,
                 arrowLifetime,
                 zoneRadius,

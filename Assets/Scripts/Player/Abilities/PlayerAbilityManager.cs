@@ -601,7 +601,7 @@ namespace Category5
         }
 
         [Rpc(SendTo.Server)]
-        public void SpawnRangerEArrowServerRpc(Vector3 position, Vector3 direction, int baseDamage,
+        public void SpawnRangerEArrowServerRpc(Vector3 position, Vector3 direction, float damageCoefficient,
             float arrowSpeed, float arrowLifetime, float zoneRadius, float zoneDuration,
             float tickInterval, float slowMultiplier)
         {
@@ -634,18 +634,20 @@ namespace Category5
                 return;
             }
 
-            arrow.Initialize(OwnerClientId, playerStats, rangerEZonePrefab, baseDamage, arrowSpeed,
+            arrow.Initialize(OwnerClientId, playerStats, rangerEZonePrefab, damageCoefficient, arrowSpeed,
                 arrowLifetime, zoneRadius, zoneDuration, tickInterval, slowMultiplier);
 
             netObj.Spawn();
         }
 
         [Rpc(SendTo.Server)]
-        public void ExecuteFighterQSlamGroundedServerRpc(Vector3 playerPos, Vector3 forward, int adjustedDamage,
+        public void ExecuteFighterQSlamGroundedServerRpc(Vector3 playerPos, Vector3 forward, float damageCoefficient,
             float boxWidth, float boxHeight, float boxDepth, float boxForwardOffset,
             float launchForceUp, float launchForceForward, int enemyLayerMask)
         {
             if (!IsServer) return;
+
+            int adjustedDamage = playerStats != null ? playerStats.CalculateDamage(damageCoefficient).damage : Mathf.RoundToInt(damageCoefficient * 100f);
 
             Vector3 boxCenter = playerPos + forward * boxForwardOffset + Vector3.up * (boxHeight * 0.5f);
             Quaternion rotation = forward != Vector3.zero ? Quaternion.LookRotation(forward) : Quaternion.identity;
@@ -684,11 +686,13 @@ namespace Category5
         }
 
         [Rpc(SendTo.Server)]
-        public void ExecuteFighterQSlamAirborneServerRpc(Vector3 playerPos, Vector3 forward, int adjustedDamage,
+        public void ExecuteFighterQSlamAirborneServerRpc(Vector3 playerPos, Vector3 forward, float damageCoefficient,
             float sphereRadius, Vector3 sphereOffset, float launchForceUp,
             float selfLaunchUp, float selfLaunchForward, int enemyLayerMask)
         {
             if (!IsServer) return;
+
+            int adjustedDamage = playerStats != null ? playerStats.CalculateDamage(damageCoefficient).damage : Mathf.RoundToInt(damageCoefficient * 100f);
 
             Vector3 sphereCenter = playerPos + sphereOffset;
             Collider[] hits = Physics.OverlapSphere(sphereCenter, sphereRadius, enemyLayerMask, QueryTriggerInteraction.Ignore);
@@ -900,10 +904,12 @@ namespace Category5
         }
 
         [Rpc(SendTo.Server)]
-        public void ExecuteTempestBigMoveServerRpc(Vector3 playerPos, Vector3 forward, int adjustedDamage,
+        public void ExecuteTempestBigMoveServerRpc(Vector3 playerPos, Vector3 forward, float damageCoefficient,
             float boxWidth, float boxHeight, float boxDepth, float boxForwardOffset, int enemyLayerMask)
         {
             if (!IsServer) return;
+
+            int adjustedDamage = playerStats != null ? playerStats.CalculateDamage(damageCoefficient).damage : Mathf.RoundToInt(damageCoefficient * 100f);
 
             Vector3 boxCenter = playerPos + forward * boxForwardOffset + Vector3.up * (boxHeight * 0.5f);
             Quaternion rotation = forward != Vector3.zero ? Quaternion.LookRotation(forward) : Quaternion.identity;
@@ -978,7 +984,7 @@ namespace Category5
 
         [Rpc(SendTo.Server)]
         public void ExecuteEnchanterQDashServerRpc(Vector3 startPosition, Vector3 direction, float dashDistance,
-            int baseDamage, float hitRadius, int enemyLayerMask)
+            float damageCoefficient, float hitRadius, int enemyLayerMask)
         {
             if (!IsServer) return;
 
@@ -992,7 +998,7 @@ namespace Category5
 
             Vector3 endPosition = startPosition + direction * dashDistance;
 
-            int adjustedDamage = playerStats != null ? playerStats.CalculateDamage(baseDamage) : baseDamage;
+            int adjustedDamage = playerStats != null ? playerStats.CalculateDamage(damageCoefficient).damage : Mathf.RoundToInt(damageCoefficient * 100f);
 
             TriggerEnchanterQDashClientRpc(startPosition, direction, dashDistance);
 
@@ -1069,7 +1075,7 @@ namespace Category5
 
         [Rpc(SendTo.Server)]
         public void ExecuteAssassinQDashServerRpc(Vector3 startPosition, Vector3 direction, float dashDistance,
-            int baseDamage, float hitRadius, int enemyLayerMask)
+            float damageCoefficient, float hitRadius, int enemyLayerMask)
         {
             if (!IsServer) return;
 
@@ -1082,7 +1088,7 @@ namespace Category5
             direction.Normalize();
 
             Vector3 endPosition = startPosition + direction * dashDistance;
-            int adjustedDamage = playerStats != null ? playerStats.CalculateDamage(baseDamage) : baseDamage;
+            int adjustedDamage = playerStats != null ? playerStats.CalculateDamage(damageCoefficient).damage : Mathf.RoundToInt(damageCoefficient * 100f);
 
             TriggerAssassinQDashClientRpc(startPosition, direction, dashDistance);
 
@@ -1193,9 +1199,11 @@ namespace Category5
 
         [Rpc(SendTo.Server)]
         public void ExecuteAssassinEWhirlwindServerRpc(Vector3 startPosition, Vector3 direction, float dashDistance,
-            int adjustedDamage, float hitRadius, int enemyLayerMask)
+            float damageCoefficient, float hitRadius, int enemyLayerMask)
         {
             if (!IsServer) return;
+
+            int adjustedDamage = playerStats != null ? playerStats.CalculateDamage(damageCoefficient).damage : Mathf.RoundToInt(damageCoefficient * 100f);
 
             if (direction == Vector3.zero)
             {
@@ -1270,9 +1278,11 @@ namespace Category5
 
         [Rpc(SendTo.Server)]
         public void ExecuteAssassinRConvergenceServerRpc(Vector3 startPosition, Vector3 direction, float dashDistance,
-            int adjustedDamage, float hitRadius, int enemyLayerMask)
+            float damageCoefficient, float hitRadius, int enemyLayerMask)
         {
             if (!IsServer) return;
+
+            int adjustedDamage = playerStats != null ? playerStats.CalculateDamage(damageCoefficient).damage : Mathf.RoundToInt(damageCoefficient * 100f);
 
             if (direction == Vector3.zero)
             {
@@ -1495,9 +1505,9 @@ namespace Category5
         [SerializeField] private GameObject blackHoleZonePrefab;
 
         [Rpc(SendTo.Server)]
-        public void SpawnFireballServerRpc(Vector3 position, Vector3 direction, int baseDamage,
+        public void SpawnFireballServerRpc(Vector3 position, Vector3 direction, float damageCoefficient,
             float projectileSpeed, float projectileLifetime, float explosionRadius,
-            int burnDmgPerTick, float burnTickInterval, float burnDuration)
+            float burnDmgPerTick, float burnTickInterval, float burnDuration)
         {
             if (fireballPrefab == null)
             {
@@ -1516,7 +1526,7 @@ namespace Category5
                 return;
             }
 
-            fireball.Initialize(OwnerClientId, playerStats, baseDamage, projectileSpeed,
+            fireball.Initialize(OwnerClientId, playerStats, damageCoefficient, projectileSpeed,
                 projectileLifetime, explosionRadius, burnDmgPerTick, burnTickInterval, burnDuration);
 
             netObj.Spawn();
@@ -1524,7 +1534,7 @@ namespace Category5
         }
 
         [Rpc(SendTo.Server)]
-        public void SpawnIceProjectileServerRpc(Vector3 position, Vector3 direction, int baseDamage,
+        public void SpawnIceProjectileServerRpc(Vector3 position, Vector3 direction, float damageCoefficient,
             float projectileSpeed, float projectileLifetime, float slowMultiplier, float slowDuration)
         {
             if (iceProjectilePrefab == null)
@@ -1544,7 +1554,7 @@ namespace Category5
                 return;
             }
 
-            ice.Initialize(OwnerClientId, playerStats, baseDamage, projectileSpeed,
+            ice.Initialize(OwnerClientId, playerStats, damageCoefficient, projectileSpeed,
                 projectileLifetime, slowMultiplier, slowDuration);
 
             netObj.Spawn();
@@ -1552,10 +1562,12 @@ namespace Category5
         }
 
         [Rpc(SendTo.Server)]
-        public void ExecuteThunderArcServerRpc(Vector3 position, Vector3 forward, int adjustedDamage,
+        public void ExecuteThunderArcServerRpc(Vector3 position, Vector3 forward, float damageCoefficient,
             float arcAngle, float arcRange, float knockbackForce, float stunDuration, float stunDelay, int enemyLayerMask)
         {
             if (!IsServer) return;
+
+            int adjustedDamage = playerStats != null ? playerStats.CalculateDamage(damageCoefficient).damage : Mathf.RoundToInt(damageCoefficient * 100f);
 
             Debug.Log($"[ElementalistE_Thunder Server] executing arc at {position}, damage={adjustedDamage}, range={arcRange}, angle={arcAngle}");
 
@@ -1668,7 +1680,7 @@ namespace Category5
         }
 
         [Rpc(SendTo.Server)]
-        public void SpawnBlackHoleProjectileServerRpc(Vector3 position, Vector3 direction, int baseDamage,
+        public void SpawnBlackHoleProjectileServerRpc(Vector3 position, Vector3 direction, float damageCoefficient,
             float projectileSpeed, float projectileLifetime, float pullRadius, float pullForce,
             float pullDuration, float pullStrengthRampUp, float explosionRadius)
         {
@@ -1695,7 +1707,7 @@ namespace Category5
                 return;
             }
 
-            projectile.Initialize(OwnerClientId, playerStats, blackHoleZonePrefab, baseDamage,
+            projectile.Initialize(OwnerClientId, playerStats, blackHoleZonePrefab, damageCoefficient,
                 projectileSpeed, projectileLifetime, pullRadius, pullForce,
                 pullDuration, pullStrengthRampUp, explosionRadius);
 

@@ -13,7 +13,10 @@ namespace Category5
 
         [Header("Gameplay")]
         public float cooldownDuration = 10f;
-        public float baseDamage = 20f;
+        
+        [Tooltip("damage as a fraction of class attack damage (e.g. 2.5 = 250% of attack damage)")]
+        public float damageCoefficient = 1f;
+        
         public float castTime = 0f;
         public int manaCost = 0;
 

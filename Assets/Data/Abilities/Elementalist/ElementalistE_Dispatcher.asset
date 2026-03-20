@@ -16,7 +16,7 @@ MonoBehaviour:
   description: This ability vaires depending on your active Element
   abilityIcon: {fileID: 21300000, guid: 9aad5684247f0aa409bafbddc6de401a, type: 3}
   cooldownDuration: 3
-  baseDamage: 20
+  damageCoefficient: 0
   castTime: 0
   manaCost: 0
   vfxPrefab: {fileID: 0}

@@ -17,7 +17,7 @@ namespace Category5
         [SerializeField] private float zoneDuration = 6f;
         [SerializeField] private float tickInterval = 0.5f;
         [SerializeField] private float slowMultiplier = 0.6f;
-        [SerializeField] private int damage = 20;
+        private float _damageCoefficient = 1f;
 
         private ulong _ownerClientId;
         private PlayerStats _ownerStats;
@@ -27,12 +27,12 @@ namespace Category5
         public static event Action<Vector3, float> OnZoneSpawned;
         public static event Action<Vector3> OnZoneExpired;
 
-        public void Initialize(ulong ownerClientId, PlayerStats ownerStats, int baseDamage,
+        public void Initialize(ulong ownerClientId, PlayerStats ownerStats, float damageCoefficient,
             float radius, float duration, float damageTickInterval, float slowMult)
         {
             _ownerClientId = ownerClientId;
             _ownerStats = ownerStats;
-            damage = baseDamage;
+            _damageCoefficient = damageCoefficient;
             zoneRadius = radius;
             zoneDuration = duration;
             tickInterval = damageTickInterval;
@@ -107,7 +107,7 @@ namespace Category5
 
         private int CalculateTickDamage()
         {
-            return _ownerStats != null ? _ownerStats.CalculateDamage(damage) : damage;
+            return _ownerStats != null ? _ownerStats.CalculateDamage(_damageCoefficient).damage : Mathf.RoundToInt(_damageCoefficient * 100f);
         }
 
         private void ExpireZone()

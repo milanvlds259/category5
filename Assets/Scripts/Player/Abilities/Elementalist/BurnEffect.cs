@@ -11,7 +11,7 @@ namespace Category5
     public class BurnEffect : MonoBehaviour
     {
         [Header("runtime state (set by initializer)")]
-        [SerializeField] private int damagePerTick = 5;
+        [SerializeField] private float damageCoeffPerTick = 0.5f;
         [SerializeField] private float tickInterval = 0.5f;
         [SerializeField] private float duration = 3f;
         [SerializeField] private ulong sourceClientId;
@@ -23,9 +23,9 @@ namespace Category5
         private bool _isInitialized;
 
         // initialize the burn effect (called on server only)
-        public void Initialize(int damagePerTick, float tickInterval, float duration, ulong sourceClientId, PlayerStats ownerStats = null)
+        public void Initialize(float damageCoeffPerTick, float tickInterval, float duration, ulong sourceClientId, PlayerStats ownerStats = null)
         {
-            this.damagePerTick = damagePerTick;
+            this.damageCoeffPerTick = damageCoeffPerTick;
             this.tickInterval = tickInterval;
             this.duration = duration;
             this.sourceClientId = sourceClientId;
@@ -51,9 +51,9 @@ namespace Category5
         }
 
         // refresh with new parameters
-        public void Refresh(int newDamagePerTick, float newTickInterval, float newDuration)
+        public void Refresh(float newDamageCoeffPerTick, float newTickInterval, float newDuration)
         {
-            damagePerTick = newDamagePerTick;
+            damageCoeffPerTick = newDamageCoeffPerTick;
             tickInterval = newTickInterval;
             _remainingDuration = newDuration;
         }
@@ -86,10 +86,10 @@ namespace Category5
                 return;
             }
 
-            // calculate damage with owner stats if available
+            // calculate damage with owner stats if available (burn uses flat damage, not coefficient)
             int finalDamage = _ownerStats != null
-                ? _ownerStats.CalculateDamage(damagePerTick)
-                : damagePerTick;
+                ? _ownerStats.CalculateFlatDamage(damageCoeffPerTick)
+                : Mathf.RoundToInt(damageCoeffPerTick * 100f);
 
             _target.TakeDamage(finalDamage);
 

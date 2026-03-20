@@ -15,7 +15,7 @@ namespace Category5
     {
         [Header("projectile settings")]
         [SerializeField] private float speed = 22f;
-        [SerializeField] private int damage = 20;
+        private float _damageCoefficient = 1f;
         [SerializeField] private float lifetime = 5f;
 
         [Header("slow settings")]
@@ -54,12 +54,12 @@ namespace Category5
         }
 
         // initialize ice projectile (called on server before spawn)
-        public void Initialize(ulong ownerClientId, PlayerStats ownerStats, int baseDamage,
+        public void Initialize(ulong ownerClientId, PlayerStats ownerStats, float damageCoefficient,
             float projectileSpeed, float projectileLifetime, float slowMult, float slowDur)
         {
             _ownerClientId = ownerClientId;
             _ownerStats = ownerStats;
-            damage = baseDamage;
+            _damageCoefficient = damageCoefficient;
             speed = projectileSpeed;
             lifetime = projectileLifetime;
             slowMultiplier = slowMult;
@@ -88,7 +88,7 @@ namespace Category5
                 if (_hitInstanceIds.Contains(instanceId)) return;
                 _hitInstanceIds.Add(instanceId);
 
-                int finalDamage = _ownerStats != null ? _ownerStats.CalculateDamage(damage) : damage;
+                int finalDamage = _ownerStats != null ? _ownerStats.CalculateDamage(_damageCoefficient).damage : Mathf.RoundToInt(_damageCoefficient * 100f);
                 damageable.TakeDamage(finalDamage);
 
                 // apply slow to enemies

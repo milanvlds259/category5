@@ -27,7 +27,7 @@ namespace Category5
         [SerializeField] private Color debugSphereColor = new Color(0.08f, 0.05f, 0.16f, 0.18f);
 
         [Header("explosion phase")]
-        [SerializeField] private int explosionDamage = 60;
+        private float _damageCoefficient = 1f;
         [SerializeField] private float explosionRadius = 8f;
 
         private ulong _ownerClientId;
@@ -44,12 +44,12 @@ namespace Category5
         public static event System.Action<Vector3, int> OnBlackHoleExploded;
 
         // initialize (called on server before spawn)
-        public void Initialize(ulong ownerClientId, PlayerStats ownerStats, int baseDamage,
+        public void Initialize(ulong ownerClientId, PlayerStats ownerStats, float damageCoefficient,
             float radius, float force, float duration, float ramp, float explRadius)
         {
             _ownerClientId = ownerClientId;
             _ownerStats = ownerStats;
-            explosionDamage = baseDamage;
+            _damageCoefficient = damageCoefficient;
             pullRadius = radius;
             pullForce = force;
             pullDuration = duration;
@@ -181,7 +181,7 @@ namespace Category5
 
                 if (enemy != null && !enemy.IsDead)
                 {
-                    int finalDamage = _ownerStats != null ? _ownerStats.CalculateDamage(explosionDamage) : explosionDamage;
+                    int finalDamage = _ownerStats != null ? _ownerStats.CalculateDamage(_damageCoefficient).damage : Mathf.RoundToInt(_damageCoefficient * 100f);
                     enemy.TakeDamage(finalDamage);
 
                     ShowDamageNumberClientRpc(finalDamage, enemy.transform.position, new ClientRpcParams
@@ -197,7 +197,7 @@ namespace Category5
 
                 if (boss != null)
                 {
-                    int finalDamage = _ownerStats != null ? _ownerStats.CalculateDamage(explosionDamage) : explosionDamage;
+                    int finalDamage = _ownerStats != null ? _ownerStats.CalculateDamage(_damageCoefficient).damage : Mathf.RoundToInt(_damageCoefficient * 100f);
                     boss.TakeDamage(finalDamage);
 
                     ShowDamageNumberClientRpc(finalDamage, boss.transform.position, new ClientRpcParams

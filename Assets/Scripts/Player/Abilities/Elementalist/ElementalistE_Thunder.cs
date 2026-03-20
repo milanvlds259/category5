@@ -46,12 +46,12 @@ namespace Category5
                 CreateDebugArcVisual(position, forward, arcRange, arcAngle);
             }
 
-            // calculate damage on client side for the server rpc
-            int adjustedDamage = playerStats.CalculateDamage((int)abilityData.baseDamage);
+            // send coefficient to server, server calculates damage
+            float coefficient = abilityData.damageCoefficient;
 
             // request server to execute the arc damage
             abilityManager.ExecuteThunderArcServerRpc(
-                position, forward, adjustedDamage, arcAngle, arcRange, knockbackForce, stunDuration, stunDelay, enemyLayers.value
+                position, forward, coefficient, arcAngle, arcRange, knockbackForce, stunDuration, stunDelay, enemyLayers.value
             );
         }
 

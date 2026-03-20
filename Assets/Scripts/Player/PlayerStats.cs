@@ -6,20 +6,37 @@ using Category5.Items;
 
 namespace Category5.Player
 {
+    // return type for damage calculations so callers know if a crit happened
+    public struct DamageResult
+    {
+        public int damage;
+        public bool wasCrit;
+    }
+    
     // component attached to player to calculate all stat modifications
-    // reads from PlayerInventory (items) and manages temporary stat buffs
+    // reads base stats from PlayerClass SO and applies item bonuses on top
     public class PlayerStats : NetworkBehaviour
     {
-        [Header("base stats (reference only)")]
-        [SerializeField] private int baseMaxHealth = 100;
-        [SerializeField] private int baseMaxMana = 10;
-        [SerializeField] private float baseDodgeCooldown = 2f;
-        [SerializeField] private float baseMoveSpeed = 5f;
+        // class data source (set by PlayerClassManager when class loads)
+        private PlayerClass _classData;
+        
+        // fallback base stats used before class data is loaded
+        [Header("fallback base stats (used before class loads)")]
+        [SerializeField] private float fallbackAttackDamage = 12f;
+        [SerializeField] private int fallbackMaxHealth = 100;
+        [SerializeField] private int fallbackMaxMana = 80;
+        [SerializeField] private float fallbackMoveSpeed = 7f;
+        [SerializeField] private float fallbackAttackSpeed = 1f;
+        [SerializeField] private float fallbackDodgeCooldown = 2f;
+        [SerializeField] private float fallbackManaRegenRate = 2f;
+        [SerializeField] private float fallbackArmor = 10f;
+        [SerializeField] private float fallbackCritChance = 0.05f;
+        [SerializeField] private float fallbackCritDamage = 1.5f;
         
         // reference to player inventory (for reading items)
         private PlayerInventory _playerInventory;
 
-        // cached calculated stats
+        // cached item bonuses (reset and recalculated from inventory)
         private float _damageMultiplier = 1f;
         private int _flatDamageBonus = 0;
         private int _maxHealthBonus = 0;
@@ -30,25 +47,57 @@ namespace Category5.Player
         private float _attackSpeedMultiplier = 1f;
         private float _manaRegenMultiplier = 1f;
         private float _manaCostReduction = 0f;
+        private float _armorBonus = 0f;
+        private float _critChanceBonus = 0f;
+        private float _critDamageBonus = 0f;
 
-        // public accessors for other systems to use
+        // base stat accessors (from class data or fallback)
+        public float BaseAttackDamage => _classData != null ? _classData.baseAttackDamage : fallbackAttackDamage;
+        private int BaseMaxHealth => _classData != null ? _classData.baseMaxHealth : fallbackMaxHealth;
+        private int BaseMaxMana => _classData != null ? _classData.baseMaxMana : fallbackMaxMana;
+        private float BaseMoveSpeed => _classData != null ? _classData.baseMoveSpeed : fallbackMoveSpeed;
+        private float BaseAttackSpeed => _classData != null ? _classData.baseAttackSpeed : fallbackAttackSpeed;
+        private float BaseDodgeCooldown => _classData != null ? _classData.baseDodgeCooldown : fallbackDodgeCooldown;
+        private float BaseManaRegenRate => _classData != null ? _classData.baseManaRegenRate : fallbackManaRegenRate;
+        private float BaseArmor => _classData != null ? _classData.baseArmor : fallbackArmor;
+        private float BaseCritChance => _classData != null ? _classData.baseCritChance : fallbackCritChance;
+        private float BaseCritDamage => _classData != null ? _classData.baseCritDamage : fallbackCritDamage;
+        
+        // melee coefficient accessors (from class data or fallback)
+        public float LightAttackCoefficient => _classData != null ? _classData.lightAttackCoefficient : 0.8f;
+        public float HeavyAttackCoefficient => _classData != null ? _classData.heavyAttackCoefficient : 1.5f;
+
+        // public accessors for final stats (base + items)
         public float DamageMultiplier => _damageMultiplier;
         public int FlatDamageBonus => _flatDamageBonus;
         public int MaxHealthBonus => _maxHealthBonus;
-        public int TotalMaxHealth => baseMaxHealth + _maxHealthBonus;
+        public int TotalMaxHealth => BaseMaxHealth + _maxHealthBonus;
         public int MaxManaBonus => _maxManaBonus;
-        public int TotalMaxMana => baseMaxMana + _maxManaBonus;
+        public int TotalMaxMana => BaseMaxMana + _maxManaBonus;
         public float DodgeCooldownReduction => _dodgeCooldownReduction;
-        public float EffectiveDodgeCooldown => Mathf.Max(0.5f, baseDodgeCooldown - _dodgeCooldownReduction);
+        public float EffectiveDodgeCooldown => Mathf.Max(0.5f, BaseDodgeCooldown - _dodgeCooldownReduction);
         public int LifestealAmount => _lifestealAmount;
         public float MoveSpeedMultiplier => _moveSpeedMultiplier;
         public float AttackSpeedMultiplier => _attackSpeedMultiplier;
         public float ManaRegenMultiplier => _manaRegenMultiplier;
         public float ManaCostReduction => _manaCostReduction;
-        public float EffectiveMoveSpeed => baseMoveSpeed * _moveSpeedMultiplier;
+        public float EffectiveMoveSpeed => BaseMoveSpeed * _moveSpeedMultiplier;
+        public float TotalArmor => BaseArmor + _armorBonus;
+        public float TotalCritChance => Mathf.Clamp01(BaseCritChance + _critChanceBonus);
+        public float TotalCritDamage => BaseCritDamage + _critDamageBonus;
+        public float EffectiveManaRegenRate => BaseManaRegenRate * _manaRegenMultiplier;
+        public bool HasClassData => _classData != null;
 
         // event for when stats change
         public event System.Action OnStatsChanged;
+
+        // called by PlayerClassManager after class is resolved
+        public void SetClassData(PlayerClass classData)
+        {
+            _classData = classData;
+            Debug.Log($"PlayerStats: class data set to {classData.className} (ATK={classData.baseAttackDamage}, HP={classData.baseMaxHealth}, Armor={classData.baseArmor})");
+            RecalculateStats();
+        }
 
         public override void OnNetworkSpawn()
         {
@@ -72,9 +121,9 @@ namespace Category5.Player
         }
 
         // recalculates all stats from items
-        private void RecalculateStats()
+        public void RecalculateStats()
         {
-            // reset to base values
+            // reset item bonuses to defaults
             _damageMultiplier = 1f;
             _flatDamageBonus = 0;
             _maxHealthBonus = 0;
@@ -85,6 +134,9 @@ namespace Category5.Player
             _attackSpeedMultiplier = 1f;
             _manaRegenMultiplier = 1f;
             _manaCostReduction = 0f;
+            _armorBonus = 0f;
+            _critChanceBonus = 0f;
+            _critDamageBonus = 0f;
             
             // apply items from inventory
             if (_playerInventory != null)
@@ -96,7 +148,7 @@ namespace Category5.Player
                 }
             }
 
-            Debug.Log($"PlayerStats recalculated: DamageMult={_damageMultiplier:F2}, FlatDmg={_flatDamageBonus}, MaxHP+={_maxHealthBonus}, DodgeCD-={_dodgeCooldownReduction:F2}, Lifesteal={_lifestealAmount}, MoveSpeed*={_moveSpeedMultiplier:F2}");
+            Debug.Log($"PlayerStats recalculated: ATK={BaseAttackDamage}, DmgMult={_damageMultiplier:F2}, FlatDmg={_flatDamageBonus}, MaxHP={TotalMaxHealth}, Armor={TotalArmor:F1}, Crit={TotalCritChance:P0}/{TotalCritDamage:F1}x");
 
             OnStatsChanged?.Invoke();
         }
@@ -147,6 +199,18 @@ namespace Category5.Player
                     case ItemEffectType.ManaCostReduction:
                         _manaCostReduction += effect.value;
                         break;
+                    
+                    case ItemEffectType.ArmorBonus:
+                        _armorBonus += effect.value;
+                        break;
+                    
+                    case ItemEffectType.CritChanceBonus:
+                        _critChanceBonus += effect.value;
+                        break;
+                    
+                    case ItemEffectType.CritDamageBonus:
+                        _critDamageBonus += effect.value;
+                        break;
 
                     default:
                         Debug.LogWarning($"PlayerStats: Unhandled item effect type {effect.effectType}");
@@ -155,13 +219,41 @@ namespace Category5.Player
             }
         }
 
-        // calculates final damage output given base damage
-        public int CalculateDamage(int baseDamage)
+        // calculates final damage from a coefficient (fraction of class attack damage)
+        // coefficient of 1.0 = 100% of attack damage, 2.5 = 250%, etc.
+        // crit rolls happen server-side for authority
+        public DamageResult CalculateDamage(float damageCoefficient)
         {
-            // use effective damage multiplier (includes temporary boosts)
             float effectiveMultiplier = GetEffectiveDamageMultiplier();
-            float modified = baseDamage * effectiveMultiplier + _flatDamageBonus;
-            return Mathf.RoundToInt(modified);
+            float rawDmg = BaseAttackDamage * damageCoefficient * effectiveMultiplier + _flatDamageBonus;
+            
+            // crit roll (server-side)
+            bool wasCrit = UnityEngine.Random.value < TotalCritChance;
+            if (wasCrit)
+            {
+                rawDmg *= TotalCritDamage;
+            }
+            
+            return new DamageResult
+            {
+                damage = Mathf.Max(1, Mathf.RoundToInt(rawDmg)),
+                wasCrit = wasCrit
+            };
+        }
+        
+        // convenience overload that returns just the int damage (for call sites that don't need crit info)
+        public int CalculateFlatDamage(float damageCoefficient)
+        {
+            return CalculateDamage(damageCoefficient).damage;
+        }
+
+        // applies armor damage reduction using lol-style formula: dmg * 100 / (100 + armor)
+        public int ApplyArmor(int incomingDamage)
+        {
+            float armor = TotalArmor;
+            if (armor <= 0f) return incomingDamage;
+            float reduced = incomingDamage * 100f / (100f + armor);
+            return Mathf.Max(1, Mathf.RoundToInt(reduced));
         }
         
         // apply a temporary stat multiplier (used by abilities like Fighter R)

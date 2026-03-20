@@ -46,7 +46,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.ElementalistR
   abilityData: {fileID: 11400000, guid: f7e8a3bb6f958904eb5d5e8ffa778ce8, type: 2}
   castRange: 15
-  projectileSpeed: 14
+  projectileSpeed: 30
   projectileLifetime: 5
   pullRadius: 16
   pullForce: 5

@@ -55,14 +55,24 @@ namespace Category5
         // optional input release handler for charge-style abilities
         public virtual void OnReleased() { }
 
-        // calculate damage with item scaling
-        protected float CalculateDamage()
+        // calculate damage using coefficient-based scaling off class attack damage
+        protected DamageResult CalculateDamage()
         {
             if (playerStats != null)
             {
-                return playerStats.CalculateDamage((int)abilityData.baseDamage);
+                return playerStats.CalculateDamage(abilityData.damageCoefficient);
             }
-            return abilityData.baseDamage;
+            return new DamageResult { damage = Mathf.RoundToInt(abilityData.damageCoefficient * 10f), wasCrit = false };
+        }
+        
+        // overload for custom coefficients (e.g. per-tick damage, burst arrows)
+        protected DamageResult CalculateDamage(float customCoefficient)
+        {
+            if (playerStats != null)
+            {
+                return playerStats.CalculateDamage(customCoefficient);
+            }
+            return new DamageResult { damage = Mathf.RoundToInt(customCoefficient * 10f), wasCrit = false };
         }
 
         // helper to spawn vfx at position (client-side)

@@ -53,10 +53,11 @@ namespace Category5
 
             transform.rotation = Quaternion.LookRotation(direction);
 
-            float adjustedDamage = CalculateDamage();
+            // calculate damage coefficient with potential buff
+            float coefficient = abilityData.damageCoefficient;
             if (_assassinQ != null && _assassinQ.ConsumeDamageBuff())
             {
-                adjustedDamage *= buffDamageMultiplier;
+                coefficient *= buffDamageMultiplier;
             }
 
             Vector3 startPosition = transform.position;
@@ -64,7 +65,7 @@ namespace Category5
                 startPosition,
                 direction,
                 dashDistance,
-                Mathf.RoundToInt(adjustedDamage),
+                coefficient,
                 hitRadius,
                 enemyLayers.value
             );

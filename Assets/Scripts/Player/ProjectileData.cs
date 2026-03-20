@@ -16,8 +16,8 @@ namespace Category5.Player
         [Tooltip("projectile travel speed in units per second")]
         [SerializeField] private float speed = 20f;
         
-        [Tooltip("base damage dealt on impact")]
-        [SerializeField] private int damage = 15;
+        [Tooltip("damage as a fraction of class attack damage (e.g. 1.0 = 100%)")]
+        [SerializeField] private float damageCoefficient = 1f;
         
         [Tooltip("time in seconds before projectile despawns if it doesn't hit anything")]
         [SerializeField] private float lifetime = 5f;
@@ -68,7 +68,7 @@ namespace Category5.Player
         // public accessors
         public GameObject ProjectilePrefab => projectilePrefab;
         public float Speed => speed;
-        public int Damage => damage;
+        public float DamageCoefficient => damageCoefficient;
         public float Lifetime => lifetime;
         public GameObject TrailVfxPrefab => trailVfxPrefab;
         public GameObject ImpactVfxPrefab => impactVfxPrefab;

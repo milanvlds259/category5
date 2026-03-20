@@ -18,7 +18,7 @@ MonoBehaviour:
     next ability for 4s (does not stack, but refreshes).
   abilityIcon: {fileID: 0}
   cooldownDuration: 3
-  baseDamage: 15
+  damageCoefficient: 1.25
   castTime: 0
   manaCost: 0
   vfxPrefab: {fileID: 0}

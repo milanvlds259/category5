@@ -26,8 +26,10 @@ namespace Category5.Player
         [SerializeField] private CombatClass combatClass = CombatClass.Melee;
         
         [Header("Melee Combat Stats")]
-        [SerializeField] private int lightDamage = 10;
-        [SerializeField] private int heavyDamage = 25;
+        [Tooltip("damage coefficient for light attacks (fraction of class attack damage, set by class data)")]
+        [SerializeField] private float lightAttackCoefficient = 0.8f;
+        [Tooltip("damage coefficient for heavy combo finisher (fraction of class attack damage, set by class data)")]
+        [SerializeField] private float heavyAttackCoefficient = 1.5f;
         [SerializeField] private float attackRange = 2f;
         [SerializeField] private float attackOffset = 1f;
         [SerializeField] private LayerMask enemyLayers;
@@ -76,7 +78,7 @@ namespace Category5.Player
 
         // pending attack data for animation event timing
         private bool _hasPendingMeleeHit;
-        private int _pendingMeleeDamage;
+        private float _pendingMeleeCoefficient;
 
         private bool _hasPendingRangedRelease;
         private float _pendingRangedChargePercent;
@@ -125,6 +127,14 @@ namespace Category5.Player
         {
             arrowData = data;
             Debug.Log($"PlayerCombat: Arrow data set to {(data != null ? data.name : "null")}");
+        }
+        
+        // set melee coefficients from class data
+        public void SetMeleeCoefficients(float light, float heavy)
+        {
+            lightAttackCoefficient = light;
+            heavyAttackCoefficient = heavy;
+            Debug.Log($"PlayerCombat: melee coefficients set to light={light:F2}, heavy={heavy:F2}");
         }
         
         // static events for vfx/sfx to hook into
@@ -374,14 +384,14 @@ namespace Category5.Player
             // fire audio event for attack swing
             PlayerEvents.InvokeAttackSwing(transform.position);
 
-            // determine damage and duration based on combo step
-            int damage = lightDamage;
+            // determine damage coefficient and duration based on combo step
+            float coefficient = lightAttackCoefficient;
             float duration = attack1Duration;
 
             if (_comboCounter == 2) duration = attack2Duration;
             if (_comboCounter >= 3)
             {
-                damage = heavyDamage;
+                coefficient = heavyAttackCoefficient;
                 duration = attack3Duration;
                 // Reset combo after 3rd hit
                 _comboCounter = 0; 
@@ -397,7 +407,7 @@ namespace Category5.Player
             // Debug.Log($"Player Melee Attack! Combo: {_comboCounter-1} | Damage: {damage}");
 
             _hasPendingMeleeHit = true;
-            _pendingMeleeDamage = damage;
+            _pendingMeleeCoefficient = coefficient;
         }
         
         /// <summary>
@@ -450,7 +460,7 @@ namespace Category5.Player
 
             if (_hasPendingMeleeHit)
             {
-                RequestMeleeAttackServerRpc(_pendingMeleeDamage, transform.position, transform.forward);
+                RequestMeleeAttackServerRpc(_pendingMeleeCoefficient, transform.position, transform.forward);
                 _hasPendingMeleeHit = false;
                 return;
             }
@@ -803,7 +813,7 @@ namespace Category5.Player
         }
 
         [ServerRpc]
-        private void RequestMeleeAttackServerRpc(int baseDamage, Vector3 position, Vector3 direction)
+        private void RequestMeleeAttackServerRpc(float damageCoefficient, Vector3 position, Vector3 direction)
         {
             // server performs the hit check to prevent cheating
             // for a simple prototype we use OverlapSphere in front of the player
@@ -816,15 +826,16 @@ namespace Category5.Player
                 _playerStats = GetComponent<PlayerStats>();
             }
             
-            // calculate final damage with item modifiers
-            int finalDamage = _playerStats != null 
-                ? _playerStats.CalculateDamage(baseDamage) 
-                : baseDamage;
+            // calculate final damage using coefficient-based formula
+            DamageResult result = _playerStats != null 
+                ? _playerStats.CalculateDamage(damageCoefficient) 
+                : new DamageResult { damage = Mathf.RoundToInt(damageCoefficient * 100f), wasCrit = false };
+            int finalDamage = result.damage;
             
             int lifestealAmount = _playerStats != null ? _playerStats.LifestealAmount : 0;
 
             // determine if this is a heavy hit (combo finisher)
-            bool isHeavyHit = baseDamage >= heavyDamage;
+            bool isHeavyHit = damageCoefficient >= heavyAttackCoefficient;
             var hitTargetIds = new HashSet<int>();
             int validTargetCount = 0;
             

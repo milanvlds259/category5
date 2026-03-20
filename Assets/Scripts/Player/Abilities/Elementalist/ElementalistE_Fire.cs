@@ -12,7 +12,7 @@ namespace Category5
         [SerializeField] private float explosionRadius = 4f;
 
         [Header("burn settings")]
-        [SerializeField] private int burnDamagePerTick = 5;
+        [SerializeField] private float burnDamageCoeffPerTick = 0.5f;
         [SerializeField] private float burnTickInterval = 0.5f;
         [SerializeField] private float burnDuration = 3f;
 
@@ -44,8 +44,8 @@ namespace Category5
 
             // request server to spawn the fireball
             abilityManager.SpawnFireballServerRpc(
-                spawnPos, direction, (int)abilityData.baseDamage, projectileSpeed, projectileLifetime,
-                explosionRadius, burnDamagePerTick, burnTickInterval, burnDuration
+                spawnPos, direction, abilityData.damageCoefficient, projectileSpeed, projectileLifetime,
+                explosionRadius, burnDamageCoeffPerTick, burnTickInterval, burnDuration
             );
         }
 

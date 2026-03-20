@@ -39,7 +39,7 @@ namespace Category5
 
             // request server to spawn the black hole projectile
             abilityManager.SpawnBlackHoleProjectileServerRpc(
-                spawnPos, direction, (int)abilityData.baseDamage, projectileSpeed, projectileLifetime,
+                spawnPos, direction, abilityData.damageCoefficient, projectileSpeed, projectileLifetime,
                 pullRadius, pullForce, pullDuration, pullStrengthRampUp, explosionRadius
             );
         }

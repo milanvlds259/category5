@@ -18,7 +18,7 @@ MonoBehaviour:
     immediately.
   abilityIcon: {fileID: 0}
   cooldownDuration: 12
-  baseDamage: 40
+  damageCoefficient: 2.5
   castTime: 0
   manaCost: 0
   vfxPrefab: {fileID: 0}
