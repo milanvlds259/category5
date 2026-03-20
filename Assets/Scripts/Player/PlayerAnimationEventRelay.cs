@@ -1,10 +1,8 @@
 using UnityEngine;
 using UnityEngine.Scripting;
 
-// NOTE: the preserve things are to prevent the methods from being stripped out during build since they're 
-// only called via animation events and not referenced directly in code which makes them look unused to 
-// the build process for some reason if these get stripped then the animation events won't fire and attacks won't work
-// so we needed to make sure they stay in the build. ideally we'd have a more robust way of marking animation event methods to preserve but for now this should do the trick.
+// NOTE: the preserve things are to prevent the methods from being stripped out during build
+// since they do for some reason which messes up the builds.
 namespace Category5.Player
 {
     // relays animation events from the model animator object to playercombat on the root player object

@@ -78,9 +78,6 @@ namespace Category5.Player
         private bool _hasPendingMeleeHit;
         private int _pendingMeleeDamage;
 
-        // safety timer in case the attack event is missed in builds
-        private Coroutine _meleeFallbackCoroutine;
-
         private bool _hasPendingRangedRelease;
         private float _pendingRangedChargePercent;
 
@@ -233,8 +230,6 @@ namespace Category5.Player
                     OnChargeProgress?.Invoke(currentPercent, transform.position);
                 }
             }
-
-            UpdateMeleeInputBuffer();
         }
         
         private void OnAttackStarted(InputAction.CallbackContext context)
@@ -311,24 +306,6 @@ namespace Category5.Player
 
             return true;
         }
-
-        private void UpdateMeleeInputBuffer()
-        {
-            if (!_hasBufferedMeleeAttackInput) return;
-
-            if (Time.time > _bufferedMeleeInputExpireTime)
-            {
-                _hasBufferedMeleeAttackInput = false;
-                return;
-            }
-
-            if (!_meleeChainWindowOpen) return;
-            if (!CanAttack()) return;
-
-            _hasBufferedMeleeAttackInput = false;
-            PerformMeleeAttack();
-        }
-        
 
         // starts charging a ranged attack
         private void StartCharging()
@@ -421,16 +398,6 @@ namespace Category5.Player
 
             _hasPendingMeleeHit = true;
             _pendingMeleeDamage = damage;
-
-            // safety net: if the animation event never fires, deal damage after ~95% of the attack duration
-            if (_meleeFallbackCoroutine != null)
-            {
-                StopCoroutine(_meleeFallbackCoroutine);
-            }
-            _meleeFallbackCoroutine = StartCoroutine(MeleeAttackFallback(duration * 0.95f));
-
-            // start cooldown coroutine
-            StartCoroutine(AttackCooldown(duration));
         }
         
         /// <summary>
@@ -587,7 +554,6 @@ namespace Category5.Player
         {
             if (!IsOwner) return;
             _meleeChainWindowOpen = true;
-            UpdateMeleeInputBuffer();
         }
 
         // animation event hook closes the chain window
@@ -595,6 +561,30 @@ namespace Category5.Player
         {
             if (!IsOwner) return;
             _meleeChainWindowOpen = false;
+
+            // attack recovery is animation-driven for melee so buffered followups only start once
+            // the current attack clip reaches its close event
+            _isAttacking = false;
+
+            if (_hasPendingMeleeHit)
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.LogWarning("PlayerCombat: Melee attack finished without receiving AttackImpact. clearing pending hit without dealing damage.");
+#endif
+                _hasPendingMeleeHit = false;
+            }
+
+            if (_hasBufferedMeleeAttackInput)
+            {
+                if (Time.time <= _bufferedMeleeInputExpireTime && CanAttack())
+                {
+                    _hasBufferedMeleeAttackInput = false;
+                    PerformMeleeAttack();
+                    return;
+                }
+
+                _hasBufferedMeleeAttackInput = false;
+            }
         }
         
         // fires a single arrow with the given charge
@@ -757,27 +747,6 @@ namespace Category5.Player
         {
             yield return new WaitForSeconds(duration);
             _isAttacking = false;
-        }
-
-        // fires melee damage if the animation event was never received (e.g. dropped trigger in builds)
-        private IEnumerator MeleeAttackFallback(float delay)
-        {
-            yield return new WaitForSeconds(delay);
-
-            if (_hasPendingMeleeHit)
-            {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                Debug.LogWarning("PlayerCombat: Melee attack animation event was not received - firing hit via fallback timer.");
-#endif
-
-                if (IsOwner)
-                {
-                    RequestMeleeAttackServerRpc(_pendingMeleeDamage, transform.position, transform.forward);
-                    _hasPendingMeleeHit = false;
-                }
-            }
-
-            _meleeFallbackCoroutine = null;
         }
 
         [ServerRpc]
