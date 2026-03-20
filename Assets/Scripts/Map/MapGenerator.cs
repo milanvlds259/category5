@@ -20,6 +20,8 @@ public class MapGenerator : MonoBehaviour
         - Want to make paths only move points side to side?
     */
 
+    // Referemce to the generated map
+    private GameObject mapParent;
 
     // Number of arenas that will be created
     public int numberOfArenas;
@@ -99,24 +101,35 @@ public class MapGenerator : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        // Make sure there's no map existing when generating on start
+        DeleteMap();
         GenerateMap();
     }
 
-    // Update is called once per frame
-    void Update()
+    // Deletes the current map and clears the lists
+    public void DeleteMap()
     {
+        if (mapParent != null) {
+            DestroyImmediate(mapParent);
+        }
+        arenas.Clear();
+        paths.Clear();
     }
 
-    void GenerateMap()
+    // Randomly generates a map
+    public void GenerateMap()
     {
+        mapParent = new GameObject("Map");
+
+
         // The main boss arena will always be created in the center of the map
-        CreateArena(Vector3.zero, "boss", 2f);
+        CreateArena(Vector3.zero, mapParent.transform, "boss", 2f);
 
         // Create arenas at random positions between the input Vector3s for storm eyes
         for (int i = 0; i < numberOfArenas; i++)
         {
             // Store a boolean for if an arena was successfully created and create an arena
-            bool arenaCreated = CreateArena(minBounds, maxBounds, i.ToString());
+            bool arenaCreated = CreateArena(minBounds, maxBounds, i.ToString(), mapParent.transform);
 
             int maxIterations = 100; // Prevent infinite loops
             // As long as the arena wasn't created (overlaps), try again
@@ -131,7 +144,7 @@ public class MapGenerator : MonoBehaviour
                 }
 
                 // Try creating the arena again at another random pos
-                arenaCreated = CreateArena(minBounds, maxBounds, i.ToString());
+                arenaCreated = CreateArena(minBounds, maxBounds, i.ToString(), mapParent.transform);
             }
         }
 
@@ -172,9 +185,9 @@ public class MapGenerator : MonoBehaviour
                 }
                 
             }
-            CreatePath(arenas[i], closestArena, pathCount.ToString());
+            CreatePath(arenas[i], closestArena, mapParent.transform, pathCount.ToString());
             pathCount++;
-            CreatePath(arenas[i], secondClosestArena, pathCount.ToString());
+            CreatePath(arenas[i], secondClosestArena, mapParent.transform, pathCount.ToString());
             pathCount++;
         }
         
@@ -191,7 +204,7 @@ public class MapGenerator : MonoBehaviour
 
     // Creates an arena at the specified location, specific location version!
     // Overload below that does a random position
-    bool CreateArena(Vector3 inputPos, String numberforname = "", float scaleFactor=1f)
+    bool CreateArena(Vector3 inputPos, Transform parent, String numberforname = "", float scaleFactor=1f)
     {
         // TEMPORARY! Replace basic shapes with prefabs of premade arenas and stuff
         
@@ -224,7 +237,7 @@ public class MapGenerator : MonoBehaviour
                                                     );
         if (colliders.Length > 1) // More than one collider means overlap
         {
-            Destroy(arena); // Remove the overlapping arena
+            DestroyImmediate(arena); // Remove the overlapping arena
 
             // Return false, the arena wasn't created
             return false;
@@ -238,10 +251,13 @@ public class MapGenerator : MonoBehaviour
             collider.center = new Vector3(0, 10, 0); // Center the collider on the arena
             collider.isTrigger = true; // Set the collider to be a trigger so players can fall through
             
+            // Set the arena's name and make it a child of the parent param
             if (!string.IsNullOrEmpty(numberforname))
             {
                 arena.name = "Arena_" + numberforname;
             }
+            arena.transform.parent = parent;
+
             // Create an Arena instance to hold the arena's data
             Arena arenaData = new Arena(arena.transform.position, arena, scaleFactor);
             arenas.Add(arenaData); // Store reference to the created arena
@@ -255,12 +271,13 @@ public class MapGenerator : MonoBehaviour
     // Overload of CreateArena that takes in Vector3 min and max for a random position,
     // Then calls the original version on a random position within the box created by the min and max
     // The min and max are the bounds of the area where the arena can spawn
-    bool CreateArena(Vector3 min, Vector3 max, String numberForName)
+    bool CreateArena(Vector3 min, Vector3 max, String numberForName, Transform parent)
     {
         // Create the arena, and check if the arena was successfully created
         // This call doesn't pass a scalefactor, so it defaults to 1f
         if ( CreateArena(
             new Vector3(Random.Range(min.x, max.x), Random.Range(min.y, max.y), Random.Range(min.z, max.z)),
+            parent,
             numberForName
             ) )
         {
@@ -275,7 +292,7 @@ public class MapGenerator : MonoBehaviour
     }
 
     // Creates a path between two given arenas
-    void CreatePath(Arena arenaA, Arena arenaB, String numberforname = "")
+    void CreatePath(Arena arenaA, Arena arenaB, Transform parent, String numberforname = "")
     {
         // Checks if the path is valid
         // Path to same arena?
@@ -414,11 +431,15 @@ public class MapGenerator : MonoBehaviour
         //pathPoints.Add(beforeAknot);
         //pathPoints.Add(beforeBknot);
         
+        // Calls helper function that removes knots that are too sharp (not working?)
         CleanUpPath(spline, splineContainer);
         
         
         // Add a mesh to this path
         CreatePathMesh(splineContainer);
+
+        // Make path a child of the parent
+        splineContainer.gameObject.transform.parent = parent;
 
         // Create a Path instance to hold the path's data
         Path pathData = new Path(arenaA, arenaB, splineContainer.gameObject);
@@ -621,6 +642,7 @@ public class MapGenerator : MonoBehaviour
         path.spline.SetKnot(secondaryKnotIndex, secondaryKnot);
     }
 
+    // NOT WORKING
     void SpaceOutPaths()
     {
         bool pointsAllSpaced = false;
