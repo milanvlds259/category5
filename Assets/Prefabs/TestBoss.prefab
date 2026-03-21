@@ -243,7 +243,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 1341114063
+  GlobalObjectIdHash: 2061963900
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -269,6 +269,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Boss.TestBoss
   ShowTopMostFoldoutHeaderGroup: 1
+  bossData: {fileID: 11400000, guid: eb9428b2495be4c40957ecaf05a88de8, type: 2}
   maxHealth: 500
   CurrentHealth:
     m_InternalValue: 0
@@ -303,10 +304,6 @@ MonoBehaviour:
   telegraphColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   attackColor: {r: 1, g: 0, b: 0, a: 1}
   cooldownColor: {r: 0, g: 0, b: 1, a: 1}
-  availableAttacks:
-  - {fileID: 11400000, guid: af70203e2ca3f9e4a9468ccfb2152d32, type: 2}
-  - {fileID: 11400000, guid: 787d8079a404b4445a6dad52240eccc2, type: 2}
-  - {fileID: 11400000, guid: 2acc24363f53e3f4c9caad36c52b85a8, type: 2}
   showAttackGizmos: 1
   gizmoColor: {r: 1, g: 0, b: 0, a: 1}
   targetLayers:

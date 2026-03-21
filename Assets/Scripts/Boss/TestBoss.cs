@@ -15,10 +15,9 @@ namespace Category5.Boss
         [SerializeField] private Color attackColor = Color.red;
         [SerializeField] private Color cooldownColor = Color.blue;
 
-        [Header("attacks - assign attack data assets here")]
-        [Tooltip("list of available attacks - drag BossAttackData assets here")]
-        [SerializeField] private List<BossAttackData> availableAttacks = new List<BossAttackData>();
-        
+        // attacks come from bossData.availableAttacks — no separate list needed here
+        private IReadOnlyList<BossAttackData> Attacks => bossData != null ? bossData.availableAttacks : null;
+
         [Header("attack debugging")]
         [SerializeField] private bool showAttackGizmos = true;
         [SerializeField] private Color gizmoColor = Color.red;
@@ -68,9 +67,9 @@ namespace Category5.Boss
             currentState.OnValueChanged += OnStateChanged;
             
             // sync current attack index to clients
-            if (!IsServer && _currentAttackIndex >= 0)
+            if (!IsServer && _currentAttackIndex >= 0 && Attacks != null && _currentAttackIndex < Attacks.Count)
             {
-                _currentAttack = availableAttacks[_currentAttackIndex];
+                _currentAttack = Attacks[_currentAttackIndex];
             }
         }
 
@@ -81,25 +80,48 @@ namespace Category5.Boss
             CleanupTelegraph();
         }
 
+        // copies bossData fields into runtime fields and picks up testboss-specific visuals
+        protected override void InitializeFromData()
+        {
+            base.InitializeFromData();
+
+            if (bossData == null) return;
+
+            // apply boss color to mesh if one is set
+            if (bossData.bossColor != Color.white && meshRenderer != null)
+                meshRenderer.material.color = bossData.bossColor;
+        }
+
+        // returns the index of an attack in bossData.availableAttacks
+        private int IndexOfAttack(BossAttackData attack)
+        {
+            if (bossData == null || bossData.availableAttacks == null) return -1;
+            for (int i = 0; i < bossData.availableAttacks.Length; i++)
+            {
+                if (bossData.availableAttacks[i] == attack) return i;
+            }
+            return -1;
+        }
+
         // =====================================
         // attack selection
         // =====================================
         
         protected override void SelectNextAttack()
         {
-            if (availableAttacks.Count == 0)
+            if (Attacks == null || Attacks.Count == 0)
             {
-                Debug.LogWarning("TestBoss: No attacks configured! Add BossAttackData assets to availableAttacks list.");
+                Debug.LogWarning("TestBoss: no attacks configured — assign BossAttackData assets to bossData.availableAttacks");
                 return;
             }
             
             _currentAttack = ChooseWeightedAttack();
-            _currentAttackIndex = availableAttacks.IndexOf(_currentAttack);
+            _currentAttackIndex = _currentAttack != null ? IndexOfAttack(_currentAttack) : -1;
             
             if (_currentAttack == null)
             {
                 // fallback to first attack if none valid
-                _currentAttack = availableAttacks[0];
+                _currentAttack = Attacks[0];
                 _currentAttackIndex = 0;
             }
             
@@ -133,9 +155,9 @@ namespace Category5.Boss
         {
             if (IsServer) return; // server already has the attack
             
-            if (attackIndex >= 0 && attackIndex < availableAttacks.Count)
+            if (attackIndex >= 0 && Attacks != null && attackIndex < Attacks.Count)
             {
-                _currentAttack = availableAttacks[attackIndex];
+                _currentAttack = Attacks[attackIndex];
                 _currentAttackIndex = attackIndex;
                 currentAttackType = _currentAttack.attackType;
                 
@@ -154,7 +176,7 @@ namespace Category5.Boss
             List<float> weights = new List<float>();
             float totalWeight = 0f;
             
-            foreach (var attack in availableAttacks)
+            foreach (var attack in Attacks)
             {
                 // check health threshold
                 if (healthPercent > attack.healthThreshold) continue;
@@ -511,11 +533,11 @@ namespace Category5.Boss
             }
             
             // show all configured attacks in edit mode using their assigned gizmo colors
-            if (!Application.isPlaying && availableAttacks != null)
+            if (!Application.isPlaying && bossData != null && bossData.availableAttacks != null)
             {
-                for (int i = 0; i < availableAttacks.Count; i++)
+                for (int i = 0; i < bossData.availableAttacks.Length; i++)
                 {
-                    var attack = availableAttacks[i];
+                    var attack = bossData.availableAttacks[i];
                     if (attack == null) continue;
                     
                     // use the attack's custom gizmo color

@@ -19,7 +19,10 @@ namespace Category5.Core
 
         [Header("round settings")]
         [SerializeField] private int totalRounds = 3;
-        [SerializeField] private int[] bossHealthPerRound = { 500, 800, 1200 };
+
+        [Header("boss configuration")]
+        [Tooltip("boss to use per round — assign one entry per round, or just one entry to reuse the same boss with scaled hp")]
+        [SerializeField] private BossData[] bossPerRound;
 
         [Header("enemy scaling")]
         [Tooltip("enemy count multiplier per round (index 0 = round 1)")]
@@ -31,7 +34,6 @@ namespace Category5.Core
 
         [Header("references")]
         [SerializeField] private GameObject bossSpawnPoint;
-        [SerializeField] private GameObject bossPrefab;
 
         // network variables for syncing game state
         public NetworkVariable<GamePhase> CurrentPhase = new NetworkVariable<GamePhase>(GamePhase.Fighting);
@@ -39,6 +41,8 @@ namespace Category5.Core
 
         // current boss reference
         private BossBase _currentBoss;
+        // tracks which BossData is currently active so we can detect boss swaps between rounds
+        private BossData _currentBossData;
 
         // spawner tracking
         private EnemySpawner[] _allSpawners;
@@ -105,6 +109,7 @@ namespace Category5.Core
             _currentBoss = FindFirstObjectByType<BossBase>();
             if (_currentBoss != null)
             {
+                _currentBossData = _currentBoss.BossData;
                 _currentBoss.HideBoss();
             }
             else
@@ -222,37 +227,65 @@ namespace Category5.Core
 
         private void SpawnOrRevealBoss()
         {
-            // get hp for current round
             int roundIndex = CurrentRound.Value - 1;
-            int bossHp = roundIndex < bossHealthPerRound.Length
-                ? bossHealthPerRound[roundIndex]
-                : bossHealthPerRound[bossHealthPerRound.Length - 1];
+            BossData bossData = GetBossDataForRound(roundIndex);
+
+            if (bossData == null)
+            {
+                Debug.LogError("GameFlowManager: no BossData configured for this round — assign entries to bossPerRound in the inspector");
+                return;
+            }
+
+            int bossHp = bossData.GetHealthForRound(roundIndex, totalRounds);
 
             // get spawn point position and rotation
             Vector3 spawnPos = bossSpawnPoint != null ? bossSpawnPoint.transform.position : Vector3.zero;
             Quaternion spawnRot = bossSpawnPoint != null ? bossSpawnPoint.transform.rotation : Quaternion.identity;
 
-            if (_currentBoss != null && _currentBoss.IsSpawned)
+            bool needsNewBoss = _currentBoss == null || !_currentBoss.IsSpawned || _currentBossData != bossData;
+
+            if (!needsNewBoss)
             {
-                // reset existing boss (this shows it via ShowBossClientRpc internally)
+                // same boss type — just reset it with scaled hp
                 _currentBoss.ResetBoss(bossHp, spawnPos, spawnRot);
             }
-            else if (bossPrefab != null)
+            else
             {
-                // spawn new boss
-                var bossInstance = Instantiate(bossPrefab, spawnPos, spawnRot);
+                // different boss or no existing boss — despawn old one and spawn the new prefab
+                if (_currentBoss != null && _currentBoss.IsSpawned)
+                {
+                    _currentBoss.GetComponent<NetworkObject>()?.Despawn();
+                    _currentBoss = null;
+                }
+
+                if (bossData.bossPrefab == null)
+                {
+                    Debug.LogError($"GameFlowManager: BossData '{bossData.bossName}' has no bossPrefab assigned");
+                    return;
+                }
+
+                var bossInstance = Instantiate(bossData.bossPrefab, spawnPos, spawnRot);
                 var networkObj = bossInstance.GetComponent<NetworkObject>();
                 if (networkObj != null)
                 {
                     networkObj.Spawn();
                     _currentBoss = bossInstance.GetComponent<BossBase>();
+                    _currentBossData = bossData;
+                    // health is set inside BossBase.OnNetworkSpawn via InitializeFromData,
+                    // but we call ResetBoss to apply the round-scaled hp and show the boss
                     _currentBoss?.ResetBoss(bossHp, spawnPos, spawnRot);
                 }
             }
-            else
-            {
-                Debug.LogError("GameFlowManager: cannot spawn boss, no prefab or existing boss");
-            }
+        }
+
+        // returns the BossData to use for a given zero-based round index
+        // falls back to the last entry if the round exceeds the array length
+        private BossData GetBossDataForRound(int roundIndex)
+        {
+            if (bossPerRound == null || bossPerRound.Length == 0) return null;
+            return roundIndex < bossPerRound.Length
+                ? bossPerRound[roundIndex]
+                : bossPerRound[bossPerRound.Length - 1];
         }
 
         // =====================================
@@ -345,6 +378,7 @@ namespace Category5.Core
         public void RegisterBoss(BossBase boss)
         {
             _currentBoss = boss;
+            _currentBossData = boss?.BossData;
         }
 
         // =====================================

@@ -29,11 +29,18 @@ namespace Category5.Boss
     [RequireComponent(typeof(Rigidbody))]
     public abstract class BossBase : NetworkBehaviour, IDamageable
     {
+        [Header("data")]
+        [Tooltip("scriptable object defining all stats, attacks, and visuals for this boss")]
+        [SerializeField] protected BossData bossData;
+
         [Header("stats")]
         [SerializeField] protected int maxHealth = 500;
         public NetworkVariable<int> CurrentHealth = new NetworkVariable<int>();
 
         public int MaxHealth => maxHealth;
+
+        // read-only access to the SO driving this boss — used by GameFlowManager for swap detection
+        public BossData BossData => bossData;
 
         [Header("state timings")]
         [SerializeField] protected float idleDuration = 2f;
@@ -121,6 +128,9 @@ namespace Category5.Boss
         {
             if (IsServer)
             {
+                // copy stats from SO into runtime fields before anything else
+                InitializeFromData();
+
                 CurrentHealth.Value = maxHealth;
                 currentState.Value = BossState.Idle;
                 stateTimer = idleDuration;
@@ -156,6 +166,29 @@ namespace Category5.Boss
 
             // initialize minimap trackable for radar display (boss icon is larger and orange)
             InitializeMinimapTrackable();
+        }
+
+        // copies stats from bossData SO into runtime fields — subclasses can override to pull extra data
+        protected virtual void InitializeFromData()
+        {
+            if (bossData == null) return;
+
+            maxHealth            = bossData.baseHealth;
+            moveSpeed            = bossData.moveSpeed;
+            rotationSpeed        = bossData.rotationSpeed;
+            preferredDistance    = bossData.preferredDistance;
+            chaseDistance        = bossData.chaseDistance;
+            idleDuration         = bossData.idleDuration;
+            cooldownDuration     = bossData.cooldownDuration;
+            movementStyle        = bossData.movementStyle;
+            rotatesDuringIdle    = bossData.rotatesDuringIdle;
+            rotatesDuringTelegraph = bossData.rotatesDuringTelegraph;
+            rotatesDuringAttack  = bossData.rotatesDuringAttack;
+            movesDuringIdle      = bossData.movesDuringIdle;
+            movesDuringTelegraph = bossData.movesDuringTelegraph;
+
+            if (bossData.scaleMultiplier != 1f)
+                transform.localScale = Vector3.one * bossData.scaleMultiplier;
         }
 
         // sets up minimap trackable component for radar visibility

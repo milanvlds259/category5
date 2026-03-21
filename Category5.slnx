@@ -1,8 +1,8 @@
 ﻿<Solution>
+  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="AK.Wwise.Unity.MonoBehaviour.csproj" />
   <Project Path="AK.Wwise.Unity.MonoBehaviour.Editor.csproj" />
   <Project Path="AK.Wwise.Unity.ProjectDatabase.csproj" />
-  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="AK.Wwise.Unity.API.csproj" />
   <Project Path="AK.Wwise.Unity.Timeline.csproj" />
   <Project Path="AK.Wwise.Unity.API.Editor.csproj" />
