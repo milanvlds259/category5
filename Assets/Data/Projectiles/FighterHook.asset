@@ -20,7 +20,7 @@ MonoBehaviour:
   impactVfxPrefab: {fileID: 0}
   fireSound: {fileID: 0}
   impactSound: {fileID: 0}
-  allowCharge: 1
+  allowCharge: 0
   maxChargeTime: 0
   maxDamageMultiplier: 1
   maxSpeedMultiplier: 1

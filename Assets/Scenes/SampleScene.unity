@@ -5033,15 +5033,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Core.GameFlowManager
   ShowTopMostFoldoutHeaderGroup: 1
-  totalRounds: 2
-  bossHealthPerRound: f401000020030000b0040000dc050000d0070000
+  totalRounds: 5
+  bossHealthPerRound: 20030000b0040000080700008c0a000088130000
   enemyScalePerRound:
   - 1
   - 1.5
   - 2
   - 3
   - 5
-  bossEntranceDelay: 2
+  bossEntranceDelay: 3
   bossSpawnPoint: {fileID: 458789688}
   bossPrefab: {fileID: 5933671769084244631, guid: f92141302c5cfa841936ca3d2593a79e, type: 3}
   CurrentPhase:

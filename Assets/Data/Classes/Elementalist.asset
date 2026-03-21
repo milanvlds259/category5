@@ -29,7 +29,7 @@ MonoBehaviour:
   baseMoveSpeed: 5.5
   baseAttackSpeed: 0.8
   baseDodgeCooldown: 2.5
-  baseManaRegenRate: 7
+  baseManaRegenRate: 3.5
   baseArmor: 5
   baseCritChance: 0.05
   baseCritDamage: 1.5
