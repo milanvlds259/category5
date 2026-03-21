@@ -76,6 +76,30 @@ namespace Category5.Boss
         [Tooltip("width of the sweep beam")]
         public float sweepWidth = 2f;
         
+        [Header("projectile attack")]
+        [Tooltip("does this attack fire a projectile instead of dealing melee damage")]
+        public bool hasProjectile = false;
+        
+        [Tooltip("networkobject prefab with BossProjectile component — must be registered in NetworkManager prefab list")]
+        public GameObject projectilePrefab;
+        
+        [Tooltip("where the projectile spawns, in boss local space (e.g. 0,1,1.5 = slightly forward and up)")]
+        public Vector3 projectileSpawnOffset = new Vector3(0f, 1f, 1.5f);
+        
+        [Tooltip("how fast the projectile travels")]
+        public float projectileSpeed = 15f;
+        
+        [Tooltip("seconds before the projectile auto-despawns if it misses")]
+        public float projectileLifetime = 6f;
+        
+        [Tooltip("how many projectiles to fire (1 = single bolt, 3+ = fan spread)")]
+        [Range(1, 7)]
+        public int projectileCount = 1;
+        
+        [Tooltip("total angle of the fan spread in degrees (ignored when projectileCount is 1)")]
+        [Range(0f, 90f)]
+        public float projectileSpreadAngle = 45f;
+        
         [Header("feedback")]
         [Tooltip("custom feedback settings for this attack (leave at 0 to use defaults)")]
         public HitFeedbackData customFeedback;

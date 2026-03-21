@@ -53,6 +53,8 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   availableAttacks:
+  - {fileID: 11400000, guid: 8744403f2af29aa48bf33badbba0f7c4, type: 2}
+  - {fileID: 11400000, guid: 5f542bbce10c53042b055f50cf5047ac, type: 2}
   - {fileID: 11400000, guid: af70203e2ca3f9e4a9468ccfb2152d32, type: 2}
   - {fileID: 11400000, guid: 787d8079a404b4445a6dad52240eccc2, type: 2}
   - {fileID: 11400000, guid: 2acc24363f53e3f4c9caad36c52b85a8, type: 2}

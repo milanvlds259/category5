@@ -465,7 +465,6 @@ MonoBehaviour:
   dodgeDuration: 0.2
   dodgeDistance: 6
   dodgeCooldown: 2
-  manaRegenInterval: 2
   invertMovement: 0
 --- !u!114 &27346507340196499
 MonoBehaviour:
@@ -481,8 +480,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.PlayerCombat
   ShowTopMostFoldoutHeaderGroup: 1
   combatClass: 1
-  lightDamage: 10
-  heavyDamage: 25
+  lightAttackCoefficient: 0.8
+  heavyAttackCoefficient: 1.5
   attackRange: 2.5
   attackOffset: 1.66
   enemyLayers:
@@ -558,10 +557,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.PowerUps.PlayerStats
   ShowTopMostFoldoutHeaderGroup: 1
-  baseMaxHealth: 100
-  baseMaxMana: 10
-  baseDodgeCooldown: 2
-  baseMoveSpeed: 5
+  fallbackAttackDamage: 12
+  fallbackMaxHealth: 100
+  fallbackMaxMana: 80
+  fallbackMoveSpeed: 7
+  fallbackAttackSpeed: 1
+  fallbackDodgeCooldown: 2
+  fallbackManaRegenRate: 2
+  fallbackArmor: 10
+  fallbackCritChance: 0.05
+  fallbackCritDamage: 1.5
 --- !u!114 &4670924441742465071
 MonoBehaviour:
   m_ObjectHideFlags: 0

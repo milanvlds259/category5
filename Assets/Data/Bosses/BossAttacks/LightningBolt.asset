@@ -10,33 +10,33 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f246dfa6bc1b0ce45bc10ad334b6ea62, type: 3}
-  m_Name: ThunderClap
+  m_Name: LightningBolt
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Boss.BossAttackData
-  attackName: Thunder Clap
-  attackType: 4
-  selectionWeight: 90
-  healthThreshold: 0.3
-  minRange: 0
-  maxRange: 10
-  telegraphDuration: 2
-  attackDuration: 0.5
-  cooldownDuration: 1.5
-  damage: 50
-  damageRadius: 10
-  damageOffset: {x: 0, y: -1, z: 0}
-  hasLunge: 1
-  lungeSpeed: 15
-  lungeDistance: 8
+  attackName: Lightning Bolt
+  attackType: 3
+  selectionWeight: 40
+  healthThreshold: 1
+  minRange: 5
+  maxRange: 100
+  telegraphDuration: 1.5
+  attackDuration: 1
+  cooldownDuration: 1
+  damage: 25
+  damageRadius: 3
+  damageOffset: {x: 0, y: 0, z: 2}
+  hasLunge: 0
+  lungeSpeed: 8
+  lungeDistance: 2
   isSweep: 0
   sweepOffset: {x: 0, y: -1, z: 0}
   sweepAngle: 180
   sweepLength: 10
   sweepWidth: 2
-  hasProjectile: 0
-  projectilePrefab: {fileID: 0}
+  hasProjectile: 1
+  projectilePrefab: {fileID: 773458864881063007, guid: 9cccaab2033180241a49c051b1630f29, type: 3}
   projectileSpawnOffset: {x: 0, y: 1, z: 1.5}
-  projectileSpeed: 15
-  projectileLifetime: 6
+  projectileSpeed: 20
+  projectileLifetime: 4
   projectileCount: 1
   projectileSpreadAngle: 45
   customFeedback:
@@ -45,10 +45,10 @@ MonoBehaviour:
     shakeFrequency: 0
     freezeDuration: 0
     freezeTimeScale: 0
-  isHeavyAttack: 1
-  gizmoColor: {r: 1, g: 0.98929787, b: 0, a: 1}
+  isHeavyAttack: 0
+  gizmoColor: {r: 1, g: 0, b: 0, a: 1}
   telegraphPrefab: {fileID: 0}
-  telegraphColor: {r: 1, g: 0.1, b: 0.1, a: 0.7}
+  telegraphColor: {r: 1, g: 0.11792451, b: 0.11792451, a: 0.5}
   attackVfxPrefab: {fileID: 0}
   telegraphSound: {fileID: 0}
   attackSound: {fileID: 0}

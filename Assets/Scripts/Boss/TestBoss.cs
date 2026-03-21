@@ -43,6 +43,9 @@ namespace Category5.Boss
         // track which targets have been hit this attack to prevent multi-hits
         private HashSet<GameObject> _hitTargetsThisAttack = new HashSet<GameObject>();
         
+        // position locked at telegraph start for projectile attacks so the indicator stays static
+        private Vector3 _lockedProjectileTargetPos;
+        
         // telegraph visual instance
         private GameObject _telegraphInstance;
         // procedural ground indicator, always spawned regardless of prefab assignment
@@ -146,12 +149,16 @@ namespace Category5.Boss
             // spawn telegraph visual
             SpawnTelegraphVisual();
             
+            // lock target position now for projectile telegraph indicator (static circle on ground)
+            if (_currentAttack.hasProjectile && currentTarget != null)
+                _lockedProjectileTargetPos = currentTarget.position;
+            
             // sync attack selection to clients
-            SyncAttackSelectionClientRpc(_currentAttackIndex);
+            SyncAttackSelectionClientRpc(_currentAttackIndex, _lockedProjectileTargetPos);
         }
         
         [ClientRpc]
-        private void SyncAttackSelectionClientRpc(int attackIndex)
+        private void SyncAttackSelectionClientRpc(int attackIndex, Vector3 lockedTargetPos)
         {
             if (IsServer) return; // server already has the attack
             
@@ -160,6 +167,7 @@ namespace Category5.Boss
                 _currentAttack = Attacks[attackIndex];
                 _currentAttackIndex = attackIndex;
                 currentAttackType = _currentAttack.attackType;
+                _lockedProjectileTargetPos = lockedTargetPos;
                 
                 // spawn telegraph on clients too
                 SpawnTelegraphVisual();
@@ -222,7 +230,30 @@ namespace Category5.Boss
             Collider bossCol = GetComponent<Collider>() ?? GetComponentInChildren<Collider>();
             float groundY = bossCol != null ? bossCol.bounds.min.y + 0.02f : transform.position.y + 0.02f;
 
-            if (_currentAttack.isSweep)
+            if (_currentAttack.hasProjectile)
+            {
+                // static circle at the locked target position — doesn't follow the player
+                // this gives the player a chance to dodge out of where they were standing
+                Vector3 indicatorPos = new Vector3(_lockedProjectileTargetPos.x, groundY, _lockedProjectileTargetPos.z);
+                _telegraphIndicator = BossTelegraphIndicator.Create(
+                    BossTelegraphIndicator.IndicatorShape.Circle,
+                    1.5f,
+                    0f,
+                    _currentAttack.telegraphColor,
+                    _currentAttack.telegraphDuration,
+                    indicatorPos);
+                // no SetFollowTarget — indicator stays locked to where the player was
+                
+                // still allow an optional charging-up vfx at the boss's spawn point
+                if (_currentAttack.telegraphPrefab != null)
+                {
+                    Vector3 spawnPos = transform.position + transform.TransformDirection(_currentAttack.projectileSpawnOffset);
+                    _telegraphInstance = Instantiate(_currentAttack.telegraphPrefab, spawnPos, transform.rotation);
+                }
+                
+                OnAttackTelegraphStart?.Invoke(_currentAttack, _lockedProjectileTargetPos);
+            }
+            else if (_currentAttack.isSweep)
             {
                 // arc fan originates from the boss's position, centered on its forward direction
                 Vector3 indicatorPos = new Vector3(transform.position.x, groundY, transform.position.z);
@@ -344,8 +375,14 @@ namespace Category5.Boss
                 _sweepProgress = 0f;
             }
             
-            // for non-lunge non-sweep attacks, do damage check immediately
-            if (!_currentAttack.hasLunge && !_currentAttack.isSweep)
+            // projectile attacks: fire projectiles on the server
+            if (_currentAttack.hasProjectile)
+            {
+                SpawnBossProjectiles();
+            }
+            
+            // for non-lunge non-sweep non-projectile attacks, do damage check immediately
+            if (!_currentAttack.hasLunge && !_currentAttack.isSweep && !_currentAttack.hasProjectile)
             {
                 CheckMeleeHits();
             }
@@ -399,6 +436,60 @@ namespace Category5.Boss
                 {
                     _isSweeping = false;
                 }
+            }
+        }
+        
+        // =====================================
+        // projectile spawning
+        // =====================================
+        
+        private void SpawnBossProjectiles()
+        {
+            if (!IsServer) return;
+            if (_currentAttack == null) return;
+            
+            if (_currentAttack.projectilePrefab == null)
+            {
+                Debug.LogError($"BossProjectile: '{_currentAttack.attackName}' has hasProjectile=true but no projectilePrefab assigned!");
+                return;
+            }
+            
+            int count = _currentAttack.projectileCount;
+            float totalSpread = count > 1 ? _currentAttack.projectileSpreadAngle : 0f;
+            
+            Vector3 spawnPos = transform.position + transform.TransformDirection(_currentAttack.projectileSpawnOffset);
+            
+            for (int i = 0; i < count; i++)
+            {
+                // calculate angle offset for each projectile in the fan
+                float angleOffset = count > 1
+                    ? Mathf.Lerp(-totalSpread / 2f, totalSpread / 2f, (float)i / (count - 1))
+                    : 0f;
+                
+                // aim toward current target, or just the boss's forward if no target
+                Vector3 baseDir = currentTarget != null
+                    ? (currentTarget.position - spawnPos).normalized
+                    : transform.forward;
+                
+                // apply the fan spread angle on the horizontal plane
+                Vector3 dir = Quaternion.AngleAxis(angleOffset, Vector3.up) * baseDir;
+                dir.Normalize();
+                
+                GameObject proj = Instantiate(
+                    _currentAttack.projectilePrefab,
+                    spawnPos,
+                    Quaternion.LookRotation(dir));
+                
+                var bp = proj.GetComponent<BossProjectile>();
+                if (bp == null)
+                {
+                    Debug.LogError($"BossProjectile: prefab '{_currentAttack.projectilePrefab.name}' is missing a BossProjectile component!");
+                    Destroy(proj);
+                    continue;
+                }
+                
+                bp.Initialize(_currentAttack.projectileSpeed, _currentAttack.damage, _currentAttack.projectileLifetime);
+                proj.GetComponent<NetworkObject>().Spawn();
             }
         }
         
@@ -547,6 +638,23 @@ namespace Category5.Boss
                     {
                         // draw sweep arc
                         DrawSweepGizmo(attack);
+                    }
+                    else if (attack.hasProjectile)
+                    {
+                        // draw a ray from the spawn offset in the boss's forward direction
+                        Vector3 spawnPos = transform.position + transform.TransformDirection(attack.projectileSpawnOffset);
+                        Gizmos.DrawRay(spawnPos, transform.forward * 8f);
+                        Gizmos.DrawWireSphere(spawnPos, 0.2f);
+                        
+                        // draw extra rays for spread fan if count > 1
+                        if (attack.projectileCount > 1)
+                        {
+                            float halfSpread = attack.projectileSpreadAngle / 2f;
+                            Vector3 leftDir = Quaternion.AngleAxis(-halfSpread, Vector3.up) * transform.forward;
+                            Vector3 rightDir = Quaternion.AngleAxis(halfSpread, Vector3.up) * transform.forward;
+                            Gizmos.DrawRay(spawnPos, leftDir * 8f);
+                            Gizmos.DrawRay(spawnPos, rightDir * 8f);
+                        }
                     }
                     else
                     {
