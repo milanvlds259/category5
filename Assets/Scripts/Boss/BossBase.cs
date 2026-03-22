@@ -638,6 +638,10 @@ namespace Category5.Boss
             var trackable = GetComponent<MinimapTrackable>();
             if (trackable != null)
                 trackable.enabled = !hidden;
+
+            // sync boss health bar visibility with boss visibility
+            if (hidden)
+                Category5.UI.UIManager.Instance?.HideBossHealthBar();
         }
         
         // called by PowerUpManager to reset boss for new round with scaled hp

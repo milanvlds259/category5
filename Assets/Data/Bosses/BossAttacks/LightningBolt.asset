@@ -35,7 +35,7 @@ MonoBehaviour:
   hasProjectile: 1
   projectilePrefab: {fileID: 773458864881063007, guid: 9cccaab2033180241a49c051b1630f29, type: 3}
   projectileSpawnOffset: {x: 0, y: 1, z: 1.5}
-  projectileSpeed: 20
+  projectileSpeed: 35
   projectileLifetime: 4
   projectileCount: 1
   projectileSpreadAngle: 45

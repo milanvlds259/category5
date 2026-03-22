@@ -41,6 +41,10 @@ namespace Category5.Boss
             new Keyframe(1f, 4f)
         );
 
+        [Header("player count scaling")]
+        [Tooltip("hp multiplier per player count — index 0 = 1 player, index 1 = 2 players, etc. set all to 1 to disable")]
+        public float[] playerCountMultipliers = { 1f, 1.5f, 2f, 2.5f };
+
         [Header("attacks")]
         [Tooltip("all attacks available to this boss — moved from the concrete boss script")]
         public BossAttackData[] availableAttacks;
@@ -67,14 +71,28 @@ namespace Category5.Boss
         public Color gizmoColor = Color.magenta;
 
         // evaluates the hp scaling curve to get the health value for a given round
-        public int GetHealthForRound(int roundIndex, int totalRounds)
+        // optionally scales further by player count using playerCountMultipliers
+        public int GetHealthForRound(int roundIndex, int totalRounds, int playerCount = 1)
         {
             if (totalRounds <= 1)
-                return baseHealth;
+                return Mathf.RoundToInt(baseHealth * GetPlayerCountMultiplier(playerCount));
 
             float t = Mathf.Clamp01((float)roundIndex / (totalRounds - 1));
             float multiplier = hpScalingCurve.Evaluate(t);
-            return Mathf.RoundToInt(baseHealth * multiplier);
+            return Mathf.RoundToInt(baseHealth * multiplier * GetPlayerCountMultiplier(playerCount));
+        }
+
+        // returns the hp multiplier for the given player count
+        private float GetPlayerCountMultiplier(int playerCount)
+        {
+            if (playerCountMultipliers == null || playerCountMultipliers.Length == 0)
+            {
+                Debug.LogError($"BossData '{bossName}': playerCountMultipliers array is empty — defaulting to 1x hp");
+                return 1f;
+            }
+
+            int idx = Mathf.Clamp(playerCount - 1, 0, playerCountMultipliers.Length - 1);
+            return playerCountMultipliers[idx];
         }
     }
 }

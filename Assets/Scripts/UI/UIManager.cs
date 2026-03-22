@@ -17,6 +17,7 @@ namespace Category5.UI
         [SerializeField] private ManaBar playerManaBar;
         [SerializeField] private HealthBar bossHealthBar;
         [SerializeField] private GameObject bossHealthContainer; // to hide it when no boss
+        [SerializeField] private TextMeshProUGUI bossNameText;
         [SerializeField] private TextMeshProUGUI roundText;
 
         [Header("damage numbers")]
@@ -114,11 +115,19 @@ namespace Category5.UI
             }
         }
 
+        public void HideBossHealthBar()
+        {
+            if (bossHealthContainer != null) bossHealthContainer.SetActive(false);
+        }
+
         public void RegisterBoss(BossBase boss)
         {
             _currentBoss = boss;
             
             if (bossHealthContainer != null) bossHealthContainer.SetActive(true);
+
+            if (bossNameText != null)
+                bossNameText.text = boss.BossData != null ? boss.BossData.bossName : string.Empty;
             
             bossHealthBar.Initialize(boss.MaxHealth, boss.CurrentHealth.Value);
 

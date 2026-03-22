@@ -236,7 +236,9 @@ namespace Category5.Core
                 return;
             }
 
-            int bossHp = bossData.GetHealthForRound(roundIndex, totalRounds);
+            // count connected players so boss hp scales with lobby size
+            int playerCount = NetworkManager.Singleton != null ? NetworkManager.Singleton.ConnectedClientsIds.Count : 1;
+            int bossHp = bossData.GetHealthForRound(roundIndex, totalRounds, playerCount);
 
             // get spawn point position and rotation
             Vector3 spawnPos = bossSpawnPoint != null ? bossSpawnPoint.transform.position : Vector3.zero;
