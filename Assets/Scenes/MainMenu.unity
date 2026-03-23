@@ -6650,7 +6650,7 @@ MonoBehaviour:
   characterViewPanel: {fileID: 69123415}
   currentClassIcon: {fileID: 2060919032}
   currentClassName: {fileID: 1910333955}
-  defaultClassSprite: {fileID: 21300000, guid: d19e136d922453e4abb91877e51a44fb, type: 3}
+  defaultClassSprite: {fileID: 0}
   leftArrowButton: {fileID: 2107309944}
   rightArrowButton: {fileID: 1560837258}
   selectButton: {fileID: 835819614}
@@ -10363,7 +10363,7 @@ MonoBehaviour:
   characterViewPanel: {fileID: 69123415}
   lobbySettingsPanel: {fileID: 596307390}
   characterArtDisplay: {fileID: 100166278}
-  defaultCharacterSprite: {fileID: 21300000, guid: d19e136d922453e4abb91877e51a44fb, type: 3}
+  defaultCharacterSprite: {fileID: 0}
   readyButton: {fileID: 377043655}
   readyButtonText: {fileID: 1723138296}
   allPlayersReadyText: {fileID: 1475300442}

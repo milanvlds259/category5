@@ -57,6 +57,9 @@ namespace Category5.Player
         private int _comboCounter = 0;
         private float _lastAttackTime;
         private bool _isAttacking;
+        // generation counter — incremented each time a melee attack starts or combat state is reset
+        // lets the timeout coroutine know if it belongs to the current attack or a stale one
+        private int _meleeAttackGeneration;
         
         // reference to player stats for damage modifiers
         private PlayerStats _playerStats;
@@ -119,14 +122,14 @@ namespace Category5.Player
         public void SetCombatClass(CombatClass newCombatClass)
         {
             combatClass = newCombatClass;
-            Debug.Log($"PlayerCombat: Combat class set to {combatClass}");
+            // Debug.Log($"PlayerCombat: Combat class set to {combatClass}");
         }
         
         // set arrow/projectile data based on loaded player class
         public void SetArrowData(ProjectileData data)
         {
             arrowData = data;
-            Debug.Log($"PlayerCombat: Arrow data set to {(data != null ? data.name : "null")}");
+            // Debug.Log($"PlayerCombat: Arrow data set to {(data != null ? data.name : "null")}");
         }
         
         // set melee coefficients from class data
@@ -134,7 +137,26 @@ namespace Category5.Player
         {
             lightAttackCoefficient = light;
             heavyAttackCoefficient = heavy;
-            Debug.Log($"PlayerCombat: melee coefficients set to light={light:F2}, heavy={heavy:F2}");
+            // Debug.Log($"PlayerCombat: melee coefficients set to light={light:F2}, heavy={heavy:F2}");
+        }
+        
+        // clears all in-flight attack state — safe to call from death, respawn, disable, or any hard interrupt
+        public void ResetCombatState()
+        {
+            bool wasCharging = _isCharging;
+
+            _isAttacking = false;
+            _isCharging = false;
+            _hasPendingMeleeHit = false;
+            _hasPendingRangedRelease = false;
+            _hasBufferedMeleeAttackInput = false;
+            _meleeChainWindowOpen = false;
+            _meleeAttackGeneration++; // invalidates any in-flight timeout coroutine
+
+            if (wasCharging)
+            {
+                OnChargeCanceled?.Invoke(transform.position);
+            }
         }
         
         // static events for vfx/sfx to hook into
@@ -215,6 +237,9 @@ namespace Category5.Player
                 _inputActions.Player.Attack.canceled -= OnAttackCanceled;
                 _inputActions.Player.Disable();
             }
+
+            // clear attack state so re-enable starts clean
+            ResetCombatState();
         }
 
         private void Update()
@@ -408,11 +433,13 @@ namespace Category5.Player
 
             _hasPendingMeleeHit = true;
             _pendingMeleeCoefficient = coefficient;
+
+            // start a safety timeout in case animator events never fire (like interrupted by death, ability, dodge)
+            int generation = _meleeAttackGeneration;
+            StartCoroutine(MeleeAttackTimeout(duration + 0.5f, generation));
         }
         
-        /// <summary>
-        /// performs a charged ranged attack with the given charge percentage
-        /// </summary>
+        // performs a charged ranged attack with the given charge percentage
         private void PerformChargedRangedAttack(float chargePercent)
         {
             if (arrowData == null)
@@ -496,7 +523,7 @@ namespace Category5.Player
 
             if (controller == null)
             {
-                Debug.LogError("PlayerCombat: Model animator has no runtime animator controller. Cannot trigger attack animation.");
+                // Debug.LogError("PlayerCombat: Model animator has no runtime animator controller. Cannot trigger attack animation.");
                 return;
             }
 
@@ -522,7 +549,7 @@ namespace Category5.Player
             var anim = GetModelAnimator();
             if (anim == null)
             {
-                Debug.LogError("PlayerCombat: No model animator available on PlayerModelManager. Cannot play attack animation.");
+                // Debug.LogError("PlayerCombat: No model animator available on PlayerModelManager. Cannot play attack animation.");
                 return;
             }
 
@@ -530,7 +557,7 @@ namespace Category5.Player
 
             if (!_hasAnimAttackAnimSpeed)
             {
-                Debug.LogError("PlayerCombat: Animator parameter 'AttackAnimSpeed' (Float) is missing. Add it to the active runtime animator controller.");
+                // Debug.LogError("PlayerCombat: Animator parameter 'AttackAnimSpeed' (Float) is missing. Add it to the active runtime animator controller.");
                 return;
             }
 
@@ -541,7 +568,7 @@ namespace Category5.Player
             {
                 if (_ownerNetworkAnimator == null)
                 {
-                    Debug.LogError("PlayerCombat: Missing OwnerPlayerNetworkAnimator. Cannot sync attack trigger.");
+                    // Debug.LogError("PlayerCombat: Missing OwnerPlayerNetworkAnimator. Cannot sync attack trigger.");
                     return;
                 }
 
@@ -549,7 +576,7 @@ namespace Category5.Player
                 return;
             }
 
-            Debug.LogError("PlayerCombat: Animator parameter 'Attack' (Trigger) is missing. Add it to the active runtime animator controller.");
+            // Debug.LogError("PlayerCombat: Animator parameter 'Attack' (Trigger) is missing. Add it to the active runtime animator controller.");
         }
 
         // maps attack speed stat to animator attack speed with safe clamps
@@ -759,6 +786,19 @@ namespace Category5.Player
             _isAttacking = false;
         }
 
+        // fallback reset if attack animation events never fire - no-op if they already ran cleanly
+        private IEnumerator MeleeAttackTimeout(float maxDuration, int generation)
+        {
+            yield return new WaitForSeconds(maxDuration);
+            if (_meleeAttackGeneration == generation && _isAttacking)
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.LogWarning("PlayerCombat: melee attack timed out without animation events — resetting combat state");
+#endif
+                ResetCombatState();
+            }
+        }
+
         [ServerRpc]
         private void RequestChargedRangedAttackServerRpc(Vector3 spawnPosition, Vector3 direction, float damageMultiplier, float speedMultiplier)
         {
@@ -898,7 +938,7 @@ namespace Category5.Player
             if (validTargetCount == 0)
             {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-                Debug.LogWarning($"PlayerCombat: melee attack found no valid targets at {attackPoint} range {attackRange} mask {enemyLayers.value}. raw collider hits: {hitEnemies.Length}");
+                // Debug.LogWarning($"PlayerCombat: melee attack found no valid targets at {attackPoint} range {attackRange} mask {enemyLayers.value}. raw collider hits: {hitEnemies.Length}");
 #endif
             }
 

@@ -338,6 +338,13 @@ namespace Category5.Player
                     anim.SetBool(_animIsDeadHash, isDead);
                 }
             }
+
+            // death transitions the animator out of the attack clip, so attack animation events
+            // will never fire — reset combat state so _isAttacking doesn't stay stuck true
+            if (isDead && _playerCombat != null)
+            {
+                _playerCombat.ResetCombatState();
+            }
         }
         
         // enables/disables visuals and collider based on death state
@@ -876,7 +883,7 @@ namespace Category5.Player
             if (!IsServer) return;
             if (IsDead.Value) return;
             
-            Debug.Log($"Player {OwnerClientId} died!");
+            // Debug.Log($"Player {OwnerClientId} died!");
             IsDead.Value = true;
             
             // fire audio event for death on all clients
@@ -902,7 +909,7 @@ namespace Category5.Player
             if (!IsServer) return;
             
             bool wasDead = IsDead.Value;
-            Debug.Log($"Respawning player {OwnerClientId} (was dead: {wasDead})");
+            // Debug.Log($"Respawning player {OwnerClientId} (was dead: {wasDead})");
             
             // reset health and mana to max and revive if dead
             CurrentHealth.Value = MaxHealth;
@@ -939,6 +946,12 @@ namespace Category5.Player
             
             // reset velocity
             _velocity = Vector3.zero;
+
+            // clear any stale attack state so basic attacks work immediately on respawn
+            if (_playerCombat != null)
+            {
+                _playerCombat.ResetCombatState();
+            }
         }
         
         // consume mana (server rpc)
@@ -992,7 +1005,7 @@ namespace Category5.Player
             // reset velocity
             _velocity = Vector3.zero;
             
-            Debug.Log($"PlayerController: Synced spawn position to {position}");
+            // Debug.Log($"PlayerController: Synced spawn position to {position}");
         }
         
         // heals the player (server only) - used by lifesteal power-up
@@ -1004,7 +1017,7 @@ namespace Category5.Player
             if (newHealth > CurrentHealth.Value)
             {
                 CurrentHealth.Value = newHealth;
-                Debug.Log($"Player healed {amount} HP. Health: {CurrentHealth.Value}/{MaxHealth}");
+                // Debug.Log($"Player healed {amount} HP. Health: {CurrentHealth.Value}/{MaxHealth}");
             }
         }
 
@@ -1078,7 +1091,7 @@ namespace Category5.Player
                 return;
             }
             
-            Debug.Log($"PlayerController: OnControllerColliderHit with {hit.gameObject.name} (normal: {hit.normal}, upwardDot: {upwardDot:F2})");
+            // Debug.Log($"PlayerController: OnControllerColliderHit with {hit.gameObject.name} (normal: {hit.normal}, upwardDot: {upwardDot:F2})");
             
             // notify FighterE ability if it's grappling
             if (GetComponent<PlayerAbilityManager>() != null)
@@ -1088,7 +1101,7 @@ namespace Category5.Player
                 var fighterE = abilityManager.GetComponentInChildren<FighterE>();
                 if (fighterE != null && fighterE.IsGrappling)
                 {
-                    Debug.Log("PlayerController: Notifying FighterE of collision");
+                    // Debug.Log("PlayerController: Notifying FighterE of collision");
                     fighterE.OnPlayerCollision(hit.gameObject);
                 }
             }
