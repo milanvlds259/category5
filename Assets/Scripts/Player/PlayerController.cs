@@ -261,7 +261,15 @@ namespace Category5.Player
 
             if (!IsOwner)
             {
-                enabled = false;
+                // manually kill input for non-owners so we can keep fixed update active for mana regen
+                // this allows the server to keep mana regen running for all players without needing a separate manager
+                if (_inputActions != null)
+                {
+                    _inputActions.Player.Disable();
+                    _inputActions.Player.Jump.performed -= OnJump;
+                    _inputActions.Player.Dodge.performed -= OnDodge;
+                    _inputActions.Player.Sprint.performed -= OnSprint;
+                }
                 return;
             }
             
