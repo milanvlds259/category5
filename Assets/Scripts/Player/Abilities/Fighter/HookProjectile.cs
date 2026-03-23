@@ -26,6 +26,7 @@ namespace Category5.Player.Abilities
         private bool _hasHit;
         private Rigidbody _rb;
         private Vector3 _direction;
+        private float _pullForce;
         
         private void Awake()
         {
@@ -35,13 +36,14 @@ namespace Category5.Player.Abilities
         }
         
         // initialize the hook with owner info and settings
-        // called by FighterE after spawning
-        public void Initialize(ulong ownerNetworkObjectId, Vector3 direction, float speed, float lifetime)
+        // called by PlayerAbilityManager after spawning
+        public void Initialize(ulong ownerNetworkObjectId, Vector3 direction, float speed, float lifetime, float pullForce)
         {
             _ownerNetworkObjectId = ownerNetworkObjectId;
             _direction = direction.normalized;
             _speed = speed;
             _lifetime = lifetime;
+            _pullForce = pullForce;
             _lifetimeTimer = 0f;
             _hasHit = false;
             
@@ -151,7 +153,7 @@ namespace Category5.Player.Abilities
             if (abilityManager != null)
             {
                 Debug.Log($"HookProjectile: Found PlayerAbilityManager, calling OnHookHitTarget");
-                abilityManager.OnHookHitTarget(hitPosition, targetNetworkObjectId, isBoss);
+                abilityManager.OnHookHitTarget(hitPosition, targetNetworkObjectId, isBoss, _pullForce);
             }
             else
             {

@@ -768,21 +768,25 @@ namespace Category5
         // =====================================
 
         [Rpc(SendTo.Server)]
-        public void FireMagneticGrappleServerRpc(Vector3 spawnPosition, Vector3 aimDirection, float hookSpeed, float hookLifetime)
+        public void FireMagneticGrappleServerRpc(Vector3 spawnPosition, Vector3 aimDirection, float hookSpeed, float hookLifetime, float pullForce, string hookPrefabName)
         {
             if (!IsServer) return;
 
-            var fighterE = ability2 as FighterE;
-            if (fighterE == null)
+            // find the registered network prefab by name - the owner passes this from FighterE's inspector field
+            // so all tunable data stays in FighterE with no ability-specific fields here
+            GameObject hookPrefab = null;
+            foreach (var entry in NetworkManager.Singleton.NetworkConfig.Prefabs.Prefabs)
             {
-                Debug.LogError("PlayerAbilityManager: FireMagneticGrappleServerRpc called but ability2 is not FighterE");
-                return;
+                if (entry.Prefab != null && entry.Prefab.name == hookPrefabName)
+                {
+                    hookPrefab = entry.Prefab;
+                    break;
+                }
             }
 
-            GameObject hookPrefab = fighterE.HookProjectilePrefab;
             if (hookPrefab == null)
             {
-                Debug.LogError("PlayerAbilityManager: FighterE hookProjectilePrefab not assigned");
+                Debug.LogError($"PlayerAbilityManager: could not find registered network prefab named '{hookPrefabName}' - ensure the hook prefab is added to the NetworkManager prefab list");
                 return;
             }
 
@@ -798,24 +802,17 @@ namespace Category5
             }
 
             networkObj.Spawn();
-            hookProjectile.Initialize(playerController.NetworkObjectId, aimDirection, hookSpeed, hookLifetime);
+            hookProjectile.Initialize(playerController.NetworkObjectId, aimDirection, hookSpeed, hookLifetime, pullForce);
 
             TriggerHookFiredClientRpc(spawnPosition, aimDirection);
         }
 
         // called by HookProjectile when it hits a target (server only, not an rpc)
-        public void OnHookHitTarget(Vector3 hitPosition, ulong targetNetworkObjectId, bool isBoss)
+        public void OnHookHitTarget(Vector3 hitPosition, ulong targetNetworkObjectId, bool isBoss, float pullForce)
         {
             if (!IsServer) return;
 
-            var fighterE = ability2 as FighterE;
-            if (fighterE == null)
-            {
-                Debug.LogWarning("PlayerAbilityManager: OnHookHitTarget - ability2 is not FighterE");
-                return;
-            }
-
-            fighterE.OnHookHitTargetFromProjectile(hitPosition, targetNetworkObjectId, isBoss);
+            HandleFighterEHookHitServerSide(hitPosition, targetNetworkObjectId, isBoss, playerController.transform, pullForce);
         }
 
         // server-side pull logic called by FighterE.OnHookHitTargetFromProjectile

@@ -36,9 +36,6 @@ namespace Category5
         public static void OnHookFireInvoke(Vector3 pos) => OnHookFire?.Invoke(pos);
         public static void OnHookHitInvoke(Vector3 pos) => OnHookHit?.Invoke(pos);
 
-        // exposes the hook prefab so PlayerAbilityManager can spawn it server-side
-        public GameObject HookProjectilePrefab => hookProjectilePrefab;
-        
         public override void Initialize(PlayerController player, PlayerStats stats, PlayerAbilityManager manager)
         {
             base.Initialize(player, stats, manager);
@@ -89,16 +86,6 @@ namespace Category5
             grappleTarget = null;
         }
 
-        // called from PlayerAbilityManager after a hook hit is confirmed server-side
-        public void OnHookHitTargetFromProjectile(Vector3 hitPosition, ulong targetNetworkObjectId, bool isBoss)
-        {
-            if (!IsServer) return;
-
-            // route to PlayerAbilityManager for the actual pull logic and client notifications
-            abilityManager.HandleFighterEHookHitServerSide(hitPosition, targetNetworkObjectId, isBoss,
-                playerController.transform, grapplePullForce);
-        }
-
         public override bool CanUse()
         {
             if (!base.CanUse()) return false;
@@ -125,7 +112,8 @@ namespace Category5
             PlayAudio(spawnPos);
             OnHookFire?.Invoke(spawnPos);
 
-            abilityManager.FireMagneticGrappleServerRpc(spawnPos, aimDir, hookSpeed, hookLifetime);
+            // read tunable data locally (owner has abilities instantiated) and pass to server via rpc
+            abilityManager.FireMagneticGrappleServerRpc(spawnPos, aimDir, hookSpeed, hookLifetime, grapplePullForce, hookProjectilePrefab.name);
         }
 
         private Vector3 GetCameraAimDirection(Vector3 spawnPos)
