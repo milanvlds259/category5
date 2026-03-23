@@ -21,12 +21,19 @@ namespace Category5
         private float _radius;
         private Vector3 _startPosition;
         private float _spawnTime;
+        private bool _hasSpawned = false;
 
         private Rigidbody _rb;
 
         private void Awake()
         {
             _rb = GetComponent<Rigidbody>();
+
+            // force trigger so the beacon passes through enemies/bosses with no physics bounce
+            // onTriggerEnter handles ground landing, rigidbody gravity still arcs the throw naturally
+            var col = GetComponent<Collider>();
+            if (col == null) col = GetComponentInChildren<Collider>();
+            if (col != null) col.isTrigger = true;
         }
 
         public void Initialize(ulong ownerClientId, GameObject zonePrefab, Vector3 direction, float maxDistance,
@@ -79,15 +86,6 @@ namespace Category5
             SpawnZoneAndDespawn();
         }
 
-        private void OnCollisionEnter(Collision collision)
-        {
-            if (!IsServer) return;
-
-            if (groundLayers.value != 0 && (groundLayers.value & (1 << collision.gameObject.layer)) == 0) return;
-
-            SpawnZoneAndDespawn();
-        }
-
         private void OnTriggerEnter(Collider other)
         {
             if (!IsServer) return;
@@ -99,6 +97,9 @@ namespace Category5
 
         private void SpawnZoneAndDespawn()
         {
+            if (_hasSpawned) return;
+            _hasSpawned = true;
+
             if (_zonePrefab == null)
             {
                 NetworkObject.Despawn(true);
