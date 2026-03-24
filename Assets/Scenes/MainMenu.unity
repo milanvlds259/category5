@@ -869,7 +869,7 @@ GameObject:
   - component: {fileID: 88078430}
   - component: {fileID: 88078429}
   m_Layer: 5
-  m_Name: CreditsButton
+  m_Name: QuitButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5047,7 +5047,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: CREDITS
+  m_text: QUIT
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 0161d805a3764c089bef00bfe00793f5, type: 2}
   m_sharedMaterial: {fileID: 2147374, guid: 0161d805a3764c089bef00bfe00793f5, type: 2}
@@ -10341,7 +10341,7 @@ MonoBehaviour:
   titleLogoImage: {fileID: 833448505}
   playButton: {fileID: 1040027586}
   settingsButton: {fileID: 46679099}
-  creditsButton: {fileID: 88078429}
+  quitButton: {fileID: 88078429}
   mainMenuPanel: {fileID: 338597894}
   backToTitleButton: {fileID: 1891164313}
   hostButton: {fileID: 1486633108}

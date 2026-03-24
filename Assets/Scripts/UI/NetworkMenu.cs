@@ -17,7 +17,7 @@ namespace Category5.UI
         [SerializeField] private GameObject titleLogoImage;
         [SerializeField] private Button playButton;
         [SerializeField] private Button settingsButton;
-        [SerializeField] private Button creditsButton;
+        [SerializeField] private Button quitButton;
         
         [Header("ui references - main menu")]
         [SerializeField] private GameObject mainMenuPanel;
@@ -113,9 +113,9 @@ namespace Category5.UI
                 settingsButton.onClick.AddListener(OnSettingsButtonClicked);
             }
             
-            if (creditsButton != null)
+            if (quitButton != null)
             {
-                creditsButton.onClick.AddListener(OnCreditsButtonClicked);
+                quitButton.onClick.AddListener(OnQuitButtonClicked);
             }
             
             if (backToTitleButton != null)
@@ -211,9 +211,9 @@ namespace Category5.UI
                 settingsButton.onClick.RemoveListener(OnSettingsButtonClicked);
             }
             
-            if (creditsButton != null)
+            if (quitButton != null)
             {
-                creditsButton.onClick.RemoveListener(OnCreditsButtonClicked);
+                quitButton.onClick.RemoveListener(OnQuitButtonClicked);
             }
             
             if (backToTitleButton != null)
@@ -768,15 +768,17 @@ namespace Category5.UI
         // placeholder for settings button
         public void OnSettingsButtonClicked()
         {
-            // Debug.Log("NetworkMenu: Settings button clicked - coming soon");
             // todo: implement settings panel
         }
         
-        // placeholder for credits button
-        public void OnCreditsButtonClicked()
+        // placeholder for quit button
+        public void OnQuitButtonClicked()
         {
-            // Debug.Log("NetworkMenu: Credits button clicked - coming soon");
-            // todo: implement credits panel
+        #if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+        #else
+            Application.Quit();
+        #endif
         }
         
         private void ShowLobby(bool isHost)
