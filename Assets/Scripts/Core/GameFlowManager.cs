@@ -80,7 +80,6 @@ namespace Category5.Core
 
         public override void OnNetworkSpawn()
         {
-            CurrentPhase.OnValueChanged += OnPhaseChanged;
             CurrentRound.OnValueChanged += (old, newVal) => OnRoundChanged?.Invoke(newVal);
 
             TryInitializeServerFlow();
@@ -131,29 +130,12 @@ namespace Category5.Core
 
         public override void OnNetworkDespawn()
         {
-            CurrentPhase.OnValueChanged -= OnPhaseChanged;
-
             if (IsServerAuthority)
             {
                 EnemySpawner.OnAllEnemiesDefeated -= OnSpawnerCompleted;
             }
 
             _serverInitialized = false;
-        }
-
-        private void OnPhaseChanged(GamePhase oldPhase, GamePhase newPhase)
-        {
-            Debug.Log($"GameFlowManager: phase changed from {oldPhase} to {newPhase}");
-
-            switch (newPhase)
-            {
-                case GamePhase.Victory:
-                    OnVictory?.Invoke();
-                    break;
-                case GamePhase.GameOver:
-                    OnGameOver?.Invoke();
-                    break;
-            }
         }
 
         // =====================================
@@ -326,6 +308,13 @@ namespace Category5.Core
             // fire audio event for victory
             GameEvents.InvokeVictory();
 
+            NotifyVictoryClientRpc(); // fire on all clients and host
+        }
+
+        [ClientRpc]
+        private void NotifyVictoryClientRpc()
+        {
+            // Debug.Log("Victory! All rounds complete.");
             OnVictory?.Invoke();
         }
 
@@ -430,26 +419,27 @@ namespace Category5.Core
         // triggers game over state
         private void TriggerGameOver()
         {
-            Debug.Log($"GameFlowManager: game over on round {CurrentRound.Value}");
+            // Debug.Log($"GameFlowManager: game over on round {CurrentRound.Value}");
             CurrentPhase.Value = GamePhase.GameOver;
             TriggerGameOverLocal(CurrentRound.Value);
         }
 
-        // this used to be a client rpc but after refactoring item manager i changed it
-        // might redo this part later but more important things rn
         private void TriggerGameOverLocal(int roundReached)
         {
-            Debug.Log($"Game Over! Reached round {roundReached}");
+            // Debug.Log($"Game Over! Reached round {roundReached}");
 
             // fire audio event for game over
             GameEvents.InvokeGameOver();
+            NotifyGameOverClientRpc(roundReached); // fire on all clients and host
+        }
 
+        [ClientRpc]
+        private void NotifyGameOverClientRpc(int roundReached)
+        {
             OnGameOver?.Invoke();
         }
 
-        // =====================================
         // player respawn
-        // =====================================
 
         // respawns all players to spawn positions (server only) - called at round transitions
         public void RespawnAllPlayers()
