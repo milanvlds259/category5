@@ -79,7 +79,7 @@ namespace Category5
 
                 _isUltActive = false;
                 abilityManager.ExecuteTempestBigMoveServerRpc(pos, forward, scaledCoefficient,
-                    bigMoveBoxWidth, bigMoveBoxHeight, bigMoveBoxDepth, bigMoveBoxForwardOffset, enemyLayers.value);
+                    bigMoveBoxWidth, bigMoveBoxHeight, bigMoveBoxDepth, bigMoveBoxForwardOffset, enemyLayers.value, abilityData.cooldownDuration);
             }
             else
             {
@@ -121,7 +121,7 @@ namespace Category5
                 // timer expired without second press
                 _isUltActive = false;
                 OnTempestDeactivated?.Invoke(playerController.transform.position, false);
-                abilityManager.EndTempestEngineServerRpc();
+                abilityManager.EndTempestEngineServerRpc(abilityData.cooldownDuration);
             }
         }
 

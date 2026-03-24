@@ -902,7 +902,7 @@ namespace Category5
 
         [Rpc(SendTo.Server)]
         public void ExecuteTempestBigMoveServerRpc(Vector3 playerPos, Vector3 forward, float damageCoefficient,
-            float boxWidth, float boxHeight, float boxDepth, float boxForwardOffset, int enemyLayerMask)
+            float boxWidth, float boxHeight, float boxDepth, float boxForwardOffset, int enemyLayerMask, float cooldownDuration)
         {
             if (!IsServer) return;
 
@@ -941,22 +941,20 @@ namespace Category5
             }
 
             // set r cooldown after big move executes
-            float rCooldown = ability3?.Data?.cooldownDuration ?? 0f;
-            ability3Cooldown.Value = rCooldown;
-            NotifyCooldownChangedClientRpc(AbilitySlot.Ability3, rCooldown, rCooldown);
+            ability3Cooldown.Value = cooldownDuration;
+            NotifyCooldownChangedClientRpc(AbilitySlot.Ability3, cooldownDuration, cooldownDuration);
 
             TriggerTempestBigMoveClientRpc(playerPos, forward);
         }
 
         [Rpc(SendTo.Server)]
-        public void EndTempestEngineServerRpc()
+        public void EndTempestEngineServerRpc(float cooldownDuration)
         {
             if (!IsServer) return;
 
             // set r cooldown when ult expires without the second press
-            float rCooldown = ability3?.Data?.cooldownDuration ?? 0f;
-            ability3Cooldown.Value = rCooldown;
-            NotifyCooldownChangedClientRpc(AbilitySlot.Ability3, rCooldown, rCooldown);
+            ability3Cooldown.Value = cooldownDuration;
+            NotifyCooldownChangedClientRpc(AbilitySlot.Ability3, cooldownDuration, cooldownDuration);
 
             TriggerTempestDeactivatedClientRpc(playerController.transform.position);
         }
