@@ -34,6 +34,9 @@ namespace Category5.UI
 
             // subscribe to health changes
             player.CurrentHealth.OnValueChanged += OnHealthChanged;
+
+            // subscribe to max health changes
+            player.OnMaxHealthChanged += OnMaxHealthChanged;
             
             // subscribe to death state changes
             player.IsDead.OnValueChanged += OnDeathStateChanged;
@@ -59,6 +62,12 @@ namespace Category5.UI
                 healthBar.UpdateHealth(newVal);
             }
 
+            UpdateHealthText();
+        }
+
+        private void OnMaxHealthChanged(int newMaxHP)
+        {
+            healthBar.Initialize(newMaxHP, _player.CurrentHealth.Value);
             UpdateHealthText();
         }
 
@@ -102,6 +111,7 @@ namespace Category5.UI
             {
                 _player.CurrentHealth.OnValueChanged -= OnHealthChanged;
                 _player.IsDead.OnValueChanged -= OnDeathStateChanged;
+                _player.OnMaxHealthChanged -= OnMaxHealthChanged;
             }
 
             PlayerController.OnPlayerNameChanged -= OnPlayerNameChanged;

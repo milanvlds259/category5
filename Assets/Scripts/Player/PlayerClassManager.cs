@@ -67,6 +67,8 @@ namespace Category5.Player
             else
             {
                 Debug.Log($"PlayerClassManager: Non-owner observing player {OwnerClientId} with class {SelectedClass.Value}");
+                // load class data expeditiously 
+                LoadClassLocally(SelectedClass.Value);
             }
         }
         
