@@ -80,8 +80,6 @@ namespace Category5.Core
 
         public override void OnNetworkSpawn()
         {
-            CurrentRound.OnValueChanged += (old, newVal) => OnRoundChanged?.Invoke(newVal);
-
             TryInitializeServerFlow();
         }
 
@@ -312,6 +310,12 @@ namespace Category5.Core
         }
 
         [ClientRpc]
+        private void NotifyRoundChangedClientRpc(int round)
+        {
+            OnRoundChanged?.Invoke(round);
+        }
+
+        [ClientRpc]
         private void NotifyVictoryClientRpc()
         {
             // Debug.Log("Victory! All rounds complete.");
@@ -335,6 +339,7 @@ namespace Category5.Core
         {
             CurrentRound.Value++;
             CurrentPhase.Value = GamePhase.Fighting;
+            NotifyRoundChangedClientRpc(CurrentRound.Value);
             _bossEntranceTriggeredThisRound = false;
 
             // reset spawner tracking for new round
