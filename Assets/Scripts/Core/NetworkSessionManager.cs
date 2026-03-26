@@ -251,8 +251,15 @@ namespace Category5.Core
         {
             _isGameActive = false;
             
-            // load menu scene
-            SceneManager.LoadScene(menuSceneName);
+            // route through SceneTransitionManager for loading screen
+            if (SceneTransitionManager.Instance != null)
+            {
+                SceneTransitionManager.Instance.LoadMainMenu();
+            }
+            else
+            {
+                SceneManager.LoadScene(menuSceneName);
+            }
         }
         
         // =====================================

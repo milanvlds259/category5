@@ -337,12 +337,16 @@ namespace Category5.UI
             }
             
             // Debug.Log("NetworkMenu: Host starting the game");
-            UpdateStatus("Loading game...");
             
-            // load the game scene for all clients
-            // player spawning is handled by NetworkManagerBootstrap after scene loads
-            if (NetworkManager.Singleton.SceneManager != null)
+            // load the game scene for all clients via SceneTransitionManager
+            // this shows the loading screen and handles player spawning after load
+            if (SceneTransitionManager.Instance != null)
             {
+                SceneTransitionManager.Instance.LoadGameScene();
+            }
+            else if (NetworkManager.Singleton.SceneManager != null)
+            {
+                // fallback if SceneTransitionManager is missing
                 NetworkManager.Singleton.SceneManager.LoadScene(gameSceneName, UnityEngine.SceneManagement.LoadSceneMode.Single);
             }
             else

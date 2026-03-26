@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using Unity.Netcode;
 using UnityEngine.SceneManagement;
+using Category5.Core;
 
 namespace Category5.UI
 {
@@ -123,14 +124,17 @@ namespace Category5.UI
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
             
-            // disconnect from network
-            if (NetworkManager.Singleton != null)
+            // route through SceneTransitionManager for loading screen
+            if (SceneTransitionManager.Instance != null)
             {
-                NetworkManager.Singleton.Shutdown();
+                SceneTransitionManager.Instance.LoadMainMenu();
             }
-            
-            // load menu scene
-            SceneManager.LoadScene(menuSceneName);
+            else
+            {
+                if (NetworkManager.Singleton != null)
+                    NetworkManager.Singleton.Shutdown();
+                SceneManager.LoadScene(menuSceneName);
+            }
         }
     }
 }
