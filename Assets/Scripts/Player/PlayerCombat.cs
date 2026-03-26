@@ -89,10 +89,12 @@ namespace Category5.Player
         // animator params for basic attack animation
         private static readonly int _animAttackTriggerHash = Animator.StringToHash("Attack");
         private static readonly int _animAttackAnimSpeedHash = Animator.StringToHash("AttackAnimSpeed");
+        private static readonly int _animIsAirborneAttackHash = Animator.StringToHash("IsAirborneAttack");
         private RuntimeAnimatorController _cachedAnimatorController;
         private bool _animParamsCached;
         private bool _hasAnimAttackTrigger;
         private bool _hasAnimAttackAnimSpeed;
+        private bool _hasAnimIsAirborneAttack;
 
         // buffered melee chain input
         private bool _hasBufferedMeleeAttackInput;
@@ -152,6 +154,13 @@ namespace Category5.Player
             _hasBufferedMeleeAttackInput = false;
             _meleeChainWindowOpen = false;
             _meleeAttackGeneration++; // invalidates any in-flight timeout coroutine
+
+            // clear airborne attack flag so it doesn't linger on the animator
+            if (_hasAnimIsAirborneAttack)
+            {
+                var anim = GetModelAnimator();
+                if (anim != null) anim.SetBool(_animIsAirborneAttackHash, false);
+            }
 
             if (wasCharging)
             {
@@ -520,6 +529,7 @@ namespace Category5.Player
             _animParamsCached = true;
             _hasAnimAttackTrigger = false;
             _hasAnimAttackAnimSpeed = false;
+            _hasAnimIsAirborneAttack = false;
 
             if (controller == null)
             {
@@ -539,6 +549,11 @@ namespace Category5.Player
                 if (parameter.nameHash == _animAttackAnimSpeedHash)
                 {
                     _hasAnimAttackAnimSpeed = true;
+                }
+
+                if (parameter.nameHash == _animIsAirborneAttackHash)
+                {
+                    _hasAnimIsAirborneAttack = true;
                 }
             }
         }
@@ -572,6 +587,12 @@ namespace Category5.Player
                     return;
                 }
 
+                // tag whether this attack was started airborne so the animator can branch to air attack clips
+                if (_hasAnimIsAirborneAttack)
+                {
+                    anim.SetBool(_animIsAirborneAttackHash, _playerController != null && !_playerController.IsGrounded);
+                }
+
                 _ownerNetworkAnimator.SetTrigger(_animAttackTriggerHash);
                 return;
             }
@@ -602,6 +623,13 @@ namespace Category5.Player
             // attack recovery is animation-driven for melee so buffered followups only start once
             // the current attack clip reaches its close event
             _isAttacking = false;
+
+            // clear airborne flag once the attack animation finishes
+            if (_hasAnimIsAirborneAttack)
+            {
+                var anim = GetModelAnimator();
+                if (anim != null) anim.SetBool(_animIsAirborneAttackHash, false);
+            }
 
             if (_hasPendingMeleeHit)
             {
