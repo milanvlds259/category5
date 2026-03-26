@@ -108,11 +108,11 @@ MonoBehaviour:
   RotationInterpolationType: 0
   ScaleInterpolationType: 0
   PositionLerpSmoothing: 1
-  PositionMaxInterpolationTime: 0.1
+  PositionMaxInterpolationTime: 0.016
   RotationLerpSmoothing: 1
-  RotationMaxInterpolationTime: 0.1
+  RotationMaxInterpolationTime: 0.016
   ScaleLerpSmoothing: 1
-  ScaleMaxInterpolationTime: 0.1
+  ScaleMaxInterpolationTime: 0.016
   AuthorityMode: 0
   TickSyncChildren: 0
   UseUnreliableDeltas: 0
@@ -122,9 +122,9 @@ MonoBehaviour:
   SyncRotAngleX: 1
   SyncRotAngleY: 1
   SyncRotAngleZ: 1
-  SyncScaleX: 1
-  SyncScaleY: 1
-  SyncScaleZ: 1
+  SyncScaleX: 0
+  SyncScaleY: 0
+  SyncScaleZ: 0
   PositionThreshold: 0.001
   RotAngleThreshold: 0.01
   ScaleThreshold: 0.01
@@ -149,7 +149,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.NetworkedProjectile
   ShowTopMostFoldoutHeaderGroup: 1
   speed: 25
-  damage: 15
   lifetime: 5
 --- !u!114 &-2232040969411696506
 MonoBehaviour:
@@ -165,10 +164,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.FireballProjectile
   ShowTopMostFoldoutHeaderGroup: 1
   speed: 18
-  damage: 25
   lifetime: 4
   explosionRadius: 4
-  burnDamagePerTick: 5
+  burnDamageCoeffPerTick: 0.5
   burnTickInterval: 0.5
   burnDuration: 3
   detonationLayers:
