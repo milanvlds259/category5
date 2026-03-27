@@ -11,7 +11,7 @@ namespace Category5.Player.WindRiding
     public class WindLaunchPad : MonoBehaviour
     {
         [Header("Tunnel Connection")]
-        [SerializeField] private WindTunnel targetTunnel;
+        [SerializeField] public WindTunnel targetTunnel;
         [Tooltip("true = ride from t=0 to t=1, false = ride from t=1 to t=0")]
         [SerializeField] private bool launchForward = true;
 

@@ -12,8 +12,8 @@ namespace Category5.Player.WindRiding
         private const int PreviewSegments = 32;
 
         [Header("Launch Pad References")]
-        [SerializeField] private WindLaunchPad startLaunchPad;
-        [SerializeField] private WindLaunchPad endLaunchPad;
+        public WindLaunchPad startLaunchPad;
+        public WindLaunchPad endLaunchPad;
 
         [Header("Tunnel Shape")]
         [SerializeField] private float endpointHeightOffset = 2f;
@@ -26,6 +26,9 @@ namespace Category5.Player.WindRiding
         [SerializeField] private Color previewPathColor = new Color(0.25f, 0.8f, 1f, 0.9f);
         [SerializeField] private Color previewHandleColor = new Color(1f, 0.75f, 0.2f, 0.8f);
         [SerializeField] private Color previewPadLinkColor = new Color(0.4f, 1f, 0.5f, 0.7f);
+
+        // Set in MapGenerator, gives the wind tunnel a spline to follow
+        public Spline pathSpline;
 
         private void Start()
         {
@@ -71,34 +74,51 @@ namespace Category5.Player.WindRiding
             var spline = splineContainer.Spline;
             spline.Clear();
 
-            var knots = new BezierKnot[]
+            BezierKnot[] knots;
+
+            // If this wind tunnel has a path spline from the map generator,
+            // create the wind tunnel according to that path spline
+            if (pathSpline != null)
             {
-                new BezierKnot(
-                    ToLocalPoint(tunnelObj.transform, preview.P0),
-                    ToLocalDirection(tunnelObj.transform, preview.P0InTangent),
-                    ToLocalDirection(tunnelObj.transform, preview.P0OutTangent)
-                ),
-                new BezierKnot(
-                    ToLocalPoint(tunnelObj.transform, preview.P1),
-                    ToLocalDirection(tunnelObj.transform, preview.P1InTangent),
-                    ToLocalDirection(tunnelObj.transform, preview.P1OutTangent)
-                ),
-                new BezierKnot(
-                    ToLocalPoint(tunnelObj.transform, preview.P2),
-                    ToLocalDirection(tunnelObj.transform, preview.P2InTangent),
-                    ToLocalDirection(tunnelObj.transform, preview.P2OutTangent)
-                ),
-                new BezierKnot(
-                    ToLocalPoint(tunnelObj.transform, preview.P3),
-                    ToLocalDirection(tunnelObj.transform, preview.P3InTangent),
-                    ToLocalDirection(tunnelObj.transform, preview.P3OutTangent)
-                ),
-                new BezierKnot(
-                    ToLocalPoint(tunnelObj.transform, preview.P4),
-                    ToLocalDirection(tunnelObj.transform, preview.P4InTangent),
-                    ToLocalDirection(tunnelObj.transform, preview.P4OutTangent)
-                ),
-            };
+                int knotCount = pathSpline.Count;
+                knots = new BezierKnot[knotCount];
+                for (int i = 0; i < knotCount; i++)
+                {
+                    knots[i] = pathSpline[i];
+                }
+            }
+            else // If not, use preview
+            {
+                knots = new BezierKnot[]
+                {
+                    new BezierKnot(
+                        ToLocalPoint(tunnelObj.transform, preview.P0),
+                        ToLocalDirection(tunnelObj.transform, preview.P0InTangent),
+                        ToLocalDirection(tunnelObj.transform, preview.P0OutTangent)
+                    ),
+                    new BezierKnot(
+                        ToLocalPoint(tunnelObj.transform, preview.P1),
+                        ToLocalDirection(tunnelObj.transform, preview.P1InTangent),
+                        ToLocalDirection(tunnelObj.transform, preview.P1OutTangent)
+                    ),
+                    new BezierKnot(
+                        ToLocalPoint(tunnelObj.transform, preview.P2),
+                        ToLocalDirection(tunnelObj.transform, preview.P2InTangent),
+                        ToLocalDirection(tunnelObj.transform, preview.P2OutTangent)
+                    ),
+                    new BezierKnot(
+                        ToLocalPoint(tunnelObj.transform, preview.P3),
+                        ToLocalDirection(tunnelObj.transform, preview.P3InTangent),
+                        ToLocalDirection(tunnelObj.transform, preview.P3OutTangent)
+                    ),
+                    new BezierKnot(
+                        ToLocalPoint(tunnelObj.transform, preview.P4),
+                        ToLocalDirection(tunnelObj.transform, preview.P4InTangent),
+                        ToLocalDirection(tunnelObj.transform, preview.P4OutTangent)
+                    ),
+                };
+            }
+            
 
             foreach (var knot in knots)
             {

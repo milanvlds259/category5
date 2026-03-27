@@ -9,6 +9,7 @@ using UnityEngine.Splines;
 using Unity.Mathematics;
 using System.Linq;
 using System.Numerics;
+using Category5.Player.WindRiding;
 
 public class MapGenerator : MonoBehaviour
 {
@@ -36,6 +37,8 @@ public class MapGenerator : MonoBehaviour
 
     // List to hold references to created arenas/eyes
     private List<Arena> arenas = new List<Arena>();
+    // Layer mask used in arena generation so that they don't generate overlapping
+    [SerializeField] LayerMask arenaMask;
 
     // List to hold references to created paths
     private List<Path> paths = new List<Path>();
@@ -199,6 +202,8 @@ public class MapGenerator : MonoBehaviour
         
         // Space out all the path points so they dont overlap!
         SpaceOutPaths();
+
+        AddWindTunnelToPaths();
     }
 
 
@@ -232,7 +237,7 @@ public class MapGenerator : MonoBehaviour
         Collider[] colliders = Physics.OverlapCapsule(arena.transform.position - new Vector3(0, 100, 0), 
                                                     arena.transform.position + new Vector3(0, 100, 0), 
                                                     arena.transform.localScale.x / scaleFactor, 
-                                                    Physics.AllLayers, 
+                                                    arenaMask, 
                                                     QueryTriggerInteraction.Collide
                                                     );
         if (colliders.Length > 1) // More than one collider means overlap
@@ -446,7 +451,31 @@ public class MapGenerator : MonoBehaviour
 
         paths.Add(pathData); // Store reference to the created path
     }
+    void AddWindTunnelToPaths()
+    {
+        foreach (Path path in paths)
+        {
+            GameObject launchPadA = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            GameObject launchPadB = GameObject.CreatePrimitive(PrimitiveType.Cube);
 
+            launchPadA.AddComponent<WindLaunchPad>();
+            launchPadB.AddComponent<WindLaunchPad>();
+
+            launchPadA.transform.position = path.spline[0].Position;
+            launchPadB.transform.position = path.spline[path.spline.Count-1].Position;
+
+            launchPadA.transform.localScale = new Vector3(10, 10, 10);
+            launchPadB.transform.localScale = new Vector3(10, 10, 10);
+
+            launchPadA.transform.parent = path.gameObjectRef.transform;
+            launchPadB.transform.parent = path.gameObjectRef.transform;
+
+            TestWindTunnelSetup tunnel = path.gameObjectRef.AddComponent<TestWindTunnelSetup>();
+            tunnel.pathSpline = path.spline;
+            tunnel.startLaunchPad = launchPadA.GetComponent<WindLaunchPad>();
+            tunnel.endLaunchPad = launchPadB.GetComponent<WindLaunchPad>();
+        }
+    }
 
     void CleanUpPath(Spline spline, SplineContainer splineContainer)
     {
@@ -610,20 +639,21 @@ public class MapGenerator : MonoBehaviour
         // Now decide on the new angle of the entrance
         float newAngle = 0f;
         // compare the final pos and neg angles, and choose a random new angle that is farther from other path entrances
-        if (Mathf.Abs(posAngle - angle) > Mathf.Abs(negAngle - angle))
-        {
-            newAngle = Random.Range(angle + Mathf.Deg2Rad * 5, posAngle - Mathf.Deg2Rad * 5);
-        }
-        else if (Mathf.Abs(posAngle - angle) < Mathf.Abs(negAngle - angle))
-        {
-            newAngle = Random.Range(angle - Mathf.Deg2Rad * 5, negAngle + Mathf.Deg2Rad * 5);
-        }
-        else // If they were equal
+        if (Mathf.Abs( (posAngle - angle) - (negAngle - angle) ) <= 0.0001f ) // If they were equal (or close enough)
         {
             // Don't move the entrance, exit the function
             Debug.Log("PATH " + path.gameObjectRef.name + " DIDNT MOVE ON " + arena.gameObjectRef.name);
             return;
         }
+        else if (Mathf.Abs(posAngle - angle) > Mathf.Abs(negAngle - angle)) // Negative angle closer
+        {
+            newAngle = Random.Range(angle + Mathf.Deg2Rad * 5, posAngle - Mathf.Deg2Rad * 5);
+        }
+        else if (Mathf.Abs(posAngle - angle) < Mathf.Abs(negAngle - angle)) // Positive angle closer
+        {
+            newAngle = Random.Range(angle - Mathf.Deg2Rad * 5, negAngle + Mathf.Deg2Rad * 5);
+        }
+        
         
         // Get a point in the new direction to get 
         Vector3 newDirection = new Vector3(Mathf.Cos(newAngle), 0, Mathf.Sin(newAngle));
@@ -631,7 +661,7 @@ public class MapGenerator : MonoBehaviour
                 
         entranceKnot.Position = arena.arenaBounds.ClosestPoint(newPoint);
         Debug.Log(
-            angle + "<-ANGLE \n POSANGLE->" + posAngle + " " + Mathf.Abs(posAngle - angle) + " " + (angle + 90*Mathf.Deg2Rad).ToString() + " \n NEGANGLE->" + negAngle + " " + Mathf.Abs(negAngle - angle) + " " + (angle - 90*Mathf.Deg2Rad).ToString() + " \n RADIUS-> " + arena.arenaBounds.radius + " \n " + newPoint + "<-NEWPOINT \n ARENA->" + arena.gameObjectRef.name + " \n PATH->" + path.gameObjectRef.name + " \n CLOSEST->" + arena.arenaBounds.ClosestPoint(newPoint)
+            angle + "<-ANGLE " + "\n NewANGLE->" + newAngle  + "\n POSANGLE->" + posAngle + " " + Mathf.Abs(posAngle - angle) + " " + (angle + 90*Mathf.Deg2Rad).ToString() + " \n NEGANGLE->" + negAngle + " " + Mathf.Abs(negAngle - angle) + " " + (angle - 90*Mathf.Deg2Rad).ToString() + " \n " + newPoint + "<-NEWPOINT OLDPOINT->" + entrancePos + "\n ARENA->" + arena.gameObjectRef.name + " \n PATH->" + path.gameObjectRef.name
             );
         // Gotta set knot to make it actually move the knot
         path.spline.SetKnot(knotIndex, entranceKnot);
