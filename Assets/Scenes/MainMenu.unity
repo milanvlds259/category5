@@ -6446,7 +6446,7 @@ MonoBehaviour:
   canvasGroup: {fileID: 857741239}
   fadeDuration: 0
   tips:
-  - this is where tip text goes
+  - "just hit the boss bronaldinho \U0001F62D\U0001F64F "
 --- !u!114 &857741241
 MonoBehaviour:
   m_ObjectHideFlags: 0

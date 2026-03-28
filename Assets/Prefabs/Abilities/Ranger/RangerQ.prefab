@@ -46,8 +46,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.QuickbowAbility
   abilityData: {fileID: 11400000, guid: 79ea3b8d6e929e642b8f9640191722ee, type: 2}
   buffDuration: 6
-  attackSpeedMultiplier: 0.2
+  attackSpeedMultiplier: 0.3
   chargeSpeedMultiplier: 0.4
   burstArrowCount: 5
   burstInterval: 0.05
-  burstDamageMultiplier: 0.4
+  burstDamageMultiplier: 0.3

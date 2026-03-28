@@ -358,17 +358,6 @@ namespace Category5.Player
         // enables/disables visuals and collider based on death state
         private void SetDeathVisuals(bool isDead)
         {
-            // toggle renderers
-            if (_renderers != null)
-            {
-                foreach (var renderer in _renderers)
-                {
-                    if (renderer != null)
-                    {
-                        renderer.enabled = !isDead;
-                    }
-                }
-            }
             
             // toggle specific objects if set
             if (visualsToHideOnDeath != null)
