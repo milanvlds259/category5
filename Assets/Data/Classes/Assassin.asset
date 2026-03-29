@@ -17,7 +17,7 @@ MonoBehaviour:
   characterName: Shani
   classDescription: Dashing Assassin
   classIcon: {fileID: 21300000, guid: 7842a30a4f2e75847b2f85f2c3e17003, type: 3}
-  classPortrait: {fileID: 21300000, guid: b35478eaca6ec4b4fa65797808eea200, type: 3}
+  classPortrait: {fileID: 21300000, guid: eb1ab762f0be2874cb614318846a991e, type: 3}
   ability1Prefab: {fileID: 53412344211962831, guid: 713a120358a3d014db07f3b59508e6e8, type: 3}
   ability2Prefab: {fileID: 53412344211962831, guid: 91ca7421fa5c84b408fc15ec02ce6e8c, type: 3}
   ability3Prefab: {fileID: 53412344211962831, guid: 3098eb68fb995434fa69d18dd428fcef, type: 3}

@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: M_FighterClothes
+  m_Name: FighterSword
   m_Shader: {fileID: -6465566751694194690, guid: 45b2c1cdfa01be147bb172856196fc17, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -87,7 +87,7 @@ Material:
     - _AlphaClip: 1
     - _AlphaToMask: 1
     - _B_Metallic: 1
-    - _B_Smoothness: 0.975
+    - _B_Smoothness: 1
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
     - _BumpScale: 1
@@ -101,8 +101,8 @@ Material:
     - _DstBlend: 0
     - _DstBlendAlpha: 0
     - _EnvironmentReflections: 1
-    - _G_Metallic: 1
-    - _G_Smoothness: 0.86
+    - _G_Metallic: 0.353
+    - _G_Smoothness: 0.207
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
@@ -127,9 +127,9 @@ Material:
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _Color1: {r: 0.3886792, g: 0, b: 0.017667219, a: 1}
-    - _Color2: {r: 0.3433962, g: 0.31129652, b: 0.3103524, a: 1}
-    - _Color3: {r: 0.38823533, g: 0, b: 0.019607844, a: 1}
+    - _Color1: {r: 0.87169814, g: 0.37992877, b: 0.39959952, a: 1}
+    - _Color2: {r: 0.3132075, g: 0.3132075, b: 0.3132075, a: 1}
+    - _Color3: {r: 0.63529414, g: 0.79215693, b: 0.86666673, a: 1}
     - _CorneaColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _EyeWhiteColor: {r: 0, g: 0, b: 0, a: 0}

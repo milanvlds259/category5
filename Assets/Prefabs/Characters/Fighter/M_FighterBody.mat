@@ -127,15 +127,15 @@ Material:
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _Color1: {r: 0.3660378, g: 0.18976079, b: 0.13467424, a: 1}
-    - _Color2: {r: 0, g: 0, b: 0, a: 1}
+    - _Color1: {r: 0.78867924, g: 0.5994649, b: 0.5342186, a: 1}
+    - _Color2: {r: 0.90188676, g: 0.71907336, b: 0.48838016, a: 1}
     - _Color3: {r: 0.93962264, g: 0.93962264, b: 0.93962264, a: 1}
-    - _CorneaColor: {r: 0.5471698, g: 0.25213042, b: 0.24261302, a: 1}
+    - _CorneaColor: {r: 0.3853257, g: 0.62066096, b: 0.6830188, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _EyeWhiteColor: {r: 0.79554033, g: 0.68204594, b: 0.617192, a: 1}
+    - _EyeWhiteColor: {r: 1, g: 1, b: 1, a: 1}
     - _Flash: {r: 1, g: 1, b: 1, a: 0}
     - _FlashColor: {r: 4, g: 4, b: 4, a: 0}
-    - _LipColor: {r: 1, g: 0.7058824, b: 0.57169807, a: 1}
+    - _LipColor: {r: 1, g: 1, b: 1, a: 1}
     - _SpecColor: {r: 0.2, g: 0.2, b: 0.2, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
