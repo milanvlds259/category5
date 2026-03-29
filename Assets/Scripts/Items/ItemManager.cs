@@ -238,7 +238,15 @@ namespace Category5.Items
                 if (playerInventory != null)
                 {
                     bool success;
-                    if (slotToReplace >= 0)
+
+                    // check if player already owns this item (tier upgrade)
+                    if (playerInventory.HasItem(itemId))
+                    {
+                        success = playerInventory.UpgradeItemTier(itemId);
+                        int newTier = playerInventory.GetItemTier(itemId);
+                        Debug.Log($"ItemManager: Upgraded {item.ItemName} to tier {newTier} for player {clientId}, success: {success}");
+                    }
+                    else if (slotToReplace >= 0)
                     {
                         // replace existing item
                         success = playerInventory.ReplaceItem(slotToReplace, itemId);

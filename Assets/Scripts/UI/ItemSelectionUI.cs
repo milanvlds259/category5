@@ -144,7 +144,13 @@ namespace Category5.UI
                 if (i < itemIds.Length)
                 {
                     var item = registry.GetItemById(itemIds[i]);
-                    itemCards[i].Initialize(item, this);
+                    // check if player already owns this item (show as upgrade)
+                    int currentTier = 0;
+                    if (playerInventory != null && playerInventory.HasItem(itemIds[i]))
+                    {
+                        currentTier = playerInventory.GetItemTier(itemIds[i]);
+                    }
+                    itemCards[i].Initialize(item, this, currentTier);
                     itemCards[i].SetInteractable(true);
                 }
                 else
@@ -164,7 +170,7 @@ namespace Category5.UI
             var registry = ItemRegistry.Instance;
             if (registry == null || playerInventory == null) return;
 
-            // show current inventory
+            // show current inventory with tier info
             for (int i = 0; i < inventorySlots.Length; i++)
             {
                 if (inventorySlots[i] == null) continue;
@@ -172,7 +178,7 @@ namespace Category5.UI
                 var item = playerInventory.GetItemInSlot(i);
                 if (item != null)
                 {
-                    inventorySlots[i].SetItem(item);
+                    inventorySlots[i].SetItem(item, playerInventory.GetSlotTier(i));
                 }
                 else
                 {
@@ -203,7 +209,19 @@ namespace Category5.UI
 
             Debug.Log($"ItemSelectionUI: Selected item {item.ItemName}");
 
-            if (_inventoryFull)
+            // check if player already owns this item (tier upgrade, no replacement needed)
+            var playerInventory = GetLocalPlayerInventory();
+            bool isUpgrade = playerInventory != null && playerInventory.HasItem(item.UniqueId);
+
+            if (isUpgrade)
+            {
+                // upgrade existing item directly, no slot selection needed
+                _hasSelected = true;
+                DisableAllCards();
+                ShowWaitingState();
+                ItemManager.Instance?.SelectItem(item.UniqueId);
+            }
+            else if (_inventoryFull)
             {
                 // enter replacement mode - highlight inventory slots as clickable
                 _pendingItemId = item.UniqueId;

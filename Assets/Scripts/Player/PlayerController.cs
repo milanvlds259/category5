@@ -141,6 +141,18 @@ namespace Category5.Player
         // sprint events for ui/vfx integration
         public static event Action<Vector3> OnSprintStarted;
         public static event Action<Vector3> OnSprintEnded;
+
+        // item behaviour events
+
+        // fired when player dodges damage via i-frames. passes remaining dodge timer so items can detect timing
+        public event Action<float> OnPlayerDodgedAttack;
+
+        // fired before Die() executes. subscribers can set preventDeath = true to cancel death
+        public delegate void AboutToDieHandler(PlayerController player, ref bool preventDeath);
+        public event AboutToDieHandler OnPlayerAboutToDie;
+
+        // fired when player grounded state changes (true = just became airborne, false = just landed)
+        public event Action<bool> OnPlayerAirborneStateChanged;
         
         // public property (ui can read this later)
         public bool IsSprinting => _isSprinting;
@@ -611,7 +623,18 @@ namespace Category5.Player
         private void HandleGravity()
         {
             // custom ground check is more reliable than CharacterController.isGrounded
+            bool wasGrounded = _isGrounded;
             _isGrounded = Physics.CheckSphere(transform.position + groundCheckOffset, groundCheckRadius, groundLayers, QueryTriggerInteraction.Ignore);
+
+            // fire airborne state change event for item behaviours
+            if (wasGrounded && !_isGrounded)
+            {
+                OnPlayerAirborneStateChanged?.Invoke(true); // became airborne
+            }
+            else if (!wasGrounded && _isGrounded)
+            {
+                OnPlayerAirborneStateChanged?.Invoke(false); // landed
+            }
 
             if (_isGrounded && _velocity.y < 0)
             {
@@ -811,6 +834,7 @@ namespace Category5.Player
             if (_isDodging) 
             {
                 Debug.Log("Player dodged damage!");
+                OnPlayerDodgedAttack?.Invoke(_dodgeTimer);
                 return;
             }
 
@@ -879,8 +903,12 @@ namespace Category5.Player
         {
             if (!IsServer) return;
             if (IsDead.Value) return;
+
+            // let items prevent death (e.g. Backup Plan)
+            bool preventDeath = false;
+            OnPlayerAboutToDie?.Invoke(this, ref preventDeath);
+            if (preventDeath) return;
             
-            // Debug.Log($"Player {OwnerClientId} died!");
             IsDead.Value = true;
             
             // fire audio event for death on all clients

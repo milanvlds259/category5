@@ -65,9 +65,7 @@ namespace Category5.Editor
         static readonly ColumnDef[] ItemDataColumns =
         {
             new ColumnDef { label = "Name",         width = 130, editable = true,  propName = "itemName"        },
-            new ColumnDef { label = "Tier",         width = 40,  editable = true,  propName = "tier"            },
             new ColumnDef { label = "Category",     width = 90,  editable = true,  propName = "category"        },
-            new ColumnDef { label = "Allow Dupes",  width = 78,  editable = true,  propName = "allowDuplicates" },
             new ColumnDef { label = "Gold Cost",    width = 65,  editable = true,  propName = "goldCost"        },
             new ColumnDef { label = "Effects",      width = 52,  editable = false, propName = null,
                             getDisplayValue = o => { var so = new SerializedObject(o); var p = so.FindProperty("effects"); return p != null ? p.arraySize.ToString() : "0"; }},

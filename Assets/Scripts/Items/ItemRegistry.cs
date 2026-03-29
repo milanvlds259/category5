@@ -79,11 +79,11 @@ namespace Category5.Items
             var result = new List<ItemData>();
             var available = new List<ItemData>(allItems);
 
-            // filter out items player already has if duplicates not allowed
+            // filter out items the player already has at max tier
             if (playerInventory != null)
             {
                 available = available.Where(item => 
-                    item.AllowDuplicates || !playerInventory.HasItem(item.UniqueId)
+                    !playerInventory.IsItemMaxTier(item.UniqueId)
                 ).ToList();
             }
 
@@ -115,11 +115,7 @@ namespace Category5.Items
             return allItems.Where(item => item != null && item.Category == category).ToList();
         }
 
-        // get items by tier (for future rarity system)
-        public List<ItemData> GetItemsByTier(int tier)
-        {
-            return allItems.Where(item => item != null && item.Tier == tier).ToList();
-        }
+
 
         // weighted random selection (future feature)
         public List<ItemData> GetWeightedRandomItems(int count, PlayerInventory playerInventory = null)

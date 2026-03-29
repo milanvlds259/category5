@@ -11,6 +11,7 @@ namespace Category5.UI
         [Header("ui references")]
         [SerializeField] private Image iconImage; // the main item image (also acts as button background)
         [SerializeField] private Button slotButton; // the button component on the same GameObject
+        [SerializeField] private TextMeshProUGUI tierText; // optional tier label
 
         [Header("empty slot appearance")]
         [SerializeField] private Color emptyColor = new Color(0.2f, 0.2f, 0.2f, 0.5f);
@@ -36,7 +37,7 @@ namespace Category5.UI
             }
         }
 
-        public void SetItem(ItemData item)
+        public void SetItem(ItemData item, int tier = 1)
         {
             _item = item;
 
@@ -53,6 +54,13 @@ namespace Category5.UI
                 iconImage.color = item.GlowColor; // tint image with item color
             }
 
+            // show tier if above 1
+            if (tierText != null)
+            {
+                tierText.gameObject.SetActive(tier > 1);
+                tierText.text = $"T{tier}";
+            }
+
             gameObject.SetActive(true);
         }
 
@@ -64,6 +72,11 @@ namespace Category5.UI
             {
                 iconImage.sprite = emptySprite;
                 iconImage.color = emptyColor;
+            }
+
+            if (tierText != null)
+            {
+                tierText.gameObject.SetActive(false);
             }
         }
 

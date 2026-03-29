@@ -68,8 +68,8 @@ namespace Category5.Items
             }
         }
 
-        // adds item to first available slot
-        // returns true if successful, false if inventory full
+        // adds item to first available slot, or upgrades tier if already owned
+        // returns true if successful, false if inventory full or item at max tier
         public bool AddItem(string itemId)
         {
             if (!IsServer)
@@ -86,11 +86,13 @@ namespace Category5.Items
                 return false;
             }
 
-            // check for duplicates if not allowed
-            if (!itemData.AllowDuplicates && HasItem(itemId))
+            // check if player already has this item — upgrade tier instead
+            for (int i = 0; i < inventorySlots.Count; i++)
             {
-                Debug.LogWarning($"PlayerInventory: Item '{itemId}' does not allow duplicates");
-                return false;
+                if (!inventorySlots[i].IsEmpty && inventorySlots[i].itemId.ToString() == itemId)
+                {
+                    return UpgradeItemTier(itemId);
+                }
             }
 
             // find first empty slot
@@ -98,7 +100,7 @@ namespace Category5.Items
             {
                 if (inventorySlots[i].IsEmpty)
                 {
-                    inventorySlots[i] = new InventorySlot(itemId, i);
+                    inventorySlots[i] = new InventorySlot(itemId, i, 1);
                     Debug.Log($"PlayerInventory: Added item '{itemId}' to slot {i} for player {OwnerClientId}");
                     return true;
                 }
@@ -131,22 +133,8 @@ namespace Category5.Items
                 return false;
             }
 
-            // check for duplicates if not allowed (excluding the slot we're replacing)
-            if (!itemData.AllowDuplicates)
-            {
-                for (int i = 0; i < inventorySlots.Count; i++)
-                {
-                    if (i != slotIndex && !inventorySlots[i].IsEmpty && 
-                        inventorySlots[i].itemId.ToString() == newItemId)
-                    {
-                        Debug.LogWarning($"PlayerInventory: Item '{newItemId}' does not allow duplicates");
-                        return false;
-                    }
-                }
-            }
-
             var oldItemId = inventorySlots[slotIndex].itemId.ToString();
-            inventorySlots[slotIndex] = new InventorySlot(newItemId, slotIndex);
+            inventorySlots[slotIndex] = new InventorySlot(newItemId, slotIndex, 1);
             Debug.Log($"PlayerInventory: Replaced item '{oldItemId}' with '{newItemId}' at slot {slotIndex} for player {OwnerClientId}");
             return true;
         }
@@ -222,6 +210,18 @@ namespace Category5.Items
             return ItemRegistry.Instance?.GetItemById(slot.itemId.ToString());
         }
 
+        // gets tier for a specific slot (0 if empty or invalid)
+        public int GetSlotTier(int slotIndex)
+        {
+            if (slotIndex < 0 || slotIndex >= inventorySlots.Count)
+            {
+                return 0;
+            }
+
+            var slot = inventorySlots[slotIndex];
+            return slot.IsEmpty ? 0 : slot.tier;
+        }
+
         // clears entire inventory (for testing or death penalties)
         public void ClearInventory()
         {
@@ -258,6 +258,84 @@ namespace Category5.Items
             }
             
             return items;
+        }
+
+        // returns all items with their current tier (for tier-aware stat calculation)
+        public List<(ItemData item, int tier)> GetAllItemsWithTier()
+        {
+            var items = new List<(ItemData, int)>();
+            var registry = ItemRegistry.Instance;
+            if (registry == null) return items;
+
+            foreach (var slot in inventorySlots)
+            {
+                if (slot.IsEmpty) continue;
+                
+                var item = registry.GetItemById(slot.itemId.ToString());
+                if (item != null)
+                {
+                    items.Add((item, slot.tier));
+                }
+            }
+            
+            return items;
+        }
+
+        // returns the current tier of an item (0 if not owned)
+        public int GetItemTier(string itemId)
+        {
+            foreach (var slot in inventorySlots)
+            {
+                if (!slot.IsEmpty && slot.itemId.ToString() == itemId)
+                {
+                    return slot.tier;
+                }
+            }
+            return 0;
+        }
+
+        // upgrades the tier of an item already in inventory (server only)
+        public bool UpgradeItemTier(string itemId)
+        {
+            if (!IsServer)
+            {
+                Debug.LogWarning("PlayerInventory.UpgradeItemTier should only be called on server");
+                return false;
+            }
+
+            for (int i = 0; i < inventorySlots.Count; i++)
+            {
+                if (!inventorySlots[i].IsEmpty && inventorySlots[i].itemId.ToString() == itemId)
+                {
+                    int currentTier = inventorySlots[i].tier;
+                    if (currentTier >= ItemData.MaxTier)
+                    {
+                        Debug.LogWarning($"PlayerInventory: Item '{itemId}' already at max tier {ItemData.MaxTier}");
+                        return false;
+                    }
+
+                    int newTier = currentTier + 1;
+                    inventorySlots[i] = new InventorySlot(itemId, i, newTier);
+                    Debug.Log($"PlayerInventory: Upgraded '{itemId}' to tier {newTier} for player {OwnerClientId}");
+                    return true;
+                }
+            }
+
+            Debug.LogWarning($"PlayerInventory: Item '{itemId}' not found in inventory for upgrade");
+            return false;
+        }
+
+        // checks if an item is at max tier
+        public bool IsItemMaxTier(string itemId)
+        {
+            foreach (var slot in inventorySlots)
+            {
+                if (!slot.IsEmpty && slot.itemId.ToString() == itemId)
+                {
+                    return slot.tier >= ItemData.MaxTier;
+                }
+            }
+            return false;
         }
     }
 }

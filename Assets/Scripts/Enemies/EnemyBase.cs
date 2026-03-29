@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using Unity.Netcode;
 using Category5.Core;
@@ -733,6 +734,12 @@ namespace Category5.Enemies
         // =====================================
         // damage
         // =====================================
+
+        // tracks who last damaged this enemy (for kill attribution)
+        public ulong LastDamagerClientId { get; set; }
+
+        // fired on server when this enemy dies, reports who killed it
+        public static event Action<ulong, Vector3, GameObject> OnEnemyKilledBy;
         
         public virtual void TakeDamage(int damageAmount)
         {
@@ -934,6 +941,9 @@ namespace Category5.Enemies
             _isDead = true;
             
             CurrentState.Value = EnemyState.Dead;
+            
+            // fire kill attribution event for item behaviours (server only)
+            OnEnemyKilledBy?.Invoke(LastDamagerClientId, transform.position, gameObject);
             
             // fire death event on all clients
             NotifyDeathClientRpc(transform.position);

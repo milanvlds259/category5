@@ -51,6 +51,9 @@ namespace Category5.Player
         private float _critChanceBonus = 0f;
         private float _critDamageBonus = 0f;
 
+        // dynamic bonus hp from item behaviours (e.g. Recharging Shield) that changes frequently
+        private int _dynamicMaxHealthBonus = 0;
+
         // base stat accessors (from class data or fallback)
         public float BaseAttackDamage => _classData != null ? _classData.baseAttackDamage : fallbackAttackDamage;
         private int BaseMaxHealth => _classData != null ? _classData.baseMaxHealth : fallbackMaxHealth;
@@ -70,8 +73,8 @@ namespace Category5.Player
         // public accessors for final stats (base + items)
         public float DamageMultiplier => _damageMultiplier;
         public int FlatDamageBonus => _flatDamageBonus;
-        public int MaxHealthBonus => _maxHealthBonus;
-        public int TotalMaxHealth => BaseMaxHealth + _maxHealthBonus;
+        public int MaxHealthBonus => _maxHealthBonus + _dynamicMaxHealthBonus;
+        public int TotalMaxHealth => BaseMaxHealth + _maxHealthBonus + _dynamicMaxHealthBonus;
         public int MaxManaBonus => _maxManaBonus;
         public int TotalMaxMana => BaseMaxMana + _maxManaBonus;
         public float DodgeCooldownReduction => _dodgeCooldownReduction;
@@ -87,6 +90,20 @@ namespace Category5.Player
         public float TotalCritDamage => BaseCritDamage + _critDamageBonus;
         public float EffectiveManaRegenRate => BaseManaRegenRate * _manaRegenMultiplier;
         public bool HasClassData => _classData != null;
+
+        // base stat accessors for item behaviour calculations
+        public int BaseMaxHealthValue => BaseMaxHealth;
+
+        // set dynamic max hp bonus from item behaviours (e.g. Recharging Shield)
+        // this avoids triggering a full recalculation for frequently changing values
+        public void SetDynamicMaxHealthBonus(int bonus)
+        {
+            if (_dynamicMaxHealthBonus != bonus)
+            {
+                _dynamicMaxHealthBonus = bonus;
+                OnStatsChanged?.Invoke();
+            }
+        }
 
         // event for when stats change
         public event System.Action OnStatsChanged;
@@ -138,13 +155,13 @@ namespace Category5.Player
             _critChanceBonus = 0f;
             _critDamageBonus = 0f;
             
-            // apply items from inventory
+            // apply items from inventory (tier-aware)
             if (_playerInventory != null)
             {
-                var items = _playerInventory.GetAllItems();
-                foreach (var item in items)
+                var items = _playerInventory.GetAllItemsWithTier();
+                foreach (var (item, tier) in items)
                 {
-                    ApplyItemEffects(item);
+                    ApplyItemEffects(item, tier);
                 }
             }
 
@@ -153,63 +170,65 @@ namespace Category5.Player
             OnStatsChanged?.Invoke();
         }
         
-        // applies item effects to stats
-        private void ApplyItemEffects(ItemData item)
+        // applies item effects to stats, scaled by tier
+        private void ApplyItemEffects(ItemData item, int tier)
         {
             foreach (var effect in item.Effects)
             {
+                float scaledValue = ItemData.GetTierScaledValue(effect.value, tier);
+
                 switch (effect.effectType)
                 {
                     case ItemEffectType.DamageMultiplier:
-                        _damageMultiplier += effect.value;
+                        _damageMultiplier += scaledValue;
                         break;
 
                     case ItemEffectType.MaxHealthBonus:
-                        _maxHealthBonus += Mathf.RoundToInt(effect.value);
+                        _maxHealthBonus += Mathf.RoundToInt(scaledValue);
                         break;
 
                     case ItemEffectType.DodgeCooldownReduction:
-                        _dodgeCooldownReduction += effect.value;
+                        _dodgeCooldownReduction += scaledValue;
                         break;
 
                     case ItemEffectType.FlatDamageBonus:
-                        _flatDamageBonus += Mathf.RoundToInt(effect.value);
+                        _flatDamageBonus += Mathf.RoundToInt(scaledValue);
                         break;
 
                     case ItemEffectType.Lifesteal:
-                        _lifestealAmount += Mathf.RoundToInt(effect.value);
+                        _lifestealAmount += Mathf.RoundToInt(scaledValue);
                         break;
 
                     case ItemEffectType.MoveSpeedMultiplier:
-                        _moveSpeedMultiplier += effect.value;
+                        _moveSpeedMultiplier += scaledValue;
                         break;
 
                     case ItemEffectType.AttackSpeedMultiplier:
-                        _attackSpeedMultiplier += effect.value;
+                        _attackSpeedMultiplier += scaledValue;
                         break;
                     
                     case ItemEffectType.MaxManaBonus:
-                        _maxManaBonus += Mathf.RoundToInt(effect.value);
+                        _maxManaBonus += Mathf.RoundToInt(scaledValue);
                         break;
                     
                     case ItemEffectType.ManaRegenMultiplier:
-                        _manaRegenMultiplier += effect.value;
+                        _manaRegenMultiplier += scaledValue;
                         break;
                     
                     case ItemEffectType.ManaCostReduction:
-                        _manaCostReduction += effect.value;
+                        _manaCostReduction += scaledValue;
                         break;
                     
                     case ItemEffectType.ArmorBonus:
-                        _armorBonus += effect.value;
+                        _armorBonus += scaledValue;
                         break;
                     
                     case ItemEffectType.CritChanceBonus:
-                        _critChanceBonus += effect.value;
+                        _critChanceBonus += scaledValue;
                         break;
                     
                     case ItemEffectType.CritDamageBonus:
-                        _critDamageBonus += effect.value;
+                        _critDamageBonus += scaledValue;
                         break;
 
                     default:

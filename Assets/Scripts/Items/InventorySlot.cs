@@ -13,21 +13,25 @@ namespace Category5.Items
         
         // slot index (0-4 for 5-slot inventory)
         public int slotIndex;
+
+        // current tier of this item (1-5, 0 = empty)
+        public int tier;
         
         // is this slot empty?
         public bool IsEmpty => itemId.Length == 0;
 
         // constructor
-        public InventorySlot(string id, int index)
+        public InventorySlot(string id, int index, int tier = 1)
         {
             itemId = new FixedString64Bytes(id);
             slotIndex = index;
+            this.tier = tier;
         }
 
         // create an empty slot
         public static InventorySlot Empty(int index)
         {
-            return new InventorySlot("", index);
+            return new InventorySlot("", index, 0);
         }
 
         // network serialization
@@ -35,12 +39,13 @@ namespace Category5.Items
         {
             serializer.SerializeValue(ref itemId);
             serializer.SerializeValue(ref slotIndex);
+            serializer.SerializeValue(ref tier);
         }
 
         // iequatable implementation (required for networklist)
         public bool Equals(InventorySlot other)
         {
-            return itemId.Equals(other.itemId) && slotIndex == other.slotIndex;
+            return itemId.Equals(other.itemId) && slotIndex == other.slotIndex && tier == other.tier;
         }
 
         public override bool Equals(object obj)
@@ -50,7 +55,7 @@ namespace Category5.Items
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(itemId, slotIndex);
+            return HashCode.Combine(itemId, slotIndex, tier);
         }
     }
 }

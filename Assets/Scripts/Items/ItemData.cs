@@ -6,6 +6,13 @@ namespace Category5.Items
     [CreateAssetMenu(fileName = "NewItem", menuName = "Category5/Item Data", order = 1)]
     public class ItemData : ScriptableObject
     {
+        // max tier items can reach before they stop appearing
+        public const int MaxTier = 5;
+
+        // default tier scaling: effect value * (1 + 0.25 * (tier - 1))
+        // T1=100%, T2=125%, T3=150%, T4=175%, T5=200%
+        public const float DefaultTierScalePerLevel = 0.25f;
+
         [Header("basic info")]
         [SerializeField] private string itemName;
         [SerializeField, TextArea(2, 4)] private string description;
@@ -13,10 +20,13 @@ namespace Category5.Items
 
         [Header("classification")]
         [SerializeField] private ItemCategory category = ItemCategory.General;
-        [SerializeField] private bool allowDuplicates = true; // can player have multiple copies? (should mostly be yes)
         
         [Header("effects")]
         [SerializeField] private ItemEffect[] effects; // supports multiple effects per item
+
+        [Header("behaviour")]
+        [Tooltip("optional prefab with an ItemBehaviour component for items with unique triggered effects")]
+        [SerializeField] private GameObject behaviourPrefab;
 
         [Header("visuals")]
         [SerializeField] private Color glowColor = Color.white;
@@ -24,22 +34,27 @@ namespace Category5.Items
 
         [Header("future systems")]
         [SerializeField] private int goldCost = 0; // for future shop system (MAYBE)
-        [SerializeField] private int tier = 1; // item tier/rarity (1=common, 2=rare, 3=epic, etc)
 
         // public accessors
         public string ItemName => itemName;
         public string Description => description;
         public Sprite Icon => icon;
         public ItemCategory Category => category;
-        public bool AllowDuplicates => allowDuplicates;
         public ItemEffect[] Effects => effects;
+        public GameObject BehaviourPrefab => behaviourPrefab;
+        public bool HasBehaviour => behaviourPrefab != null;
         public Color GlowColor => glowColor;
         public GameObject VisualEffectPrefab => visualEffectPrefab;
         public int GoldCost => goldCost;
-        public int Tier => tier;
 
         // unique identifier for networking (uses asset name)
         public string UniqueId => name;
+
+        // returns the tier-scaled value for a stat effect
+        public static float GetTierScaledValue(float baseValue, int tier)
+        {
+            return baseValue * (1f + DefaultTierScalePerLevel * (tier - 1));
+        }
     }
 
     // serializable struct for item effects (allows multiple effects per item)

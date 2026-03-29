@@ -174,6 +174,16 @@ namespace Category5.Player
         public static event Action<float, Vector3> OnChargeReleased;
         public static event Action<Vector3> OnChargeCanceled;
 
+        // item behaviour events (instance, not static, so each player has own subscribers)
+
+        // fired after damage is applied to an enemy. passes damage dealt, target, and crit status
+        public event Action<int, GameObject, bool> OnPlayerDealtDamage;
+
+        // fired before damage is finalized. subscribers can add to the multiplier (e.g. Vantage Point, Secret Sensation)
+        // args: (ref float bonusDamageMultiplier, GameObject target)
+        public delegate void BeforeDamageHandler(ref float bonusDamageMultiplier, GameObject target);
+        public event BeforeDamageHandler OnBeforeDamageCalculation;
+
         private void Awake()
         {
             _inputActions = new InputSystem_Actions();
@@ -931,7 +941,24 @@ namespace Category5.Player
                 }
 
                 validTargetCount++;
-                damageable.TakeDamage(finalDamage);
+
+                // let item behaviours modify damage before applying (e.g. Vantage Point, Secret Sensation)
+                float bonusMultiplier = 0f;
+                var targetObj = damageableComponent != null ? damageableComponent.gameObject : enemy.transform.root.gameObject;
+                OnBeforeDamageCalculation?.Invoke(ref bonusMultiplier, targetObj);
+                int modifiedDamage = bonusMultiplier > 0f
+                    ? Mathf.Max(1, Mathf.RoundToInt(finalDamage * (1f + bonusMultiplier)))
+                    : finalDamage;
+
+                // set kill attribution before dealing damage (in case this kills the enemy)
+                var enemyBase = damageableComponent as Category5.Enemies.EnemyBase
+                    ?? (damageableComponent != null ? damageableComponent.GetComponentInParent<Category5.Enemies.EnemyBase>() : null);
+                if (enemyBase != null)
+                {
+                    enemyBase.LastDamagerClientId = OwnerClientId;
+                }
+
+                damageable.TakeDamage(modifiedDamage);
                 
                 // apply lifesteal healing
                 if (lifestealAmount > 0)
@@ -942,7 +969,7 @@ namespace Category5.Player
                 Vector3 hitPosition = damageableComponent != null ? damageableComponent.transform.position : enemy.transform.position;
                 
                 // notify the attacking player to show damage number
-                ShowDamageNumberClientRpc(finalDamage, hitPosition, new ClientRpcParams
+                ShowDamageNumberClientRpc(modifiedDamage, hitPosition, new ClientRpcParams
                 {
                     Send = new ClientRpcSendParams
                     {
@@ -960,7 +987,10 @@ namespace Category5.Player
                 });
                 
                 // notify hit feedback manager for vfx hooks (all clients)
-                NotifyPlayerHitClientRpc(hitPosition, finalDamage, isHeavyHit);
+                NotifyPlayerHitClientRpc(hitPosition, modifiedDamage, isHeavyHit);
+
+                // fire dealt-damage event for item behaviours
+                OnPlayerDealtDamage?.Invoke(modifiedDamage, targetObj, result.wasCrit);
             }
 
             if (validTargetCount == 0)

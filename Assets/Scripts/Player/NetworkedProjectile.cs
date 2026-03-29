@@ -205,6 +205,13 @@ namespace Category5.Player
                 ? _ownerInventory.CalculateDamage(_damageCoefficient) 
                 : new DamageResult { damage = Mathf.RoundToInt(_damageCoefficient * 100f), wasCrit = false };
             int finalDamage = result.damage;
+
+            // set kill attribution before dealing damage (in case this kills the enemy)
+            var enemyBase = (damageable as Component)?.GetComponentInParent<Category5.Enemies.EnemyBase>();
+            if (enemyBase != null)
+            {
+                enemyBase.LastDamagerClientId = _ownerClientId;
+            }
                 
             // deal damage
             damageable.TakeDamage(finalDamage);
