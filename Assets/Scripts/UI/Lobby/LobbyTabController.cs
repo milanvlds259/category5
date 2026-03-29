@@ -4,139 +4,77 @@ using System;
 
 namespace Category5.UI
 {
-    // manages tabbed navigation within the lobby panel
-    // switches between chat, character select, and settings sub-panels
+    // manages the top-left icon bar in the lobby
+    // leave lobby (back arrow), chat (disabled/greyed out), settings (opens overlay)
     public class LobbyTabController : MonoBehaviour
     {
-        [Header("tab buttons")]
-        [SerializeField] private Button chatTabButton;
-        [SerializeField] private Button characterTabButton;
-        [SerializeField] private Button settingsTabButton;
+        [Header("icon buttons")]
+        [SerializeField] private Button leaveLobbyButton;
+        [SerializeField] private Button chatButton; // greyed out for now
+        [SerializeField] private Button settingsButton;
         
-        [Header("tab button images (for highlighting)")]
-        [SerializeField] private Image chatTabImage;
-        [SerializeField] private Image characterTabImage;
-        [SerializeField] private Image settingsTabImage;
+        [Header("icon images (for visual state)")]
+        [SerializeField] private Image leaveLobbyImage;
+        [SerializeField] private Image chatImage;
+        [SerializeField] private Image settingsImage;
         
-        [Header("content panels")]
-        [SerializeField] private GameObject chatPanel;
-        [SerializeField] private GameObject characterSelectPanel;
-        [SerializeField] private GameObject settingsPanel;
-        
-        [Header("external panels")]
-        [SerializeField] private GameObject characterViewPanel; // external floating panel
+        [Header("panels")]
+        [SerializeField] private GameObject settingsPanel; // settings overlay toggled by gear icon
         
         [Header("visual settings")]
-        [SerializeField] private Color activeTabColor = new Color(1f, 1f, 1f, 1f);
-        [SerializeField] private Color inactiveTabColor = new Color(0.6f, 0.6f, 0.6f, 1f);
+        [SerializeField] private Color activeColor = new Color(1f, 1f, 1f, 1f);
+        [SerializeField] private Color disabledColor = new Color(0.4f, 0.4f, 0.4f, 0.5f);
         
-        public enum LobbyTab
-        {
-            Chat,
-            Character,
-            Settings
-        }
+        // fired when leave lobby is clicked, NetworkMenu subscribes to this
+        public static event Action OnLeaveLobbyClicked;
         
-        private LobbyTab _currentTab = LobbyTab.Character;
-        
-        // event fired when tab changes
-        public static event Action<LobbyTab> OnTabChanged;
+        private bool _settingsOpen = false;
         
         private void OnEnable()
         {
-            // setup button listeners
-            if (chatTabButton != null)
-                chatTabButton.onClick.AddListener(OnChatTabClicked);
-            if (characterTabButton != null)
-                characterTabButton.onClick.AddListener(OnCharacterTabClicked);
-            if (settingsTabButton != null)
-                settingsTabButton.onClick.AddListener(OnSettingsTabClicked);
+            if (leaveLobbyButton != null)
+                leaveLobbyButton.onClick.AddListener(OnLeaveClicked);
+            if (settingsButton != null)
+                settingsButton.onClick.AddListener(OnSettingsClicked);
+            
+            // chat is disabled
+            if (chatButton != null)
+                chatButton.interactable = false;
         }
         
         private void OnDisable()
         {
-            // cleanup button listeners
-            if (chatTabButton != null)
-                chatTabButton.onClick.RemoveListener(OnChatTabClicked);
-            if (characterTabButton != null)
-                characterTabButton.onClick.RemoveListener(OnCharacterTabClicked);
-            if (settingsTabButton != null)
-                settingsTabButton.onClick.RemoveListener(OnSettingsTabClicked);
+            if (leaveLobbyButton != null)
+                leaveLobbyButton.onClick.RemoveListener(OnLeaveClicked);
+            if (settingsButton != null)
+                settingsButton.onClick.RemoveListener(OnSettingsClicked);
         }
         
-        // call this when entering the lobby to set initial state
+        // call this when entering the lobby
         public void Initialize()
         {
-            SwitchToTab(LobbyTab.Character);
-        }
-        
-        public void OnChatTabClicked()
-        {
-            SwitchToTab(LobbyTab.Chat);
-        }
-        
-        public void OnCharacterTabClicked()
-        {
-            SwitchToTab(LobbyTab.Character);
-        }
-        
-        public void OnSettingsTabClicked()
-        {
-            SwitchToTab(LobbyTab.Settings);
-        }
-        
-        public void SwitchToTab(LobbyTab tab)
-        {
-            _currentTab = tab;
+            _settingsOpen = false;
             
-            // hide all panels first
-            SetPanelActive(chatPanel, false);
-            SetPanelActive(characterSelectPanel, false);
-            SetPanelActive(settingsPanel, false);
+            // grey out chat icon
+            if (chatImage != null)
+                chatImage.color = disabledColor;
             
-            // hide character view panel when switching away from character tab
-            if (tab != LobbyTab.Character)
-            {
-                SetPanelActive(characterViewPanel, false);
-            }
-            
-            // show the appropriate panel
-            switch (tab)
-            {
-                case LobbyTab.Chat:
-                    SetPanelActive(chatPanel, true);
-                    break;
-                case LobbyTab.Character:
-                    SetPanelActive(characterSelectPanel, true);
-                    break;
-                case LobbyTab.Settings:
-                    SetPanelActive(settingsPanel, true);
-                    break;
-            }
-            
-            // update tab button visuals
-            UpdateTabVisuals();
-            
-            OnTabChanged?.Invoke(tab);
+            // make sure settings panel starts hidden
+            if (settingsPanel != null)
+                settingsPanel.SetActive(false);
         }
         
-        private void SetPanelActive(GameObject panel, bool active)
+        private void OnLeaveClicked()
         {
-            if (panel != null)
-                panel.SetActive(active);
+            OnLeaveLobbyClicked?.Invoke();
         }
         
-        private void UpdateTabVisuals()
+        private void OnSettingsClicked()
         {
-            // update tab button colors to show active state
-            if (chatTabImage != null)
-                chatTabImage.color = _currentTab == LobbyTab.Chat ? activeTabColor : inactiveTabColor;
-            if (characterTabImage != null)
-                characterTabImage.color = _currentTab == LobbyTab.Character ? activeTabColor : inactiveTabColor;
-            if (settingsTabImage != null)
-                settingsTabImage.color = _currentTab == LobbyTab.Settings ? activeTabColor : inactiveTabColor;
+            _settingsOpen = !_settingsOpen;
+            
+            if (settingsPanel != null)
+                settingsPanel.SetActive(_settingsOpen);
         }
-        
-        public LobbyTab CurrentTab => _currentTab;
     }
 }

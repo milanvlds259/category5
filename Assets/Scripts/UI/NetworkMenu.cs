@@ -27,45 +27,30 @@ namespace Category5.UI
         [SerializeField] private TMP_InputField joinCodeInputField;
         [SerializeField] private TMP_InputField playerNameInputField;
         
-        [Header("ui references - relay")]
-        [SerializeField] private TextMeshProUGUI joinCodeDisplayText; // shows join code in lobby for host
-        
-        [Header("ui references - lobby")]
-        [SerializeField] private GameObject lobbyPanel; // the main "phone" panel
-        [SerializeField] private GameObject playerListPanel; // separate panel for player list and ready system
-        [SerializeField] private Button startGameButton; // host only
-        [SerializeField] private Button leaveLobbyButton;
-        [SerializeField] private TextMeshProUGUI playerCountText;
-        [SerializeField] private Transform playerListContainer; // parent for player entries
-        [SerializeField] private LobbyPlayerEntry playerEntryPrefab; // prefab for each player entry
-        [SerializeField] private LobbyClassSelectionUI classSelectionUI; // class selection dropdown (legacy, may be unused)
-        
-        [Header("ui references - new lobby panels")]
-        [SerializeField] private LobbyTabController lobbyTabController;
-        [SerializeField] private LobbyChatUI lobbyChatUI;
-        [SerializeField] private CharacterSelectPanel characterSelectPanel;
-        [SerializeField] private CharacterViewPanel characterViewPanel;
-        [SerializeField] private LobbySettingsPanel lobbySettingsPanel;
-        [SerializeField] private Image characterArtDisplay; // center area character art
-        [SerializeField] private Sprite defaultCharacterSprite; // fallback sprite
-        
-        [Header("ui references - ready system")]
+        [Header("lobby")]
+        [SerializeField] private GameObject lobbyPanel;
+        [SerializeField] private Button startGameButton; // host only - shown/hidden by ShowLobby
         [SerializeField] private Button readyButton;
         [SerializeField] private TextMeshProUGUI readyButtonText;
-        [SerializeField] private TextMeshProUGUI allPlayersReadyText; // shows when all ready
+        [SerializeField] private TextMeshProUGUI allPlayersReadyText;
         
-        [Header("status display")]
+        [Header("lobby panels")]
+        [SerializeField] private LobbyTabController lobbyTabController;     // top-left icon bar (leave, chat, settings)
+        [SerializeField] private CharacterSelectPanel characterSelectPanel; // scrollable left panel
+        [SerializeField] private CharacterViewPanel characterViewPanel;     // hover overlay (starts hidden)
+        [SerializeField] private LobbyPartyPanel lobbyPartyPanel;           // party portrait panel + join code header
+        [SerializeField] private LobbySettingsPanel lobbySettingsPanel;     // settings overlay
+        
+        [Header("status & connecting")]
         [SerializeField] private TextMeshProUGUI statusText;
-        [SerializeField] private GameObject connectingPanel; // optional panel to show while connecting
+        [SerializeField] private GameObject connectingPanel;
+        [SerializeField] private TextMeshProUGUI connectingStatusText;
+        [SerializeField] private Button cancelConnectionButton;
         
         [Header("settings")]
         [SerializeField] private string gameSceneName = "SampleScene";
         [SerializeField] private int maxRelayConnections = 4;
-        
-        [Header("connection timeout")]
         [SerializeField] private float connectionTimeout = 10f;
-        [SerializeField] private Button cancelConnectionButton;
-        [SerializeField] private TextMeshProUGUI connectingStatusText; // shows countdown (kinda optional if we want)
         
         private UnityTransport transport;
         private bool isInLobby = false;
@@ -73,6 +58,13 @@ namespace Category5.UI
         private bool isRelayReady = false;
         private string currentJoinCode;
         private Coroutine connectionTimeoutCoroutine;
+        
+        private void Awake()
+        {
+            // hide the lobby immediately so it never flashes on title/main menu
+            if (lobbyPanel != null)
+                lobbyPanel.SetActive(false);
+        }
         
         private void Start()
         {
@@ -139,10 +131,8 @@ namespace Category5.UI
                 startGameButton.onClick.AddListener(OnStartGameClicked);
             }
             
-            if (leaveLobbyButton != null)
-            {
-                leaveLobbyButton.onClick.AddListener(OnLeaveLobbyClicked);
-            }
+            // leave lobby handled by icon bar event
+            LobbyTabController.OnLeaveLobbyClicked += OnLeaveLobbyClicked;
             
             if (cancelConnectionButton != null)
             {
@@ -189,15 +179,6 @@ namespace Category5.UI
             }
         }
         
-        private void Update()
-        {
-            // update player count while in lobby
-            if (isInLobby && NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
-            {
-                UpdatePlayerCount();
-            }
-        }
-        
         private void OnDestroy()
         {
             // cleanup title screen listeners
@@ -237,11 +218,8 @@ namespace Category5.UI
                 startGameButton.onClick.RemoveListener(OnStartGameClicked);
             }
             
-            if (leaveLobbyButton != null)
-            {
-                leaveLobbyButton.onClick.RemoveListener(OnLeaveLobbyClicked);
-            }
-            
+            LobbyTabController.OnLeaveLobbyClicked -= OnLeaveLobbyClicked;
+
             if (cancelConnectionButton != null)
             {
                 cancelConnectionButton.onClick.RemoveListener(OnCancelConnectionClicked);
@@ -533,12 +511,9 @@ namespace Category5.UI
             // show the lobby instead of immediately loading the game
             ShowLobby(true);
             
-            // display join code for the host so they can share it
-            if (joinCodeDisplayText != null && !string.IsNullOrEmpty(currentJoinCode))
-            {
-                joinCodeDisplayText.text = $"Join Code: {currentJoinCode}";
-                joinCodeDisplayText.gameObject.SetActive(true);
-            }
+            // pass join code to party panel header so host can share it with friends
+            if (lobbyPartyPanel != null)
+                lobbyPartyPanel.SetJoinCode(currentJoinCode ?? "");
             
             UpdateStatus("Waiting for players to join...");
         }
@@ -579,13 +554,11 @@ namespace Category5.UI
         private void OnLobbyClientConnected(ulong clientId)
         {
             // Debug.Log($"NetworkMenu: Player {clientId} joined the lobby");
-            UpdatePlayerCount();
         }
         
         private void OnLobbyClientDisconnected(ulong clientId)
         {
             // Debug.Log($"NetworkMenu: Player {clientId} left the lobby");
-            UpdatePlayerCount();
         }
         
         private void OnClientDisconnected(ulong clientId)
@@ -660,9 +633,6 @@ namespace Category5.UI
             // cleanup new lobby panels
             CleanupLobbyPanels();
             
-            // clear player list
-            ClearPlayerList();
-            
             if (mainMenuPanel != null)
             {
                 mainMenuPanel.SetActive(true);
@@ -671,12 +641,6 @@ namespace Category5.UI
             if (lobbyPanel != null)
             {
                 lobbyPanel.SetActive(false);
-            }
-            
-            // hide player list panel
-            if (playerListPanel != null)
-            {
-                playerListPanel.SetActive(false);
             }
             
             // hide title panel when showing main menu
@@ -711,15 +675,6 @@ namespace Category5.UI
             // cleanup new lobby panels
             CleanupLobbyPanels();
             
-            // hide class selection
-            if (classSelectionUI != null)
-            {
-                classSelectionUI.HideSelection();
-            }
-            
-            // clear player list
-            ClearPlayerList();
-            
             if (titlePanel != null)
             {
                 titlePanel.SetActive(true);
@@ -738,12 +693,6 @@ namespace Category5.UI
             if (lobbyPanel != null)
             {
                 lobbyPanel.SetActive(false);
-            }
-            
-            // hide player list panel
-            if (playerListPanel != null)
-            {
-                playerListPanel.SetActive(false);
             }
         }
         
@@ -799,20 +748,7 @@ namespace Category5.UI
                 lobbyPanel.SetActive(true);
             }
             
-            // show player list panel
-            if (playerListPanel != null)
-            {
-                playerListPanel.SetActive(true);
-            }
-            
-            // initialize legacy class selection UI (may be unused with new system)
-            if (classSelectionUI != null)
-            {
-                classSelectionUI.Initialize();
-                classSelectionUI.ShowSelection();
-            }
-            
-            // initialize new lobby panels
+            // initialize lobby panels
             InitializeLobbyPanels();
             
             // only the host can start the game (visible but may be disabled until all ready)
@@ -831,31 +767,20 @@ namespace Category5.UI
             // subscribe to lobby player changes
             LobbyManager.OnLobbyPlayersChanged += RefreshPlayerList;
             
-            UpdatePlayerCount();
             RefreshPlayerList();
             UpdateStartButtonState();
         }
         
-        // initialize all new lobby panel components
+        // initialize all lobby panel components
         private void InitializeLobbyPanels()
         {
-            // initialize tab controller
+            // initialize icon bar
             if (lobbyTabController != null)
             {
                 lobbyTabController.Initialize();
             }
             
-            // initialize chat
-            if (LobbyChatManager.Instance != null)
-            {
-                LobbyChatManager.Instance.Initialize();
-            }
-            if (lobbyChatUI != null)
-            {
-                lobbyChatUI.Initialize();
-            }
-            
-            // initialize character select
+            // initialize character select (scrollable list)
             if (characterSelectPanel != null)
             {
                 characterSelectPanel.Initialize();
@@ -867,14 +792,18 @@ namespace Category5.UI
                 characterViewPanel.gameObject.SetActive(false);
             }
             
-            // initialize settings
+            // initialize party panel
+            if (lobbyPartyPanel != null)
+            {
+                lobbyPartyPanel.Initialize();
+                lobbyPartyPanel.SetJoinCode(currentJoinCode ?? "");
+            }
+            
+            // initialize settings (opened via gear icon)
             if (lobbySettingsPanel != null)
             {
                 lobbySettingsPanel.Initialize();
             }
-            
-            // update character art display
-            UpdateCharacterArtDisplay();
         }
         
         // cleanup lobby panels when leaving
@@ -885,108 +814,14 @@ namespace Category5.UI
             {
                 characterViewPanel.gameObject.SetActive(false);
             }
-            
-            if (LobbyChatManager.Instance != null)
-            {
-                LobbyChatManager.Instance.Cleanup();
-            }
         }
         
-        // update the center character art based on selected class
-        private void UpdateCharacterArtDisplay()
-        {
-            if (characterArtDisplay == null) return;
-            
-            Sprite classSprite = defaultCharacterSprite;
-            
-            if (characterSelectPanel != null)
-            {
-                var selectedClass = characterSelectPanel.GetSelectedClass();
-                if (selectedClass != null && selectedClass.classIcon != null)
-                {
-                    classSprite = selectedClass.classIcon;
-                }
-            }
-            
-            characterArtDisplay.sprite = classSprite;
-        }
-        
-        private void UpdatePlayerCount()
-        {
-            if (playerCountText != null)
-            {
-                int playerCount = LobbyManager.Instance != null 
-                    ? LobbyManager.Instance.GetPlayerCount() 
-                    : (NetworkManager.Singleton != null ? NetworkManager.Singleton.ConnectedClientsIds.Count : 0);
-                playerCountText.text = $"Players: {playerCount}/5";
-            }
-        }
-        
-        // refreshes the player list ui from LobbyManager data
+        // called when LobbyManager.OnLobbyPlayersChanged fires
+        // LobbyPartyPanel handles the visual list itself - we just update button states here
         private void RefreshPlayerList()
         {
-            if (playerListContainer == null || playerEntryPrefab == null)
-            {
-                    Debug.LogWarning("NetworkMenu: playerListContainer or playerEntryPrefab is null");
-                return;
-            }
-            
-            // clear existing entries
-            ClearPlayerList();
-            
-            // get players from lobby manager
-            if (LobbyManager.Instance == null)
-            {
-                Debug.LogWarning("NetworkMenu: LobbyManager.Instance is null");
-                return;
-            }
-            
-            var players = LobbyManager.Instance.GetLobbyPlayers();
-            ulong localClientId = NetworkManager.Singleton?.LocalClientId ?? 0;
-            
-            // Debug.Log($"NetworkMenu: Refreshing player list with {players.Length} players");
-            
-            foreach (var player in players)
-            {
-                var entryGO = Instantiate(playerEntryPrefab.gameObject, playerListContainer);
-                
-                // reset scale and anchors to work properly with layout group
-                var rectTransform = entryGO.GetComponent<RectTransform>();
-                if (rectTransform != null)
-                {
-                    rectTransform.localScale = Vector3.one;
-                }
-                
-                var entry = entryGO.GetComponent<LobbyPlayerEntry>();
-                if (entry != null)
-                {
-                    string playerName = player.PlayerName.ToString();
-                    // Debug.Log($"NetworkMenu: Setting up entry for '{playerName}' (host: {player.IsHost}, local: {player.ClientId == localClientId}, ready: {player.IsReady})");
-                    entry.Setup(playerName, player.IsHost, player.ClientId == localClientId, player.IsReady);
-                }
-                else
-                {
-                    Debug.LogError("NetworkMenu: LobbyPlayerEntry component not found on instantiated prefab");
-                }
-            }
-            
-            // force layout rebuild
-            UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(playerListContainer as RectTransform);
-            
-            UpdatePlayerCount();
             UpdateStartButtonState();
             UpdateReadyButtonVisual();
-        }
-        
-        // clears all player entries from the list
-        private void ClearPlayerList()
-        {
-            if (playerListContainer == null) return;
-            
-            foreach (Transform child in playerListContainer)
-            {
-                Destroy(child.gameObject);
-            }
         }
         
         // called when ready button is clicked
@@ -1021,18 +856,18 @@ namespace Category5.UI
         // update start button interactability based on all players ready
         private void UpdateStartButtonState()
         {
-            if (startGameButton == null) return;
-            if (!NetworkManager.Singleton.IsHost) return;
-            
             bool allReady = LobbyManager.Instance != null && LobbyManager.Instance.AreAllPlayersReady();
-            startGameButton.interactable = allReady;
             
-            // update visual indicator
+            // update ready text for everyone
             if (allPlayersReadyText != null)
             {
                 allPlayersReadyText.text = allReady ? "All players ready!" : "Waiting for players...";
                 allPlayersReadyText.color = allReady ? new Color(0.4f, 1f, 0.4f) : new Color(1f, 0.8f, 0.4f);
             }
+            
+            // start button is host-only
+            if (startGameButton == null || !NetworkManager.Singleton.IsHost) return;
+            startGameButton.interactable = allReady;
         }
         
         // initialize relay services in the background

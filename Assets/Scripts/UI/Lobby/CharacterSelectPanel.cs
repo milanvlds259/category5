@@ -4,67 +4,47 @@ using TMPro;
 using Unity.Netcode;
 using Category5.Core;
 using Category5.Player;
+using System.Collections.Generic;
 
 namespace Category5.UI
 {
-    // manages character selection carousel in the lobby
-    // displays class cards with arrow navigation
+    // manages character selection as a scrollable vertical list of class cards
+    // click a card to select that class, hover to show character view panel
     public class CharacterSelectPanel : MonoBehaviour
     {
         [Header("references")]
         [SerializeField] private CharacterViewPanel characterViewPanel;
         
-        [Header("carousel display")]
-        [SerializeField] private Image currentClassIcon;
-        [SerializeField] private TextMeshProUGUI currentClassName;
-        [SerializeField] private Sprite defaultClassSprite; // fallback if no icon
+        [Header("card list")]
+        [SerializeField] private ScrollRect scrollRect;
+        [SerializeField] private Transform cardContainer; // vertical layout group parent
+        [SerializeField] private LobbyClassCard cardPrefab;
+        [SerializeField] private Sprite defaultClassSprite; // fallback if no portrait
         
-        [Header("navigation buttons")]
-        [SerializeField] private Button leftArrowButton;
-        [SerializeField] private Button rightArrowButton;
-        
-        [Header("action buttons")]
-        [SerializeField] private Button selectButton;
-        [SerializeField] private Button viewButton;
-        
-        [Header("selection indicator")]
-        [SerializeField] private GameObject selectedIndicator; // shows when current class is selected
-        [SerializeField] private TextMeshProUGUI selectedText;
+        [Header("header")]
+        [SerializeField] private TextMeshProUGUI headerText;
         
         private PlayerClass[] _availableClasses;
-        private int _currentIndex = 0;
-        private int _selectedIndex = 0; // the actually selected class
+        private List<LobbyClassCard> _cards = new List<LobbyClassCard>();
+        private int _selectedIndex = 0;
         
         private void OnEnable()
         {
-            // setup button listeners
-            if (leftArrowButton != null)
-                leftArrowButton.onClick.AddListener(OnLeftArrowClicked);
-            if (rightArrowButton != null)
-                rightArrowButton.onClick.AddListener(OnRightArrowClicked);
-            if (selectButton != null)
-                selectButton.onClick.AddListener(OnSelectClicked);
-            if (viewButton != null)
-                viewButton.onClick.AddListener(OnViewClicked);
+            LobbyClassCard.OnCardClicked += OnCardClicked;
+            LobbyClassCard.OnCardHoverEnter += OnCardHoverEnter;
+            LobbyClassCard.OnCardHoverExit += OnCardHoverExit;
         }
         
         private void OnDisable()
         {
-            // cleanup button listeners
-            if (leftArrowButton != null)
-                leftArrowButton.onClick.RemoveListener(OnLeftArrowClicked);
-            if (rightArrowButton != null)
-                rightArrowButton.onClick.RemoveListener(OnRightArrowClicked);
-            if (selectButton != null)
-                selectButton.onClick.RemoveListener(OnSelectClicked);
-            if (viewButton != null)
-                viewButton.onClick.RemoveListener(OnViewClicked);
+            LobbyClassCard.OnCardClicked -= OnCardClicked;
+            LobbyClassCard.OnCardHoverEnter -= OnCardHoverEnter;
+            LobbyClassCard.OnCardHoverExit -= OnCardHoverExit;
         }
         
         // call this when entering the lobby
         public void Initialize()
         {
-            // get classes from registry
             if (ClassRegistry.Instance == null)
             {
                 Debug.LogError("CharacterSelectPanel: ClassRegistry not found!");
@@ -79,61 +59,52 @@ namespace Category5.UI
                 return;
             }
             
-            // start with previously selected class if available
+            // clear old cards
+            ClearCards();
+            
+            // find saved selection
             var savedClass = ClassSelectionManager.GetClass();
-            bool foundSavedClass = false;
+            _selectedIndex = 0;
+            
             for (int i = 0; i < _availableClasses.Length; i++)
             {
                 if (_availableClasses[i].classType == savedClass)
                 {
-                    _currentIndex = i;
                     _selectedIndex = i;
-                    foundSavedClass = true;
                     break;
                 }
             }
             
-            if (!foundSavedClass)
+            // spawn a card for each class
+            for (int i = 0; i < _availableClasses.Length; i++)
             {
-                // default to first class (usually Ranger based on existing code)
-                _currentIndex = 0;
-                _selectedIndex = 0;
+                var cardGO = Instantiate(cardPrefab.gameObject, cardContainer);
+                var card = cardGO.GetComponent<LobbyClassCard>();
+                card.Setup(_availableClasses[i], defaultClassSprite);
+                card.SetSelected(i == _selectedIndex);
+                _cards.Add(card);
             }
             
-            UpdateDisplay();
-            UpdateCharacterViewPanel();
+            // make sure character view panel starts hidden
+            if (characterViewPanel != null)
+                characterViewPanel.gameObject.SetActive(false);
         }
         
-        private void OnLeftArrowClicked()
+        private void OnCardClicked(LobbyClassCard clickedCard)
         {
-            if (_availableClasses == null || _availableClasses.Length == 0) return;
+            // find which index was clicked
+            int index = _cards.IndexOf(clickedCard);
+            if (index < 0 || index >= _availableClasses.Length) return;
             
-            _currentIndex--;
-            if (_currentIndex < 0)
-                _currentIndex = _availableClasses.Length - 1;
+            // skip if already selected
+            if (index == _selectedIndex) return;
             
-            UpdateDisplay();
-            UpdateCharacterViewPanel();
-        }
-        
-        private void OnRightArrowClicked()
-        {
-            if (_availableClasses == null || _availableClasses.Length == 0) return;
+            _selectedIndex = index;
+            var selectedClass = _availableClasses[_selectedIndex];
             
-            _currentIndex++;
-            if (_currentIndex >= _availableClasses.Length)
-                _currentIndex = 0;
-            
-            UpdateDisplay();
-            UpdateCharacterViewPanel();
-        }
-        
-        private void OnSelectClicked()
-        {
-            if (_availableClasses == null || _currentIndex >= _availableClasses.Length) return;
-            
-            var selectedClass = _availableClasses[_currentIndex];
-            _selectedIndex = _currentIndex;
+            // update card visuals
+            for (int i = 0; i < _cards.Count; i++)
+                _cards[i].SetSelected(i == _selectedIndex);
             
             // save selection locally
             ClassSelectionManager.SetClass(selectedClass.classType);
@@ -143,91 +114,41 @@ namespace Category5.UI
             {
                 if (NetworkManager.Singleton.IsServer)
                 {
-                    // host updates directly
                     if (LobbyManager.Instance != null)
-                    {
                         LobbyManager.Instance.SetHostPlayerClass(selectedClass.classType);
-                    }
                 }
                 else
                 {
-                    // client sends to server
                     if (LobbyManager.Instance != null)
-                    {
                         LobbyManager.Instance.SendLocalPlayerClass(selectedClass.classType);
-                    }
                 }
             }
-            
-            UpdateDisplay();
-            
-            Debug.Log($"CharacterSelectPanel: Selected class {selectedClass.className}");
         }
         
-        private void OnViewClicked()
+        private void OnCardHoverEnter(LobbyClassCard card)
+        {
+            if (characterViewPanel == null) return;
+            if (card.PlayerClass == null) return;
+            
+            characterViewPanel.ShowClass(card.PlayerClass);
+            characterViewPanel.gameObject.SetActive(true);
+        }
+        
+        private void OnCardHoverExit(LobbyClassCard card)
         {
             if (characterViewPanel == null) return;
             
-            // simply toggle panel visibility
-            bool isCurrentlyVisible = characterViewPanel.gameObject.activeSelf;
-            characterViewPanel.gameObject.SetActive(!isCurrentlyVisible);
+            characterViewPanel.gameObject.SetActive(false);
         }
         
-        private void UpdateDisplay()
+        private void ClearCards()
         {
-            if (_availableClasses == null || _availableClasses.Length == 0) return;
-            
-            var currentClass = _availableClasses[_currentIndex];
-            
-            // update icon - prefer portrait, fall back to classIcon, then defaultClassSprite
-            if (currentClassIcon != null)
+            foreach (var card in _cards)
             {
-                currentClassIcon.sprite = currentClass.classPortrait != null 
-                    ? currentClass.classPortrait 
-                    : (currentClass.classIcon != null ? currentClass.classIcon : defaultClassSprite);
+                if (card != null)
+                    Destroy(card.gameObject);
             }
-            
-            // update name
-            if (currentClassName != null)
-            {
-                currentClassName.text = currentClass.className;
-            }
-            
-            // update selected indicator
-            bool isSelected = _currentIndex == _selectedIndex;
-            if (selectedIndicator != null)
-            {
-                selectedIndicator.SetActive(isSelected);
-            }
-            
-            if (selectedText != null)
-            {
-                selectedText.text = isSelected ? "SELECTED" : "";
-            }
-            
-            // disable select button if already selected
-            if (selectButton != null)
-            {
-                selectButton.interactable = !isSelected;
-            }
-        }
-        
-        // update the character view panel with current class (if it exists) (it should)
-        private void UpdateCharacterViewPanel()
-        {
-            if (characterViewPanel == null) return;
-            if (_availableClasses == null || _currentIndex >= _availableClasses.Length) return;
-            
-            var currentClass = _availableClasses[_currentIndex];
-            characterViewPanel.ShowClass(currentClass);
-        }
-        
-        // public accessor for current class being viewed
-        public PlayerClass GetCurrentDisplayedClass()
-        {
-            if (_availableClasses == null || _currentIndex >= _availableClasses.Length)
-                return null;
-            return _availableClasses[_currentIndex];
+            _cards.Clear();
         }
         
         // public accessor for currently selected class

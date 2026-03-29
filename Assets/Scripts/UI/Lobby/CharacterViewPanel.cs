@@ -5,8 +5,9 @@ using Category5.Player;
 
 namespace Category5.UI
 {
-    // displays detailed view of a character class
+    // displays detailed view of a character class on hover
     // shows class art, name, and Q/E/R ability descriptions
+    // visibility controlled by CharacterSelectPanel hover events
     public class CharacterViewPanel : MonoBehaviour
     {
         [Header("class display")]
@@ -30,7 +31,7 @@ namespace Category5.UI
         [SerializeField] private TextMeshProUGUI ability3NameText;
         [SerializeField] private TextMeshProUGUI ability3DescriptionText;
         
-        [Header("navigation")]
+        [Header("optional close button")]
         [SerializeField] private Button closeButton;
         
         [Header("default sprites")]
@@ -78,7 +79,7 @@ namespace Category5.UI
             // update class name
             if (classNameText != null)
             {
-                classNameText.text = _currentClass.className;
+                classNameText.text = _currentClass.characterName;
             }
             
             // update class description

@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Ranger
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.PlayerClass
   classType: 1
-  className: Skye
+  className: Ranger
+  characterName: Skye
   classDescription: Barrage Ranger
   classIcon: {fileID: 21300000, guid: 97893bdd1c745de4cae8a55128254948, type: 3}
   classPortrait: {fileID: 21300000, guid: 917628358e5748c4988499db62facd1c, type: 3}

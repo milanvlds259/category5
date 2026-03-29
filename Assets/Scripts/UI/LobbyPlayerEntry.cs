@@ -4,66 +4,70 @@ using UnityEngine.UI;
 
 namespace Category5.UI
 {
-    // simple ui component for displaying a player entry in the lobby list
+    // ui component for displaying a player in the lobby party panel
+    // shows class portrait + username, outline on bg toggles when ready
     public class LobbyPlayerEntry : MonoBehaviour
     {
         [SerializeField] private TextMeshProUGUI playerNameText;
-        [SerializeField] private Image hostIndicatorIcon;
-        [SerializeField] private Image backgroundImage; // kinda optional, for highlighting
-        
-        [Header("ready indicator")]
-        [SerializeField] private Image readyIcon; // optional, for coloring
-        
-        [Header("Colors")]
+        [SerializeField] private Image backgroundImage; // optional, for styling
+        [SerializeField] private Outline bgOutline; // outline on bg image, toggled when player is readyy
+
+        [Header("portrait")]
+        [SerializeField] private Image portraitImage; // class portrait shown in party panel
+
+        [Header("colors")]
         [SerializeField] private Color normalColor = Color.white;
-        [SerializeField] private Color readyColor = new Color(0.4f, 1f, 0.4f); // green for ready
-        [SerializeField] private Color notReadyColor = new Color(0.5f, 0.5f, 0.5f); // gray for not ready
-        
-        public void Setup(string playerName, bool isHost, bool isLocalPlayer)
+        [SerializeField] private Color readyColor = new Color(0.4f, 1f, 0.4f); // green when ready
+        [SerializeField] private Color notReadyColor = new Color(0.5f, 0.5f, 0.5f); // grey when not ready
+
+        // simple overload - no ready state
+        public void Setup(string playerName)
         {
-            Setup(playerName, isHost, isLocalPlayer, false);
+            Setup(playerName, false, null);
         }
-        
-        public void Setup(string playerName, bool isHost, bool isLocalPlayer, bool isReady)
+
+        // overload without portrait
+        public void Setup(string playerName, bool isReady)
         {
-            // Debug.Log($"LobbyPlayerEntry.Setup called: name='{playerName}', isHost={isHost}, isLocal={isLocalPlayer}, isReady={isReady}");
-            
+            Setup(playerName, isReady, null);
+        }
+
+        // full setup with portrait and ready state for party panel
+        public void Setup(string playerName, bool isReady, Sprite classPortrait)
+        {
             if (playerNameText != null)
             {
                 playerNameText.text = playerName;
             }
             else
             {
-                Debug.LogError("LobbyPlayerEntry: playerNameText is null! Make sure it's assigned in the prefab.");
+                Debug.LogError("LobbyPlayerEntry: playerNameText is null!");
             }
-            
-            if (hostIndicatorIcon != null)
+
+            // set class portrait if provided
+            if (portraitImage != null)
             {
-                hostIndicatorIcon.gameObject.SetActive(isHost);
+                if (classPortrait != null)
+                {
+                    portraitImage.sprite = classPortrait;
+                    portraitImage.gameObject.SetActive(true);
+                }
             }
-            
-            // highlight local player (if we have a background image in the future)
-            if (backgroundImage != null && isLocalPlayer)
-            {
-                var color = backgroundImage.color;
-                color.a = 0.3f;
-                backgroundImage.color = color;
-            }
-            
-            // update ready indicator
+
             UpdateReadyState(isReady);
         }
-        
+
         public void UpdateReadyState(bool isReady)
         {
             if (playerNameText != null)
             {
                 playerNameText.color = isReady ? readyColor : notReadyColor;
             }
-            
-            if (readyIcon != null)
+
+            // toggle bg outline to show ready state
+            if (bgOutline != null)
             {
-                readyIcon.gameObject.SetActive(isReady);
+                bgOutline.enabled = isReady;
             }
         }
     }

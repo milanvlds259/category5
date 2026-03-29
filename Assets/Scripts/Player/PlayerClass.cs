@@ -18,6 +18,7 @@ namespace Category5.Player
     {
         public PlayerClassType classType;
         public string className;
+        public string characterName;
         [TextArea(3, 5)]
         public string classDescription;
         
