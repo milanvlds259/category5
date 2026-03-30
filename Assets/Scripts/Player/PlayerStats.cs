@@ -54,6 +54,9 @@ namespace Category5.Player
         // dynamic bonus hp from item behaviours (e.g. Recharging Shield) that changes frequently
         private int _dynamicMaxHealthBonus = 0;
 
+        // dynamic attack damage bonus from item behaviours (e.g. Strong Supplements) that changes with HP
+        private float _dynamicAttackDamageBonus = 0f;
+
         // base stat accessors (from class data or fallback)
         public float BaseAttackDamage => _classData != null ? _classData.baseAttackDamage : fallbackAttackDamage;
         private int BaseMaxHealth => _classData != null ? _classData.baseMaxHealth : fallbackMaxHealth;
@@ -93,6 +96,20 @@ namespace Category5.Player
 
         // base stat accessors for item behaviour calculations
         public int BaseMaxHealthValue => BaseMaxHealth;
+
+        // effective attack damage including dynamic bonuses from item behaviours
+        public float EffectiveAttackDamage => BaseAttackDamage + _dynamicAttackDamageBonus;
+
+        // set dynamic attack damage bonus from item behaviours (e.g. Strong Supplements)
+        // safe to call frequently — only fires OnStatsChanged when the value actually changes
+        public void SetDynamicAttackDamageBonus(float bonus)
+        {
+            if (!Mathf.Approximately(_dynamicAttackDamageBonus, bonus))
+            {
+                _dynamicAttackDamageBonus = bonus;
+                OnStatsChanged?.Invoke();
+            }
+        }
 
         // set dynamic max hp bonus from item behaviours (e.g. Recharging Shield)
         // this avoids triggering a full recalculation for frequently changing values
@@ -244,7 +261,7 @@ namespace Category5.Player
         public DamageResult CalculateDamage(float damageCoefficient)
         {
             float effectiveMultiplier = GetEffectiveDamageMultiplier();
-            float rawDmg = BaseAttackDamage * damageCoefficient * effectiveMultiplier + _flatDamageBonus;
+            float rawDmg = EffectiveAttackDamage * damageCoefficient * effectiveMultiplier + _flatDamageBonus;
             
             // crit roll (server-side)
             bool wasCrit = UnityEngine.Random.value < TotalCritChance;

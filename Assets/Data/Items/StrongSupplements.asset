@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a5fd3245b27c2c419efd63766ca013e, type: 3}
+  m_Name: StrongSupplements
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Items.ItemData
+  itemName: Strong Supplements
+  description: Grants <color=#88FF88>+{0:F0}</color> max HP. Deal <color=#FFD700>{1:F0}%</color>
+    bonus damage per 100 bonus HP you have from any source <color=#888888>(~{2:F0}%
+    at current HP)</color>.
+  icon: {fileID: 0}
+  category: 0
+  effects: []
+  behaviourPrefab: {fileID: 3095713141797661695, guid: 99c913d892d4d5549a296eb964175a54, type: 3}
+  glowColor: {r: 0, g: 1, b: 0.4670217, a: 1}
+  visualEffectPrefab: {fileID: 0}
+  goldCost: 0
