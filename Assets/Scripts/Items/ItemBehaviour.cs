@@ -48,9 +48,11 @@ namespace Category5.Items
         // cleanup when item is removed (unsubscribe events, restore values)
         public virtual void OnRemoved() { }
 
-        // return a human-readable description of this item's effect at a given tier
-        // used by the selection ui to preview upgrade stats
-        public abstract string GetEffectDescription(int tier);
+        // returns format args for the description template at a given tier
+        // e.g. return new object[] { jumpBonus[idx] * 100f, fallReduction[idx] * 100f }
+        // these map to {0}, {1} etc. in the ItemData description field
+        // call GetComponent<ItemBehaviour>() on the prefab asset to get values without instantiating
+        public virtual object[] GetFormatValues(int tier) => System.Array.Empty<object>();
 
         // helper to get a tier-scaled value using a base and per-tier increment
         // e.g. TierScale(25f, 10f) at tier 3 = 25 + 10*(3-1) = 45

@@ -41,10 +41,15 @@ namespace Category5.Items
             PlayerController.AirborneResistanceMultiplier = airborneResist[idx];
         }
 
-        public override string GetEffectDescription(int tier)
+        public override object[] GetFormatValues(int tier)
         {
             int idx = Mathf.Clamp(tier - 1, 0, 4);
-            return $"+{jumpBonus[idx] * 100:F0}% jump  |  -{fallReduction[idx] * 100:F0}% fall  |  {airborneResist[idx] * 100:F0}% airborne resist";
+            return new object[]
+            {
+                jumpBonus[idx] * 100f,
+                fallReduction[idx] * 100f,
+                airborneResist[idx] * 100f
+            };
         }
     }
 }

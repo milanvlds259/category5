@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: WeatherBalloon
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Items.ItemData
   itemName: Weather Balloon
-  description: 'Increases jump height by 30%, decreases fall speed by 40%. While
-    airborne, gain 15% damage reduction. '
+  description: Jump <color=#88DDFF>{0:F0}%</color> higher, fall <color=#88DDFF>{1:F0}%</color>
+    slower, and resist <color=#88DDFF>{2:F0}%</color> of all damage while airborne.
   icon: {fileID: 0}
   category: 0
   effects: []

@@ -55,6 +55,36 @@ namespace Category5.Items
         {
             return baseValue * (1f + DefaultTierScalePerLevel * (tier - 1));
         }
+
+        // formats the description template at a given tier
+        // overrideArgs: values from ItemBehaviour.GetFormatValues() — pass null to auto-generate from effects
+        // write {0}, {1}, etc. in Description; TMP <color> tags work natively
+        // example: "Deals <color=#FFD700>{0:F0}</color> bonus damage" with effects[0].value = 25
+        public string FormatDescription(int tier, object[] overrideArgs = null)
+        {
+            if (string.IsNullOrEmpty(description)) return "";
+
+            // use provided args (from behaviour), otherwise auto-generate from effects array
+            object[] args = overrideArgs;
+            if (args == null || args.Length == 0)
+            {
+                if (effects != null && effects.Length > 0)
+                {
+                    args = new object[effects.Length];
+                    for (int i = 0; i < effects.Length; i++)
+                    {
+                        args[i] = GetTierScaledValue(effects[i].value, tier);
+                    }
+                }
+                else
+                {
+                    return description; // no placeholders expected, return as-is
+                }
+            }
+
+            try { return string.Format(description, args); }
+            catch { return description; } // fallback: description has no {N} placeholders, safe to ignore
+        }
     }
 
     // serializable struct for item effects (allows multiple effects per item)

@@ -14,7 +14,6 @@ namespace Category5.UI
         [SerializeField] private TextMeshProUGUI descriptionText;
         [SerializeField] private Image backgroundImage;
         [SerializeField] private Button selectButton;
-        [SerializeField] private TextMeshProUGUI effectsText; // shows item effects
         [SerializeField] private TextMeshProUGUI upgradeBannerText; // shows "UPGRADE" when upgrading
 
         private ItemData _item;
@@ -36,15 +35,29 @@ namespace Category5.UI
             bool isUpgrade = currentTier > 0;
             int nextTier = currentTier + 1;
 
-            // set ui elements
+            // for upgrades show what you'll get (next tier), otherwise show tier 1
+            int displayTier = isUpgrade ? nextTier : 1;
+
+            // set name — include tier transition for upgrades
             if (nameText != null)
             {
-                if (isUpgrade)
-                    nameText.text = $"{item.ItemName} (Tier {currentTier}→{nextTier})";
-                else
-                    nameText.text = item.ItemName;
+                nameText.text = isUpgrade
+                    ? $"{item.ItemName} (T{currentTier}→T{nextTier})"
+                    : item.ItemName;
             }
-            if (descriptionText != null) descriptionText.text = item.Description;
+
+            // get format args from the behaviour prefab (safe to call GetComponent on prefab asset)
+            object[] formatArgs = null;
+            if (item.BehaviourPrefab != null)
+            {
+                var beh = item.BehaviourPrefab.GetComponent<ItemBehaviour>();
+                if (beh != null) formatArgs = beh.GetFormatValues(displayTier);
+            }
+
+            // format the description template — designers write {0}, {1} etc. and <color> tags in the asset
+            if (descriptionText != null)
+                descriptionText.text = item.FormatDescription(displayTier, formatArgs);
+
             if (iconImage != null && item.Icon != null) iconImage.sprite = item.Icon;
             if (backgroundImage != null) backgroundImage.color = item.GlowColor;
 
@@ -55,99 +68,12 @@ namespace Category5.UI
                 if (isUpgrade) upgradeBannerText.text = "UPGRADE";
             }
 
-            // show effects with tier scaling
-            if (effectsText != null)
-            {
-                if (isUpgrade)
-                    effectsText.text = GetUpgradeEffectsText(item, currentTier, nextTier);
-                else
-                    effectsText.text = GetEffectsText(item);
-            }
-
             // setup button
             if (selectButton != null)
             {
                 selectButton.onClick.RemoveAllListeners();
                 selectButton.onClick.AddListener(OnSelectClicked);
             }
-        }
-
-        private string GetEffectsText(ItemData item)
-        {
-            if (item.Effects == null || item.Effects.Length == 0) return "";
-
-            string text = "";
-            foreach (var effect in item.Effects)
-            {
-                if (text.Length > 0) text += "\n";
-
-                switch (effect.effectType)
-                {
-                    case ItemEffectType.DamageMultiplier:
-                        text += $"+{(effect.value * 100):F0}% damage";
-                        break;
-                    case ItemEffectType.MaxHealthBonus:
-                        text += $"+{effect.value:F0} max health";
-                        break;
-                    case ItemEffectType.DodgeCooldownReduction:
-                        text += $"-{effect.value:F1}s dodge cooldown";
-                        break;
-                    case ItemEffectType.FlatDamageBonus:
-                        text += $"+{effect.value:F0} damage";
-                        break;
-                    case ItemEffectType.Lifesteal:
-                        text += $"{effect.value:F0} lifesteal";
-                        break;
-                    case ItemEffectType.MoveSpeedMultiplier:
-                        text += $"+{(effect.value * 100):F0}% move speed";
-                        break;
-                    case ItemEffectType.AttackSpeedMultiplier:
-                        text += $"+{(effect.value * 100):F0}% attack speed";
-                        break;
-                }
-            }
-            return text;
-        }
-
-        // shows effect values at current tier vs next tier
-        private string GetUpgradeEffectsText(ItemData item, int currentTier, int nextTier)
-        {
-            if (item.Effects == null || item.Effects.Length == 0) return "";
-
-            string text = "";
-            foreach (var effect in item.Effects)
-            {
-                if (text.Length > 0) text += "\n";
-
-                float currentValue = ItemData.GetTierScaledValue(effect.value, currentTier);
-                float nextValue = ItemData.GetTierScaledValue(effect.value, nextTier);
-
-                switch (effect.effectType)
-                {
-                    case ItemEffectType.DamageMultiplier:
-                        text += $"+{(currentValue * 100):F0}% → +{(nextValue * 100):F0}% damage";
-                        break;
-                    case ItemEffectType.MaxHealthBonus:
-                        text += $"+{currentValue:F0} → +{nextValue:F0} max health";
-                        break;
-                    case ItemEffectType.DodgeCooldownReduction:
-                        text += $"-{currentValue:F1}s → -{nextValue:F1}s dodge cooldown";
-                        break;
-                    case ItemEffectType.FlatDamageBonus:
-                        text += $"+{currentValue:F0} → +{nextValue:F0} damage";
-                        break;
-                    case ItemEffectType.Lifesteal:
-                        text += $"{currentValue:F0} → {nextValue:F0} lifesteal";
-                        break;
-                    case ItemEffectType.MoveSpeedMultiplier:
-                        text += $"+{(currentValue * 100):F0}% → +{(nextValue * 100):F0}% move speed";
-                        break;
-                    case ItemEffectType.AttackSpeedMultiplier:
-                        text += $"+{(currentValue * 100):F0}% → +{(nextValue * 100):F0}% attack speed";
-                        break;
-                }
-            }
-            return text;
         }
 
         private void OnSelectClicked()
