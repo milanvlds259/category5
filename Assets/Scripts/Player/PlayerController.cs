@@ -165,7 +165,18 @@ namespace Category5.Player
         
         // expose gravity value for external systems (wind riding lift calculations)
         public float Gravity => gravity;
-        
+
+        // whether the player is currently airborne (inverse of grounded, used by Weather Balloon)
+        public bool IsAirborne => !_isGrounded;
+
+        // multipliers applied by item behaviours (Weather Balloon)
+        // jumpHeightMultiplier scales jumpHeight when computing jump velocity
+        // fallSpeedMultiplier scales downward gravity when player is falling
+        // airborneResistanceMultiplier reduces incoming damage while airborne (0 = none, 0.15 = 15% reduction)
+        public float JumpHeightMultiplier { get; set; } = 1f;
+        public float FallSpeedMultiplier { get; set; } = 1f;
+        public float AirborneResistanceMultiplier { get; set; } = 0f;
+
         // whether the player is currently on the ground (used by fighter q dual-mode)
         public bool IsGrounded => _isGrounded;
         
@@ -649,12 +660,18 @@ namespace Category5.Player
                 if (_isGrounded)
                 {
                     // v = sqrt(h * -2 * g)
-                    _velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+                    _velocity.y = Mathf.Sqrt(jumpHeight * JumpHeightMultiplier * -2f * gravity);
                     _jumpBufferCounter = 0;
                 }
             }
 
-            _velocity.y += gravity * Time.deltaTime;
+            // apply gravity — scale downward pull by FallSpeedMultiplier when falling
+            float gravityThisFrame = gravity;
+            if (_velocity.y < 0f)
+            {
+                gravityThisFrame *= FallSpeedMultiplier;
+            }
+            _velocity.y += gravityThisFrame * Time.deltaTime;
 
             Vector3 frameVelocity = _externalVelocity + Vector3.up * _velocity.y;
             _controller.Move(frameVelocity * Time.deltaTime);
@@ -838,7 +855,14 @@ namespace Category5.Player
                 return;
             }
 
-            CurrentHealth.Value -= (_playerStats != null ? _playerStats.ApplyArmor(damage) : damage);
+            // apply airborne resistance before armor (Weather Balloon)
+            int effectiveDamage = damage;
+            if (!_isGrounded && AirborneResistanceMultiplier > 0f)
+            {
+                effectiveDamage = Mathf.RoundToInt(damage * (1f - AirborneResistanceMultiplier));
+            }
+
+            CurrentHealth.Value -= (_playerStats != null ? _playerStats.ApplyArmor(effectiveDamage) : effectiveDamage);
             Debug.Log($"Player took {damage} damage (after armor). Health: {CurrentHealth.Value}");
             
             // cancel any charging attack when taking damage
