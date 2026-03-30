@@ -179,10 +179,6 @@ namespace Category5.Player
         // fired after damage is applied to an enemy. passes damage dealt, target, and crit status
         public event Action<int, GameObject, bool> OnPlayerDealtDamage;
 
-        // fired before damage is finalized. subscribers can add to the multiplier (e.g. Vantage Point, Secret Sensation)
-        // args: (ref float bonusDamageMultiplier, GameObject target)
-        public delegate void BeforeDamageHandler(ref float bonusDamageMultiplier, GameObject target);
-        public event BeforeDamageHandler OnBeforeDamageCalculation;
 
         private void Awake()
         {
@@ -943,11 +939,9 @@ namespace Category5.Player
                 validTargetCount++;
 
                 // let item behaviours modify damage before applying (e.g. Vantage Point, Secret Sensation)
-                float bonusMultiplier = 0f;
                 var targetObj = damageableComponent != null ? damageableComponent.gameObject : enemy.transform.root.gameObject;
-                OnBeforeDamageCalculation?.Invoke(ref bonusMultiplier, targetObj);
-                int modifiedDamage = bonusMultiplier > 0f
-                    ? Mathf.Max(1, Mathf.RoundToInt(finalDamage * (1f + bonusMultiplier)))
+                int modifiedDamage = _playerStats != null
+                    ? _playerStats.ApplyBeforeDamageMultiplier(finalDamage, targetObj)
                     : finalDamage;
 
                 // set kill attribution before dealing damage (in case this kills the enemy)

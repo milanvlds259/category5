@@ -206,12 +206,15 @@ namespace Category5.Player
                 : new DamageResult { damage = Mathf.RoundToInt(_damageCoefficient * 100f), wasCrit = false };
             int finalDamage = result.damage;
 
+            // apply per-hit item multipliers (e.g. Vantage Point) same hook used by melee and abilities
+            var targetObj = (damageable as Component)?.gameObject;
+            if (targetObj != null && _ownerInventory != null)
+                finalDamage = _ownerInventory.ApplyBeforeDamageMultiplier(finalDamage, targetObj);
+
             // set kill attribution before dealing damage (in case this kills the enemy)
             var enemyBase = (damageable as Component)?.GetComponentInParent<Category5.Enemies.EnemyBase>();
             if (enemyBase != null)
-            {
                 enemyBase.LastDamagerClientId = _ownerClientId;
-            }
                 
             // deal damage
             damageable.TakeDamage(finalDamage);

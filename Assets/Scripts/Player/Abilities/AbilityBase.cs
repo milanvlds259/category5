@@ -75,6 +75,20 @@ namespace Category5
             return new DamageResult { damage = Mathf.RoundToInt(customCoefficient * 10f), wasCrit = false };
         }
 
+        // overloads that also run per-hit item multipliers (e.g. Vantage Point) — use these when the target is known
+        protected DamageResult CalculateDamage(GameObject target)
+        {
+            return CalculateDamage(abilityData.damageCoefficient, target);
+        }
+
+        protected DamageResult CalculateDamage(float customCoefficient, GameObject target)
+        {
+            var result = CalculateDamage(customCoefficient);
+            if (playerStats != null && target != null)
+                result.damage = playerStats.ApplyBeforeDamageMultiplier(result.damage, target);
+            return result;
+        }
+
         // helper to spawn vfx at position (client-side)
         protected void SpawnVfx(Vector3 position)
         {

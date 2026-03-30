@@ -125,6 +125,18 @@ namespace Category5.Player
         // event for when stats change
         public event System.Action OnStatsChanged;
 
+        // per-hit multiplier hook — melee, ranged, and abilities all fire this per target
+        public delegate void BeforeDamageHandler(ref float bonusDamageMultiplier, GameObject target);
+        public event BeforeDamageHandler OnBeforeDamageCalculation;
+
+        // fire per-hit subscribers and return the modified damage value
+        public int ApplyBeforeDamageMultiplier(int baseDamage, GameObject target)
+        {
+            float multiplier = 0f;
+            OnBeforeDamageCalculation?.Invoke(ref multiplier, target);
+            return multiplier > 0f ? Mathf.Max(1, Mathf.RoundToInt(baseDamage * (1f + multiplier))) : baseDamage;
+        }
+
         // called by PlayerClassManager after class is resolved
         public void SetClassData(PlayerClass classData)
         {

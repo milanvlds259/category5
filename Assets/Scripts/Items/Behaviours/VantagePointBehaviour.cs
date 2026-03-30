@@ -14,7 +14,7 @@ namespace Category5.Items
         protected override void OnInitialize()
         {
             if (!IsServer) return;
-            PlayerCombat.OnBeforeDamageCalculation += OnBeforeDamage;
+            PlayerStats.OnBeforeDamageCalculation += OnBeforeDamage;
         }
 
         protected override void OnTierChanged(int oldTier, int newTier)
@@ -24,8 +24,7 @@ namespace Category5.Items
 
         public override void OnRemoved()
         {
-            if (PlayerCombat != null)
-                PlayerCombat.OnBeforeDamageCalculation -= OnBeforeDamage;
+            PlayerStats.OnBeforeDamageCalculation -= OnBeforeDamage;
         }
 
         private void OnBeforeDamage(ref float bonusMultiplier, GameObject target)
