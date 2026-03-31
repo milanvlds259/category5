@@ -22,7 +22,7 @@ namespace Category5.Items
         {
             if (!IsServer) return;
             PlayerCombat.OnPlayerDealtDamage += OnDealtDamage;
-            Debug.Log($"[StormSuppressor] initialized for client {OwnerClientId}");
+            //Debug.Log($"[StormSuppressor] initialized for client {OwnerClientId}");
         }
 
         protected override void OnTierChanged(int oldTier, int newTier) { }
@@ -40,7 +40,7 @@ namespace Category5.Items
 
         private void OnDealtDamage(int damage, GameObject target, bool wasCrit)
         {
-            if (target == null) { Debug.Log("[StormSuppressor] OnDealtDamage target is null"); return; }
+            if (target == null) { /*Debug.Log("[StormSuppressor] OnDealtDamage target is null");*/ return; }
 
             int idx = Mathf.Clamp(CurrentTier - 1, 0, 4);
 
@@ -48,7 +48,7 @@ namespace Category5.Items
             var enemy = target.GetComponentInParent<EnemyBase>();
             var boss  = target.GetComponentInParent<BossBase>();
 
-            Debug.Log($"[StormSuppressor] hit '{target.name}' — enemy={enemy != null}, boss={boss != null}");
+            //Debug.Log($"[StormSuppressor] hit '{target.name}' — enemy={enemy != null}, boss={boss != null}");
 
             if (enemy != null)
             {
@@ -60,7 +60,7 @@ namespace Category5.Items
             }
             else
             {
-                Debug.Log("[StormSuppressor] target has neither EnemyBase nor BossBase — debuff not applied");
+                //Debug.Log("[StormSuppressor] target has neither EnemyBase nor BossBase — debuff not applied");
             }
         }
 
@@ -71,11 +71,11 @@ namespace Category5.Items
             {
                 if (existing != null) StopCoroutine(existing);
                 _activeDebuffs.Remove(targetId);
-                Debug.Log($"[StormSuppressor] refreshing debuff on id={targetId}");
+                //Debug.Log($"[StormSuppressor] refreshing debuff on id={targetId}");
             }
 
             float multiplier = 1f - strength;
-            Debug.Log($"[StormSuppressor] applying debuff — multiplier={multiplier:F2}, duration={duration}s on {(enemy != null ? enemy.name : boss?.name)}");
+            //Debug.Log($"[StormSuppressor] applying debuff — multiplier={multiplier:F2}, duration={duration}s on {(enemy != null ? enemy.name : boss?.name)}");
 
             if (enemy != null) enemy.DamageOutputMultiplier = multiplier;
             if (boss != null)  boss.DamageOutputMultiplier  = multiplier;
@@ -92,7 +92,7 @@ namespace Category5.Items
             if (boss != null)  boss.DamageOutputMultiplier  = 1f;
 
             _activeDebuffs.Remove(targetId);
-            Debug.Log($"[StormSuppressor] debuff expired on id={targetId}");
+            //Debug.Log($"[StormSuppressor] debuff expired on id={targetId}");
         }
 
         public override object[] GetFormatValues(int tier)

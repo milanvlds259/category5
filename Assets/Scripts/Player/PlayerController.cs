@@ -162,6 +162,11 @@ namespace Category5.Player
         
         // public property (ui can read this later)
         public bool IsSprinting => _isSprinting;
+        public bool IsDodging => _isDodging;
+
+        // fired on owner when CharacterController hits a non-ground surface while sprinting or dodging
+        // passes (this player, hit gameobject) — used by ForcefulImpactBehaviour
+        public static event System.Action<PlayerController, GameObject> OnBodyContact;
         
         // cached reference to wind rider controller
         private WindRiderController _windRider;
@@ -1148,6 +1153,10 @@ namespace Category5.Player
             
             // Debug.Log($"PlayerController: OnControllerColliderHit with {hit.gameObject.name} (normal: {hit.normal}, upwardDot: {upwardDot:F2})");
             
+            // fire body contact event when sprinting or dodging (used by Forceful Impact item)
+            if (_isSprinting || _isDodging)
+                OnBodyContact?.Invoke(this, hit.gameObject);
+
             // notify FighterE ability if it's grappling
             if (GetComponent<PlayerAbilityManager>() != null)
             {

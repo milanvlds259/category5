@@ -240,5 +240,17 @@ namespace Category5.Items
         {
             return _activeBehaviours.ContainsKey(itemId);
         }
+
+        // called by the owner when a body contact fires during sprint/dodge
+        // relays to the server-side ForcefulImpactBehaviour to apply damage
+        [Rpc(SendTo.Server)]
+        public void ForcefulImpactContactServerRpc(ulong hitNetworkObjectId)
+        {
+            var forceful = GetItemBehaviour<ForcefulImpactBehaviour>();
+            if (forceful == null) return;
+
+            if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(hitNetworkObjectId, out var netObj))
+                forceful.OnServerBodyContact(netObj.gameObject);
+        }
     }
 }
