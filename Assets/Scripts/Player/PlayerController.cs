@@ -130,6 +130,12 @@ namespace Category5.Player
 
         // Dodge State
         private bool _isDodging;
+        private bool _isInvulnerable;  // set by items like Backup Plan
+        public bool IsInvulnerable
+        {
+            get => _isInvulnerable;
+            set => _isInvulnerable = value;
+        }
         private float _dodgeTimer;
         private float _lastDodgeTime = -10f;
         private Vector3 _dodgeDirection;
@@ -848,7 +854,7 @@ namespace Category5.Player
             if (IsDead.Value) return;
             
             // i-frame check
-            if (_isDodging) 
+            if (_isDodging || _isInvulnerable)
             {
                 // Debug.Log("Player dodged damage!");
                 OnPlayerDodgedAttack?.Invoke(_dodgeTimer);
