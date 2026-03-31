@@ -95,12 +95,12 @@ namespace Category5.Enemies
         private void DealDamage()
         {
             if (currentTargetController == null) return;
-            
+
             // check if still in range
             if (!IsTargetInRange(attackRange * 1.2f)) return;
-            
-            // deal damage to target
-            currentTargetController.TakeDamage(damage);
+
+            int finalDamage = Mathf.Max(1, Mathf.RoundToInt(damage * DamageOutputMultiplier));
+            currentTargetController.TakeDamage(finalDamage);
         }
         
         // =====================================

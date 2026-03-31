@@ -62,6 +62,9 @@ namespace Category5.Enemies
         protected float detectionRange = 15f;
         protected float leashRange = 25f;
         protected ElementType elementType = ElementType.None;
+
+        // damage reduction applied by items like Storm Suppressor (0 = no reduction, 0.15 = 15% less damage)
+        public float DamageOutputMultiplier { get; set; } = 1f;
         
         // movement modifiers (for abilities like spiralbow slow)
         private Dictionary<string, MovementModifier> _movementModifiers = new Dictionary<string, MovementModifier>();

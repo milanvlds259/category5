@@ -562,7 +562,8 @@ namespace Category5.Boss
                     if (player.IsDead.Value) continue;
                     
                     _hitTargetsThisAttack.Add(hit.gameObject);
-                    player.TakeDamage(_currentAttack.damage);
+                    int finalDamage = Mathf.Max(1, Mathf.RoundToInt(_currentAttack.damage * DamageOutputMultiplier));
+                    player.TakeDamage(finalDamage);
                     
                     // trigger feedback
                     TriggerBossHitFeedback(hit.transform.position, _currentAttack.isHeavyAttack);

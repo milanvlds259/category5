@@ -23,7 +23,7 @@ namespace Category5.Items
         {
             if (!IsServer) return;
             EnemyBase.OnEnemyKilledBy += OnEnemyKilled;
-            Debug.Log($"[ReapersQuota] initialized for client {OwnerClientId}");
+            // Debug.Log($"[ReapersQuota] initialized for client {OwnerClientId}");
         }
 
         protected override void OnTierChanged(int oldTier, int newTier) { }
@@ -37,10 +37,10 @@ namespace Category5.Items
 
         private void OnEnemyKilled(ulong killerClientId, Vector3 pos, GameObject enemy)
         {
-            Debug.Log($"[ReapersQuota] OnEnemyKilled fired — killer={killerClientId}, ourClient={OwnerClientId}");
+            // Debug.Log($"[ReapersQuota] OnEnemyKilled fired — killer={killerClientId}, ourClient={OwnerClientId}");
             if (killerClientId != OwnerClientId)
             {
-                Debug.Log("[ReapersQuota] kill not ours, ignoring");
+                // Debug.Log("[ReapersQuota] kill not ours, ignoring");
                 return;
             }
 
@@ -50,14 +50,14 @@ namespace Category5.Items
             _killTimes.RemoveAll(t => now - t > windowDuration);
             _killTimes.Add(now);
 
-            Debug.Log($"[ReapersQuota] kill counted — window has {_killTimes.Count} kills, need {requiredKills}");
+            // Debug.Log($"[ReapersQuota] kill counted — window has {_killTimes.Count} kills, need {requiredKills}");
 
             // start / extend the window close timer
             _windowCloseTime = now + windowDuration;
             if (!_windowScheduled)
             {
                 _windowScheduled = true;
-                Debug.Log("[ReapersQuota] starting window coroutine");
+                // Debug.Log("[ReapersQuota] starting window coroutine");
                 StartCoroutine(WaitForWindow());
             }
         }
@@ -75,11 +75,11 @@ namespace Category5.Items
             int killCount = _killTimes.Count;
             _killTimes.Clear();
 
-            Debug.Log($"[ReapersQuota] window closed — {killCount} kills counted, need {requiredKills}");
+            // Debug.Log($"[ReapersQuota] window closed — {killCount} kills counted, need {requiredKills}");
 
             if (killCount < requiredKills)
             {
-                Debug.Log("[ReapersQuota] not enough kills, no heal triggered");
+                // Debug.Log("[ReapersQuota] not enough kills, no heal triggered");
                 yield break;
             }
 
@@ -87,7 +87,7 @@ namespace Category5.Items
             int extraKills = killCount - requiredKills;
             int healAmount = baseHeal[idx] + bonusHealPerExtra[idx] * extraKills;
 
-            Debug.Log($"[ReapersQuota] healing player for {healAmount} HP (base={baseHeal[idx]}, extra kills={extraKills}x{bonusHealPerExtra[idx]})");
+            // Debug.Log($"[ReapersQuota] healing player for {healAmount} HP (base={baseHeal[idx]}, extra kills={extraKills}x{bonusHealPerExtra[idx]})");
 
             if (PlayerController != null)
                 PlayerController.Heal(healAmount);

@@ -218,6 +218,13 @@ namespace Category5.Player
                 
             // deal damage
             damageable.TakeDamage(finalDamage);
+
+            // fire the dealt-damage event so item behaviours (e.g. Storm Suppressor) work with ranged too
+            if (targetObj != null && NetworkManager.Singleton.ConnectedClients.TryGetValue(_ownerClientId, out var ownerClient))
+            {
+                var ownerCombat = ownerClient.PlayerObject?.GetComponent<PlayerCombat>();
+                ownerCombat?.NotifyDealtDamage(finalDamage, targetObj, result.wasCrit);
+            }
             
             // apply lifesteal if owner has it
             int lifestealAmount = _ownerInventory != null ? _ownerInventory.LifestealAmount : 0;

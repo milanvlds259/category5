@@ -52,6 +52,9 @@ namespace Category5.Boss
         private float _targetUpdateTimer;
         protected Transform currentTarget;
         protected PlayerController currentTargetController;
+
+        // damage reduction applied by items like Storm Suppressor (weaker on bosses by design)
+        public float DamageOutputMultiplier { get; set; } = 1f;
         
         [Header("rotation")]
         [SerializeField] protected float rotationSpeed = 5f;
