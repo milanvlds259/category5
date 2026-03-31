@@ -59,6 +59,9 @@ namespace Category5.Core
         public static event Action OnAllEnemiesCleared;
         public static event Action OnBossEntranceStart;
 
+        // fired server-side when a new round begins (before ClientRpc) — safe to subscribe from server-only code
+        public static event Action<int> OnRoundStarted;
+
         private bool IsServerAuthority => NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer;
 
         private void Awake()
@@ -339,6 +342,7 @@ namespace Category5.Core
         {
             CurrentRound.Value++;
             CurrentPhase.Value = GamePhase.Fighting;
+            OnRoundStarted?.Invoke(CurrentRound.Value);
             NotifyRoundChangedClientRpc(CurrentRound.Value);
             _bossEntranceTriggeredThisRound = false;
 

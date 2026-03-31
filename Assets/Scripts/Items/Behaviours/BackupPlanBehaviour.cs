@@ -1,52 +1,61 @@
 using System.Collections;
 using UnityEngine;
+using Category5.Core;
 
 namespace Category5.Items
 {
-    // backup plan: intercepts death once, restores the player to half HP, grants brief invulnerability
-    // consumed on proc — disappears from inventory after use
+    // backup plan: intercepts death once per round, revives the player and grants brief invulnerability
+    // resets at the start of every new round so it's always ready
     public class BackupPlanBehaviour : ItemBehaviour
     {
         // invulnerability window after proc, per tier
         [SerializeField] private float[] invulnerabilityDuration = { 0.5f, 0.65f, 0.8f, 1.0f, 1.25f };
 
-        // fraction of max HP to restore on proc (0.5 = 50%)
-        [SerializeField] private float reviveHealthFraction = 0.5f;
+        // fraction of max HP to restore on proc per tier
+        [SerializeField] private float[] reviveHealthFraction = { 0.40f, 0.45f, 0.50f, 0.55f, 0.60f };
 
-        private bool _consumed;
+        private bool _usedThisRound;
 
         protected override void OnInitialize()
         {
             if (!IsServer) return;
-            _consumed = false;
+            _usedThisRound = false;
             PlayerController.OnPlayerAboutToDie += OnAboutToDie;
+            GameFlowManager.OnRoundStarted += OnRoundChanged;
         }
 
         protected override void OnTierChanged(int oldTier, int newTier)
         {
-            // reset if upgraded (picked again while it was already consumed — unlikely but safe)
-            _consumed = false;
+            // upgrading while used mid-round resets it immediately
+            _usedThisRound = false;
         }
 
         public override void OnRemoved()
         {
             if (PlayerController != null)
                 PlayerController.OnPlayerAboutToDie -= OnAboutToDie;
+
+            GameFlowManager.OnRoundStarted -= OnRoundChanged;
+        }
+
+        private void OnRoundChanged(int round)
+        {
+            _usedThisRound = false;
         }
 
         private void OnAboutToDie(Player.PlayerController player, ref bool preventDeath)
         {
-            if (_consumed) return;
+            if (_usedThisRound) return;
             if (player != PlayerController) return;
 
-            _consumed = true;
+            _usedThisRound = true;
             preventDeath = true;
 
-            // restore half HP and start the invulnerability window
-            int healAmount = Mathf.Max(1, Mathf.RoundToInt(PlayerController.MaxHealth * reviveHealthFraction));
+            int idx = Mathf.Clamp(CurrentTier - 1, 0, 4);
+
+            int healAmount = Mathf.Max(1, Mathf.RoundToInt(PlayerController.MaxHealth * reviveHealthFraction[idx]));
             PlayerController.Heal(healAmount);
 
-            int idx = Mathf.Clamp(CurrentTier - 1, 0, 4);
             StartCoroutine(InvulnerabilityWindow(invulnerabilityDuration[idx]));
 
             // notify the owning client for vfx feedback
@@ -61,21 +70,29 @@ namespace Category5.Items
 
         private IEnumerator InvulnerabilityWindow(float duration)
         {
-            // piggyback on the existing dodge i-frame flag via PlayerController property
             PlayerController.IsInvulnerable = true;
             yield return new WaitForSeconds(duration);
             PlayerController.IsInvulnerable = false;
         }
 
-        // hook for vfx/sfx on the client that got saved
         [Unity.Netcode.ClientRpc]
         private void NotifyProcClientRpc(Unity.Netcode.ClientRpcParams clientRpcParams = default)
         {
-            // artists: subscribe to BackupPlanBehaviour.OnBackupPlanProc for vfx here
             OnBackupPlanProc?.Invoke(PlayerController != null ? PlayerController.transform.position : Vector3.zero);
         }
 
         // vfx/sfx hook — fires on the saved player's client
         public static event System.Action<Vector3> OnBackupPlanProc;
+
+        public override object[] GetFormatValues(int tier)
+        {
+            int idx = Mathf.Clamp(tier - 1, 0, 4);
+            return new object[]
+            {
+                Mathf.RoundToInt(reviveHealthFraction[idx] * 100f),
+                invulnerabilityDuration[idx]
+            };
+        }
     }
 }
+

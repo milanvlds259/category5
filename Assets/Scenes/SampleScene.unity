@@ -5142,8 +5142,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Items.ItemRegistry
   allItems:
   - {fileID: 11400000, guid: 78804a97dbce5dd44925f2bf364ca3c5, type: 2}
-  - {fileID: 11400000, guid: 17e70640f72c2c2459b5b4978c402010, type: 2}
   - {fileID: 11400000, guid: 5be8e967ffc5d69478bb987df5cbd984, type: 2}
+  - {fileID: 11400000, guid: 5bd6b24b91c47334098f472a26b8437e, type: 2}
   useWeightedSelection: 0
   allowDuplicateChoices: 0
 --- !u!1 &820791430

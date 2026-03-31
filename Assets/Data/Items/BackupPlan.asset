@@ -12,12 +12,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a5fd3245b27c2c419efd63766ca013e, type: 3}
   m_Name: BackupPlan
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Items.ItemData
-  itemName: 
-  description: 
+  itemName: Backup Plan
+  description: '<color=#FF6B6B><b>Once per round:</b></color> when you would die,
+    revive with <color=#4FC3F7><b>{0}% HP</b></color> and become invulnerable for
+    <color=#FFD700><b>{1}s</b></color>.
+
+    
+
+    <size=80%><color=#aaaaaa>Resets
+    at the start of each new round.</color></size>'
   icon: {fileID: 0}
   category: 0
   effects: []
-  behaviourPrefab: {fileID: 0}
-  glowColor: {r: 1, g: 1, b: 1, a: 1}
+  behaviourPrefab: {fileID: 3095713141797661695, guid: a6cd6ab733dc2ac4195da5f6630de275, type: 3}
+  glowColor: {r: 0.6981132, g: 0.6981132, b: 0.6981132, a: 1}
   visualEffectPrefab: {fileID: 0}
   goldCost: 0
