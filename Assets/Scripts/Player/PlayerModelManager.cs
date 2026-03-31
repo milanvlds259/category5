@@ -162,7 +162,7 @@ namespace Category5.Player
             // fire event so other systems can react (PlayerCombat, vfx, etc)
             OnModelLoaded?.Invoke(_playerController, _animator);
             
-            Debug.Log($"PlayerModelManager: Loaded model for class {classType} ({classData.className})");
+            // Debug.Log($"PlayerModelManager: Loaded model for class {classType} ({classData.className})");
         }
 
         // removes all children from model root so only current class model remains

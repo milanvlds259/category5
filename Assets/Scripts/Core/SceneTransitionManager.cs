@@ -148,7 +148,7 @@ namespace Category5.Core
                 // clients will get their loading screen via the OnLoad callback
                 ShowLoadingScreen("Loading arena...");
 
-                Debug.Log($"SceneTransitionManager: Loading scene '{sceneName}' via NetworkSceneManager");
+                // Debug.Log($"SceneTransitionManager: Loading scene '{sceneName}' via NetworkSceneManager");
                 NetworkManager.Singleton.SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
             }
             else
@@ -156,7 +156,7 @@ namespace Category5.Core
                 ShowLoadingScreen("Loading...");
 
                 // local scene load for non-networked scenarios
-                Debug.Log($"SceneTransitionManager: Loading scene '{sceneName}' locally");
+                // Debug.Log($"SceneTransitionManager: Loading scene '{sceneName}' locally");
                 StartCoroutine(LoadSceneLocalAsync(sceneName));
             }
         }
@@ -168,12 +168,12 @@ namespace Category5.Core
             
             if (NetworkManager.Singleton.IsHost)
             {
-                Debug.Log("SceneTransitionManager: Shutting down host");
+                // Debug.Log("SceneTransitionManager: Shutting down host");
                 NetworkManager.Singleton.Shutdown();
             }
             else if (NetworkManager.Singleton.IsClient)
             {
-                Debug.Log("SceneTransitionManager: Disconnecting client");
+                // Debug.Log("SceneTransitionManager: Disconnecting client");
                 NetworkManager.Singleton.Shutdown();
             }
         }
@@ -201,7 +201,7 @@ namespace Category5.Core
             if (NetworkManager.Singleton == null) return;
             if (clientId != NetworkManager.Singleton.LocalClientId) return;
 
-            Debug.Log($"SceneTransitionManager: Network scene load complete - {sceneName}");
+            // Debug.Log($"SceneTransitionManager: Network scene load complete - {sceneName}");
             OnSceneLoadCompleted?.Invoke(sceneName);
 
             // stop progress tracking and fill bar to 100%

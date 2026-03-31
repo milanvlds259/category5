@@ -498,7 +498,7 @@ public class MapGenerator : MonoBehaviour
                 if (tangentLength <= 12f)
                 {
                     // If we find a problem knot
-                    Debug.Log("REMOVING " + spline[i] + " AT " + tangentLength + " ON " + splineContainer.name);
+                    // Debug.Log("REMOVING " + spline[i] + " AT " + tangentLength + " ON " + splineContainer.name);
                     // There ARE problem knots
                     noProblemKnots = false;
                     // Remove the problem knot
@@ -602,7 +602,7 @@ public class MapGenerator : MonoBehaviour
                 // If we hit a path's collider other than the entrance collider
                 if (hit.collider.gameObject.CompareTag("Path") && hit.collider.gameObject != path.gameObjectRef)
                 {
-                    Debug.Log("GOINGPOS " + "PATH " + path.gameObjectRef.name + "HIT COLL ->" + hit.collider.gameObject.name);
+                    // Debug.Log("GOINGPOS " + "PATH " + path.gameObjectRef.name + "HIT COLL ->" + hit.collider.gameObject.name);
                     foundAngle = true; // there's another entrance in this direction
                     break; // Exit the loop
                 }
@@ -629,7 +629,7 @@ public class MapGenerator : MonoBehaviour
                 // If we hit a path's collider other than the entrance collider
                 if (hit.collider.gameObject.CompareTag("Path") && hit.collider.gameObject != path.gameObjectRef)
                 {
-                    Debug.Log("GOINGNEG" + " PATH " + path.gameObjectRef.name + "HIT COLL ->" + hit.collider.gameObject.name);
+                    // Debug.Log("GOINGNEG" + " PATH " + path.gameObjectRef.name + "HIT COLL ->" + hit.collider.gameObject.name);
                     foundAngle = true; // there's another entrance in this direction
                     break; // Exit the loop
                 }
@@ -642,7 +642,7 @@ public class MapGenerator : MonoBehaviour
         if (Mathf.Abs( (posAngle - angle) - (negAngle - angle) ) <= 0.0001f ) // If they were equal (or close enough)
         {
             // Don't move the entrance, exit the function
-            Debug.Log("PATH " + path.gameObjectRef.name + " DIDNT MOVE ON " + arena.gameObjectRef.name);
+            // Debug.Log("PATH " + path.gameObjectRef.name + " DIDNT MOVE ON " + arena.gameObjectRef.name);
             return;
         }
         else if (Mathf.Abs(posAngle - angle) > Mathf.Abs(negAngle - angle)) // Negative angle closer
@@ -660,9 +660,7 @@ public class MapGenerator : MonoBehaviour
         Vector3 newPoint = arena.position + newDirection * arena.gameObjectRef.transform.localScale.x;
                 
         entranceKnot.Position = arena.arenaBounds.ClosestPoint(newPoint);
-        Debug.Log(
-            angle + "<-ANGLE " + "\n NewANGLE->" + newAngle  + "\n POSANGLE->" + posAngle + " " + Mathf.Abs(posAngle - angle) + " " + (angle + 90*Mathf.Deg2Rad).ToString() + " \n NEGANGLE->" + negAngle + " " + Mathf.Abs(negAngle - angle) + " " + (angle - 90*Mathf.Deg2Rad).ToString() + " \n " + newPoint + "<-NEWPOINT OLDPOINT->" + entrancePos + "\n ARENA->" + arena.gameObjectRef.name + " \n PATH->" + path.gameObjectRef.name
-            );
+        // Debug.Log(angle + "<-ANGLE " + "\n NewANGLE->" + newAngle  + "\n POSANGLE->" + posAngle + " " + Mathf.Abs(posAngle - angle) + " " + (angle + 90*Mathf.Deg2Rad).ToString() + " \n NEGANGLE->" + negAngle + " " + Mathf.Abs(negAngle - angle) + " " + (angle - 90*Mathf.Deg2Rad).ToString() + " \n " + newPoint + "<-NEWPOINT OLDPOINT->" + entrancePos + "\n ARENA->" + arena.gameObjectRef.name + " \n PATH->" + path.gameObjectRef.name);
         // Gotta set knot to make it actually move the knot
         path.spline.SetKnot(knotIndex, entranceKnot);
 
@@ -712,7 +710,7 @@ public class MapGenerator : MonoBehaviour
 
                                     Vector3 betweenVector = otherPos - pos;
 
-                                    Debug.Log("Spacing out " + knot + " and " + otherSpline[otherKnotIndex] + " at distance " + Vector3.Distance(pos, otherPos));
+                                    // Debug.Log("Spacing out " + knot + " and " + otherSpline[otherKnotIndex] + " at distance " + Vector3.Distance(pos, otherPos));
                                     
                                     Vector3 newPos = pos;
                                     newPos -= betweenVector.normalized * (50 - betweenVector.magnitude) / 50;

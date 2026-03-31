@@ -87,7 +87,7 @@ namespace Category5.Core
                 RequestChatHistory();
             }
             
-            Debug.Log("LobbyChatManager: Initialized");
+            // Debug.Log("LobbyChatManager: Initialized");
         }
         
         // call this when leaving the lobby
@@ -106,7 +106,7 @@ namespace Category5.Core
             _messageBuffer.Clear();
             _isInitialized = false;
             
-            Debug.Log("LobbyChatManager: Cleaned up");
+            // Debug.Log("LobbyChatManager: Cleaned up");
         }
         
         // send a chat message (called by local player)
@@ -282,7 +282,7 @@ namespace Category5.Core
                 history.Add(msg);
             }
             
-            Debug.Log($"LobbyChatManager: Received {count} messages of chat history");
+            // Debug.Log($"LobbyChatManager: Received {count} messages of chat history");
             OnChatHistoryLoaded?.Invoke(history);
         }
         

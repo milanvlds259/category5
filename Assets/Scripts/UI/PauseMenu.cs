@@ -141,12 +141,12 @@ namespace Category5.UI
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
             
-            Debug.Log("PauseMenu: Game resumed");
+            // Debug.Log("PauseMenu: Game resumed");
         }
         
         public void Disconnect()
         {
-            Debug.Log("PauseMenu: Disconnecting and returning to main menu");
+            // Debug.Log("PauseMenu: Disconnecting and returning to main menu");
             
             // use scene transition manager if available
             if (SceneTransitionManager.Instance != null)
@@ -166,7 +166,7 @@ namespace Category5.UI
         
         public void QuitGame()
         {
-            Debug.Log("PauseMenu: Quitting game");
+            // Debug.Log("PauseMenu: Quitting game");
             
             // shutdown network if connected
             if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)

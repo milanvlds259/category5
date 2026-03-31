@@ -79,32 +79,32 @@ namespace Category5.Player.Abilities
             if (!IsServer) return;
             if (_hasHit) return;
             
-            Debug.Log($"HookProjectile: OnTriggerEnter hit {other.gameObject.name} on layer {LayerMask.LayerToName(other.gameObject.layer)}");
+            // Debug.Log($"HookProjectile: OnTriggerEnter hit {other.gameObject.name} on layer {LayerMask.LayerToName(other.gameObject.layer)}");
             
             // check if we should ignore this layer
             int otherLayer = other.gameObject.layer;
             if (((1 << otherLayer) & ignoreLayers) != 0)
             {
-                Debug.Log($"HookProjectile: Ignoring collision with {other.gameObject.name} (layer ignored)");
+                // Debug.Log($"HookProjectile: Ignoring collision with {other.gameObject.name} (layer ignored)");
                 return; // ignore this collision
             }
             
             // ignore other players
             if (other.GetComponentInParent<PlayerController>() != null)
             {
-                Debug.Log($"HookProjectile: Ignoring collision with {other.gameObject.name} (player)");
+                // Debug.Log($"HookProjectile: Ignoring collision with {other.gameObject.name} (player)");
                 return;
             }
             
             // ignore other projectiles (check for NetworkedProjectile or HookProjectile)
             if (other.GetComponentInParent<HookProjectile>() != null)
             {
-                Debug.Log($"HookProjectile: Ignoring collision with {other.gameObject.name} (hook projectile)");
+                // Debug.Log($"HookProjectile: Ignoring collision with {other.gameObject.name} (hook projectile)");
                 return;
             }
             if (other.GetComponentInParent<NetworkedProjectile>() != null)
             {
-                Debug.Log($"HookProjectile: Ignoring collision with {other.gameObject.name} (networked projectile)");
+                // Debug.Log($"HookProjectile: Ignoring collision with {other.gameObject.name} (networked projectile)");
                 return;
             }
             
@@ -112,7 +112,7 @@ namespace Category5.Player.Abilities
             var boss = other.GetComponentInParent<BossBase>();
             if (boss != null)
             {
-                Debug.Log($"HookProjectile: Hit boss {boss.gameObject.name}!");
+                // Debug.Log($"HookProjectile: Hit boss {boss.gameObject.name}!");
                 _hasHit = true;
                 NotifyOwnerHit(other.ClosestPoint(transform.position), boss.NetworkObjectId, true);
                 DespawnHook();
@@ -123,7 +123,7 @@ namespace Category5.Player.Abilities
             var enemy = other.GetComponentInParent<EnemyBase>();
             if (enemy != null)
             {
-                Debug.Log($"HookProjectile: Hit enemy {enemy.gameObject.name}!");
+                // Debug.Log($"HookProjectile: Hit enemy {enemy.gameObject.name}!");
                 _hasHit = true;
                 NotifyOwnerHit(other.ClosestPoint(transform.position), enemy.NetworkObjectId, false);
                 DespawnHook();
@@ -131,14 +131,14 @@ namespace Category5.Player.Abilities
             }
             
             // hit terrain or other solid object - just despawn
-            Debug.Log($"HookProjectile: Hit terrain/object {other.gameObject.name}, despawning");
+            // Debug.Log($"HookProjectile: Hit terrain/object {other.gameObject.name}, despawning");
             _hasHit = true;
             DespawnHook();
         }
         
         private void NotifyOwnerHit(Vector3 hitPosition, ulong targetNetworkObjectId, bool isBoss)
         {
-            Debug.Log($"HookProjectile: NotifyOwnerHit called. Owner ID: {_ownerNetworkObjectId}, Target ID: {targetNetworkObjectId}, IsBoss: {isBoss}");
+            // Debug.Log($"HookProjectile: NotifyOwnerHit called. Owner ID: {_ownerNetworkObjectId}, Target ID: {targetNetworkObjectId}, IsBoss: {isBoss}");
             
             // find the owner player and notify their ability manager
             if (!NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(_ownerNetworkObjectId, out var ownerNetworkObject))
@@ -147,12 +147,12 @@ namespace Category5.Player.Abilities
                 return;
             }
             
-            Debug.Log($"HookProjectile: Found owner NetworkObject {ownerNetworkObject.gameObject.name}");
+            // Debug.Log($"HookProjectile: Found owner NetworkObject {ownerNetworkObject.gameObject.name}");
             
             var abilityManager = ownerNetworkObject.GetComponent<PlayerAbilityManager>();
             if (abilityManager != null)
             {
-                Debug.Log($"HookProjectile: Found PlayerAbilityManager, calling OnHookHitTarget");
+                // Debug.Log($"HookProjectile: Found PlayerAbilityManager, calling OnHookHitTarget");
                 abilityManager.OnHookHitTarget(hitPosition, targetNetworkObjectId, isBoss, _pullForce);
             }
             else

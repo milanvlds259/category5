@@ -92,7 +92,7 @@ namespace Category5.Core
             // fallback polling path in case spawner completion event subscription did not fire
             if (!_bossEntranceTriggeredThisRound && CurrentPhase.Value == GamePhase.Fighting && AreAllActiveSpawnersFullyComplete())
             {
-                Debug.Log("GameFlowManager: fallback detected all spawners complete, triggering boss entrance");
+                // Debug.Log("GameFlowManager: fallback detected all spawners complete, triggering boss entrance");
                 OnAllWavesCleared();
             }
         }
@@ -123,7 +123,7 @@ namespace Category5.Core
             EnemySpawner.StartAllSpawners(multiplier);
             _bossEntranceTriggeredThisRound = false;
             _serverInitialized = true;
-            Debug.Log("GameFlowManager: server flow initialized");
+            // Debug.Log("GameFlowManager: server flow initialized");
         }
 
         public override void OnNetworkDespawn()
@@ -159,7 +159,7 @@ namespace Category5.Core
 
             _completedSpawners.Add(spawner);
             int totalKnown = _allSpawners != null ? _allSpawners.Length : 0;
-            Debug.Log($"GameFlowManager: spawner completed ({_completedSpawners.Count}/{totalKnown})");
+            // Debug.Log($"GameFlowManager: spawner completed ({_completedSpawners.Count}/{totalKnown})");
 
             // use dynamic completion check to avoid stale cached arrays
             if (AreAllActiveSpawnersFullyComplete())
@@ -190,7 +190,7 @@ namespace Category5.Core
         {
             if (_bossEntranceTriggeredThisRound) return;
             _bossEntranceTriggeredThisRound = true;
-            Debug.Log("GameFlowManager: all enemy waves cleared, starting boss entrance sequence");
+            // Debug.Log("GameFlowManager: all enemy waves cleared, starting boss entrance sequence");
             OnAllEnemiesCleared?.Invoke();
             StartCoroutine(BossEntranceSequence());
         }
@@ -199,7 +199,7 @@ namespace Category5.Core
         {
             yield return new WaitForSeconds(bossEntranceDelay);
 
-            Debug.Log("GameFlowManager: boss entrance!");
+            // Debug.Log("GameFlowManager: boss entrance!");
             OnBossEntranceStart?.Invoke();
 
             SpawnOrRevealBoss();
@@ -279,7 +279,7 @@ namespace Category5.Core
         {
             if (!IsServerAuthority) return;
 
-            Debug.Log($"GameFlowManager: boss died on round {CurrentRound.Value}");
+            // Debug.Log($"GameFlowManager: boss died on round {CurrentRound.Value}");
 
             // check if this was the final round
             if (CurrentRound.Value >= totalRounds)
@@ -292,7 +292,7 @@ namespace Category5.Core
             // boss is dead and enemies were already cleared -> start item selection
             if (ItemManager.Instance != null)
             {
-                Debug.Log("GameFlowManager: triggering ItemManager.StartItemSelection");
+                // Debug.Log("GameFlowManager: triggering ItemManager.StartItemSelection");
                 ItemManager.Instance.StartItemSelection();
             }
             else
@@ -331,7 +331,7 @@ namespace Category5.Core
         {
             if (!IsServerAuthority) return;
 
-            Debug.Log("GameFlowManager: all item selections complete, starting next round");
+            // Debug.Log("GameFlowManager: all item selections complete, starting next round");
             StartNextRound();
         }
 
@@ -386,7 +386,7 @@ namespace Category5.Core
         {
             if (!IsServerAuthority) return;
 
-            Debug.Log($"GameFlowManager: player {clientId} died, checking for game over");
+            // Debug.Log($"GameFlowManager: player {clientId} died, checking for game over");
 
             // don't trigger game over during item selection or if already game over
             if (CurrentPhase.Value == GamePhase.PowerUpSelection ||
@@ -451,7 +451,7 @@ namespace Category5.Core
         {
             if (!IsServerAuthority) return;
 
-            Debug.Log("GameFlowManager: respawning all players to spawn positions");
+            // Debug.Log("GameFlowManager: respawning all players to spawn positions");
 
             // reset spawn index for consistent spawning
             PlayerSpawnPoint.ResetSpawnIndex();
@@ -496,7 +496,7 @@ namespace Category5.Core
         {
             if (!IsServerAuthority) return;
 
-            Debug.Log($"GameFlowManager: handling disconnect for player {clientId}");
+            // Debug.Log($"GameFlowManager: handling disconnect for player {clientId}");
 
             // if we're fighting, check if all remaining players are dead (game over)
             if (CurrentPhase.Value == GamePhase.Fighting)
@@ -513,7 +513,7 @@ namespace Category5.Core
             // check if any players remain
             if (NetworkManager.Singleton.ConnectedClientsIds.Count == 0)
             {
-                Debug.Log("GameFlowManager: all players disconnected");
+                // Debug.Log("GameFlowManager: all players disconnected");
                 yield break;
             }
 
@@ -531,7 +531,7 @@ namespace Category5.Core
         private void RefreshSpawners()
         {
             _allSpawners = FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
-            Debug.Log($"GameFlowManager: found {_allSpawners.Length} spawners in scene");
+            // Debug.Log($"GameFlowManager: found {_allSpawners.Length} spawners in scene");
         }
 
         private bool AreAllActiveSpawnersFullyComplete()

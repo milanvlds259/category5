@@ -31,7 +31,7 @@ namespace Category5
 
             Vector3 direction = GetAimDirection(spawnPos);
 
-            Debug.Log($"[ElementalistR] launching black hole projectile from {spawnPos} toward {direction}");
+            // Debug.Log($"[ElementalistR] launching black hole projectile from {spawnPos} toward {direction}");
 
             OnBlackHoleCast?.Invoke(spawnPos);
             SpawnVfx(spawnPos);

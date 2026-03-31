@@ -34,7 +34,7 @@ namespace Category5.Core
                 }
                 
                 IsReady = true;
-                Debug.Log("RelayHelper: services initialized and signed in");
+                // Debug.Log("RelayHelper: services initialized and signed in");
             }
             catch (Exception e)
             {
@@ -62,7 +62,7 @@ namespace Category5.Core
             // convert to transport-friendly data (dtls = encrypted udp)
             var serverData = allocation.ToRelayServerData("dtls");
             
-            Debug.Log($"RelayHelper: relay created, join code: {joinCode}");
+            // Debug.Log($"RelayHelper: relay created, join code: {joinCode}");
             return (joinCode, serverData);
         }
         
@@ -86,7 +86,7 @@ namespace Category5.Core
             // convert to transport-friendly data
             var serverData = joinAllocation.ToRelayServerData("dtls");
             
-            Debug.Log($"RelayHelper: joined relay with code: {joinCode}");
+            // Debug.Log($"RelayHelper: joined relay with code: {joinCode}");
             return serverData;
         }
     }

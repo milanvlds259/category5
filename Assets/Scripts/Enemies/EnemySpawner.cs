@@ -152,7 +152,7 @@ namespace Category5.Enemies
                 spawner.ResetSpawner(enemyMultiplier);
                 spawner.StartSpawning();
             }
-            Debug.Log($"EnemySpawner: started {spawners.Length} spawners with {enemyMultiplier}x enemy multiplier");
+            // Debug.Log($"EnemySpawner: started {spawners.Length} spawners with {enemyMultiplier}x enemy multiplier");
         }
         
         private void StartNextWave()

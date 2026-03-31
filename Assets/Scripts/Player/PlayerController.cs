@@ -204,7 +204,7 @@ namespace Category5.Player
             if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsListening)
             {
                 _isOffline = true;
-                Debug.Log("PlayerController: Offline mode detected. Enabling local control.");
+                // Debug.Log("PlayerController: Offline mode detected. Enabling local control.");
                 
                 var camera = FindFirstObjectByType<Category5.ThirdPersonCamera>();
                 if (camera != null)
@@ -324,7 +324,7 @@ namespace Category5.Player
         // called when player name changes on network
         private void OnPlayerNameChangedCallback(FixedString64Bytes oldName, FixedString64Bytes newName)
         {
-            Debug.Log($"PlayerController: Name changed from '{oldName}' to '{newName}'");
+            // Debug.Log($"PlayerController: Name changed from '{oldName}' to '{newName}'");
             OnPlayerNameChanged?.Invoke(this);
         }
         
@@ -345,7 +345,7 @@ namespace Category5.Player
             }
             
             PlayerName.Value = new FixedString64Bytes(name);
-            Debug.Log($"PlayerController: Server set name to '{name}' for client {OwnerClientId}");
+            // Debug.Log($"PlayerController: Server set name to '{name}' for client {OwnerClientId}");
         }
         
         // get the display name as a string (convenience method)
@@ -850,7 +850,7 @@ namespace Category5.Player
             // i-frame check
             if (_isDodging) 
             {
-                Debug.Log("Player dodged damage!");
+                // Debug.Log("Player dodged damage!");
                 OnPlayerDodgedAttack?.Invoke(_dodgeTimer);
                 return;
             }
@@ -863,7 +863,7 @@ namespace Category5.Player
             }
 
             CurrentHealth.Value -= (_playerStats != null ? _playerStats.ApplyArmor(effectiveDamage) : effectiveDamage);
-            Debug.Log($"Player took {damage} damage (after armor). Health: {CurrentHealth.Value}");
+            // Debug.Log($"Player took {damage} damage (after armor). Health: {CurrentHealth.Value}");
             
             // cancel any charging attack when taking damage
             CancelChargeOnDamageClientRpc(new ClientRpcParams

@@ -37,7 +37,7 @@ namespace Category5.Core
         public static void SetClass(PlayerClassType classType)
         {
             GetOrCreateInstance()._localPlayerSelectedClass = classType;
-            Debug.Log($"ClassSelectionManager: Local player class set to {classType}");
+            // Debug.Log($"ClassSelectionManager: Local player class set to {classType}");
         }
 
         // get the local player's selected class (called by PlayerClassManager)

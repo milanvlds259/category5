@@ -842,7 +842,7 @@ namespace Category5.Enemies
             _grappleTargetTransform = targetTransform;
             _grapplePullSpeed = pullSpeed;
             
-            Debug.Log($"EnemyBase: {gameObject.name} starting grapple to {targetTransform.gameObject.name}");
+            // Debug.Log($"EnemyBase: {gameObject.name} starting grapple to {targetTransform.gameObject.name}");
         }
         
         // stop grapple pull
@@ -852,7 +852,7 @@ namespace Category5.Enemies
             
             if (_isBeingGrappled)
             {
-                Debug.Log($"EnemyBase: {gameObject.name} stopping grapple");
+                // Debug.Log($"EnemyBase: {gameObject.name} stopping grapple");
             }
             
             _isBeingGrappled = false;
@@ -870,7 +870,7 @@ namespace Category5.Enemies
             // check if target is still valid
             if (_grappleTargetTransform == null)
             {
-                Debug.Log($"EnemyBase: {gameObject.name} grapple target destroyed, stopping grapple");
+                // Debug.Log($"EnemyBase: {gameObject.name} grapple target destroyed, stopping grapple");
                 StopGrapple();
                 return;
             }
@@ -881,12 +881,12 @@ namespace Category5.Enemies
             Vector3 pullDirection = (targetPos - currentPos).normalized;
             float pullAmount = _grapplePullSpeed * Time.deltaTime;
             
-            Debug.Log($"EnemyBase: {gameObject.name} grapple pull - distance: {distanceToTarget:F2}, pullAmount: {pullAmount:F2}, target: {_grappleTargetTransform.gameObject.name}");
+            // Debug.Log($"EnemyBase: {gameObject.name} grapple pull - distance: {distanceToTarget:F2}, pullAmount: {pullAmount:F2}, target: {_grappleTargetTransform.gameObject.name}");
             
             // check if we've reached the target (within 1.5 units)
             if (distanceToTarget <= 1.5f)
             {
-                Debug.Log($"EnemyBase: {gameObject.name} reached grapple target (distance: {distanceToTarget:F2}), stopping grapple");
+                // Debug.Log($"EnemyBase: {gameObject.name} reached grapple target (distance: {distanceToTarget:F2}), stopping grapple");
                 StopGrapple();
                 return;
             }
@@ -896,7 +896,7 @@ namespace Category5.Enemies
             Vector3 newPosition = transform.position + pullDirection * pullAmount;
             transform.position = newPosition;
             
-            Debug.Log($"EnemyBase: Moved from {currentPos} to {newPosition}");
+            // Debug.Log($"EnemyBase: Moved from {currentPos} to {newPosition}");
         }
         
         // detect collisions during grapple
@@ -905,19 +905,19 @@ namespace Category5.Enemies
             if (!IsServer) return;
             if (!_isBeingGrappled) return;
             
-            Debug.Log($"EnemyBase: {gameObject.name} OnCollisionEnter with {collision.gameObject.name} while grappling");
+            // Debug.Log($"EnemyBase: {gameObject.name} OnCollisionEnter with {collision.gameObject.name} while grappling");
             
             // only stop grapple if we hit the player (the grapple target)
             var player = collision.gameObject.GetComponentInParent<PlayerController>();
             if (player != null)
             {
-                Debug.Log($"EnemyBase: {gameObject.name} collided with player, stopping grapple");
+                // Debug.Log($"EnemyBase: {gameObject.name} collided with player, stopping grapple");
                 StopGrapple();
                 return;
             }
             
             // ignore all other collisions (terrain, other enemies, etc.) - let the grapple continue
-            Debug.Log($"EnemyBase: {gameObject.name} hit {collision.gameObject.name} but it's not the player, continuing grapple");
+            // Debug.Log($"EnemyBase: {gameObject.name} hit {collision.gameObject.name} but it's not the player, continuing grapple");
         }
         
         [ClientRpc]

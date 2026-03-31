@@ -45,7 +45,7 @@ namespace Category5
         
         public override void Execute()
         {
-            Debug.Log("RangerR.Execute() called");
+            // Debug.Log("RangerR.Execute() called");
             
             // get spawn position
             Vector3 spawnPos = projectileSpawnPoint != null 

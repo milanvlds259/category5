@@ -99,7 +99,7 @@ namespace Category5.Items
                     if (existing.CurrentTier != tier)
                     {
                         existing.SetTier(tier);
-                        Debug.Log($"ItemBehaviourManager: upgraded {itemId} to tier {tier}");
+                        // Debug.Log($"ItemBehaviourManager: upgraded {itemId} to tier {tier}");
                     }
                 }
                 else
@@ -128,7 +128,7 @@ namespace Category5.Items
             // sync to clients so they can run client-side visuals
             AddBehaviourClientRpc(itemId, tier);
 
-            Debug.Log($"ItemBehaviourManager: added behaviour for {itemId} at tier {tier}");
+            // Debug.Log($"ItemBehaviourManager: added behaviour for {itemId} at tier {tier}");
         }
 
         private void RemoveBehaviour(string itemId)
@@ -142,7 +142,7 @@ namespace Category5.Items
                 // sync removal to clients
                 RemoveBehaviourClientRpc(itemId);
 
-                Debug.Log($"ItemBehaviourManager: removed behaviour for {itemId}");
+                // Debug.Log($"ItemBehaviourManager: removed behaviour for {itemId}");
             }
         }
 

@@ -55,7 +55,7 @@ namespace Category5.Items
 
         public void StartItemSelection()
         {
-            Debug.Log("ItemManager: starting item selection phase");
+            // Debug.Log("ItemManager: starting item selection phase");
 
             // set phase via GameFlowManager
             if (GameFlowManager.Instance != null)
@@ -120,7 +120,7 @@ namespace Category5.Items
                 itemIdStrings[i] = itemIds[i].ToString();
             }
             
-            Debug.Log($"ItemManager: Received {itemIdStrings.Length} item choices, inventory full: {inventoryFull}");
+            // Debug.Log($"ItemManager: Received {itemIdStrings.Length} item choices, inventory full: {inventoryFull}");
 
             // fire audio event for item selection start
             GameEvents.InvokePowerUpSelectionStart(); // reusing power-up event
@@ -133,7 +133,7 @@ namespace Category5.Items
         {
             if (!IsOwner && !IsClient) return;
 
-            Debug.Log($"ItemManager: Local player selected item {itemId}");
+            // Debug.Log($"ItemManager: Local player selected item {itemId}");
             SubmitItemSelectionServerRpc(itemId, -1); // -1 means no replacement
         }
 
@@ -142,7 +142,7 @@ namespace Category5.Items
         {
             if (!IsOwner && !IsClient) return;
 
-            Debug.Log($"ItemManager: Local player selected item {itemId} to replace slot {slotToReplace}");
+            // Debug.Log($"ItemManager: Local player selected item {itemId} to replace slot {slotToReplace}");
             SubmitItemSelectionServerRpc(itemId, slotToReplace);
         }
 
@@ -151,7 +151,7 @@ namespace Category5.Items
         {
             if (!IsOwner && !IsClient) return;
 
-            Debug.Log("ItemManager: Local player skipped item selection");
+            // Debug.Log("ItemManager: Local player skipped item selection");
             SubmitItemSelectionServerRpc("", -1); // empty string means skip
         }
 
@@ -170,7 +170,7 @@ namespace Category5.Items
             // handle skip
             if (string.IsNullOrEmpty(itemId))
             {
-                Debug.Log($"ItemManager: Client {clientId} skipped selection");
+                // Debug.Log($"ItemManager: Client {clientId} skipped selection");
                 _playerSelections[clientId] = true;
                 AcknowledgeSelectionClientRpc(new ClientRpcParams
                 {
@@ -244,19 +244,19 @@ namespace Category5.Items
                     {
                         success = playerInventory.UpgradeItemTier(itemId);
                         int newTier = playerInventory.GetItemTier(itemId);
-                        Debug.Log($"ItemManager: Upgraded {item.ItemName} to tier {newTier} for player {clientId}, success: {success}");
+                        // Debug.Log($"ItemManager: Upgraded {item.ItemName} to tier {newTier} for player {clientId}, success: {success}");
                     }
                     else if (slotToReplace >= 0)
                     {
                         // replace existing item
                         success = playerInventory.ReplaceItem(slotToReplace, itemId);
-                        Debug.Log($"ItemManager: Replaced slot {slotToReplace} with {item.ItemName} for player {clientId}, success: {success}");
+                        // Debug.Log($"ItemManager: Replaced slot {slotToReplace} with {item.ItemName} for player {clientId}, success: {success}");
                     }
                     else
                     {
                         // add to inventory
                         success = playerInventory.AddItem(itemId);
-                        Debug.Log($"ItemManager: Added {item.ItemName} to player {clientId}, success: {success}");
+                        // Debug.Log($"ItemManager: Added {item.ItemName} to player {clientId}, success: {success}");
                     }
 
                     if (success)
@@ -283,7 +283,7 @@ namespace Category5.Items
         [ClientRpc]
         private void AcknowledgeSelectionClientRpc(ClientRpcParams clientRpcParams = default)
         {
-            Debug.Log("ItemManager: Selection acknowledged, waiting for other players...");
+            // Debug.Log("ItemManager: Selection acknowledged, waiting for other players...");
             // ui can show "waiting for other players" state
         }
 
@@ -293,12 +293,12 @@ namespace Category5.Items
             {
                 if (!kvp.Value)
                 {
-                    Debug.Log($"ItemManager: Still waiting for player {kvp.Key}");
+                    // Debug.Log($"ItemManager: Still waiting for player {kvp.Key}");
                     return;
                 }
             }
 
-            Debug.Log("ItemManager: All players selected, notifying GameFlowManager");
+            // Debug.Log("ItemManager: All players selected, notifying GameFlowManager");
 
             // notify GameFlowManager that all selections are complete
             if (GameFlowManager.Instance != null)
@@ -316,7 +316,7 @@ namespace Category5.Items
         {
             if (!IsServerAuthority) return;
 
-            Debug.Log($"ItemManager: handling disconnect for player {clientId}");
+            // Debug.Log($"ItemManager: handling disconnect for player {clientId}");
 
             // if we're in item selection, mark them as selected so we don't wait forever
             if (GameFlowManager.Instance != null &&
@@ -327,7 +327,7 @@ namespace Category5.Items
                     _playerSelections[clientId] = true; // mark as "selected" so we don't wait
                     _playerItemChoices.Remove(clientId);
 
-                    Debug.Log($"ItemManager: marked disconnected player {clientId} as selected");
+                    // Debug.Log($"ItemManager: marked disconnected player {clientId} as selected");
 
                     // check if all remaining players have now selected
                     CheckAllPlayersSelected();

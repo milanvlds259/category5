@@ -133,7 +133,7 @@ namespace Category5.Player.WindRiding
             startLaunchPad.ConfigureTunnel(windTunnel, true);
             endLaunchPad.ConfigureTunnel(windTunnel, false);
 
-            Debug.Log($"TestWindTunnelSetup: created test tunnel between '{startLaunchPad.name}' and '{endLaunchPad.name}' ({tunnelLength:F1}m long)");
+            // Debug.Log($"TestWindTunnelSetup: created test tunnel between '{startLaunchPad.name}' and '{endLaunchPad.name}' ({tunnelLength:F1}m long)");
         }
 
 #if UNITY_EDITOR

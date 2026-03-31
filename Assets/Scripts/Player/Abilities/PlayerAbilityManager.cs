@@ -93,7 +93,7 @@ namespace Category5
             ability1 = null;
             ability2 = null;
             ability3 = null;
-            Debug.Log("PlayerAbilityManager: Cleared ability references");
+            // Debug.Log("PlayerAbilityManager: Cleared ability references");
         }
         
         // called by PlayerClassManager after abilities are instantiated
@@ -119,10 +119,10 @@ namespace Category5
         private void AttemptToFindAbilities()
         {
             // log all children to debug
-            Debug.Log($"PlayerAbilityManager.AttemptToFindAbilities: Player has {transform.childCount} children");
+            // Debug.Log($"PlayerAbilityManager.AttemptToFindAbilities: Player has {transform.childCount} children");
             foreach (Transform child in transform)
             {
-                Debug.Log($"  - Child: {child.name}, Components: {string.Join(", ", child.GetComponents<Component>().Select(c => c.GetType().Name))}");
+                // Debug.Log($"  - Child: {child.name}, Components: {string.Join(", ", child.GetComponents<Component>().Select(c => c.GetType().Name))}");
             }
             
             // find abilities by name (set by PlayerClassManager: "Ability1", "Ability2", "Ability3")
@@ -131,7 +131,7 @@ namespace Category5
             if (ability2 == null) ability2 = FindAbilityBySlotName("Ability2");
             if (ability3 == null) ability3 = FindAbilityBySlotName("Ability3");
             
-            Debug.Log($"PlayerAbilityManager.AttemptToFindAbilities: Found abilities - Q:{ability1 != null}, E:{ability2 != null}, R:{ability3 != null}");
+            // Debug.Log($"PlayerAbilityManager.AttemptToFindAbilities: Found abilities - Q:{ability1 != null}, E:{ability2 != null}, R:{ability3 != null}");
             
             // initialize abilities only if not already done
             AbilityBase[] abilities = { ability1, ability2, ability3 };
@@ -154,7 +154,7 @@ namespace Category5
                     var ability = child.GetComponent<AbilityBase>();
                     if (ability != null)
                     {
-                        Debug.Log($"PlayerAbilityManager.FindAbilityBySlotName: Found {slotName} with component {ability.GetType().Name}");
+                        // Debug.Log($"PlayerAbilityManager.FindAbilityBySlotName: Found {slotName} with component {ability.GetType().Name}");
                         return ability;
                     }
                     else
@@ -176,7 +176,7 @@ namespace Category5
                 return;
             }
             
-            Debug.Log("PlayerAbilityManager: Subscribing to input actions");
+            // Debug.Log("PlayerAbilityManager: Subscribing to input actions");
 
             inputActions.Enable();
             
@@ -189,7 +189,7 @@ namespace Category5
             {
                 inputActions.Player.Ability1.performed += OnAbility1Pressed;
                 inputActions.Player.Ability1.canceled += OnAbility1Released;
-                Debug.Log("PlayerAbilityManager: Subscribed to Ability1 (Q)");
+                // Debug.Log("PlayerAbilityManager: Subscribed to Ability1 (Q)");
             }
             
             if (inputActions.Player.Ability2 == null)
@@ -199,7 +199,7 @@ namespace Category5
             else
             {
                 inputActions.Player.Ability2.performed += OnAbility2Pressed;
-                Debug.Log("PlayerAbilityManager: Subscribed to Ability2 (E)");
+                // Debug.Log("PlayerAbilityManager: Subscribed to Ability2 (E)");
             }
             
             if (inputActions.Player.Ability3 == null)
@@ -209,7 +209,7 @@ namespace Category5
             else
             {
                 inputActions.Player.Ability3.performed += OnAbility3Pressed;
-                Debug.Log("PlayerAbilityManager: Subscribed to Ability3 (R)");
+                // Debug.Log("PlayerAbilityManager: Subscribed to Ability3 (R)");
             }
         }
 
@@ -244,7 +244,7 @@ namespace Category5
         
         private void OnAbility1Pressed(InputAction.CallbackContext ctx)
         {
-            Debug.Log("Ability1 (Q) pressed!");
+            // Debug.Log("Ability1 (Q) pressed!");
             TryUseAbility(AbilitySlot.Ability1);
         }
 
@@ -260,13 +260,13 @@ namespace Category5
         
         private void OnAbility2Pressed(InputAction.CallbackContext ctx)
         {
-            Debug.Log("Ability2 (E) pressed!");
+            // Debug.Log("Ability2 (E) pressed!");
             TryUseAbility(AbilitySlot.Ability2);
         }
         
         private void OnAbility3Pressed(InputAction.CallbackContext ctx)
         {
-            Debug.Log("Ability3 (R) pressed!");
+            // Debug.Log("Ability3 (R) pressed!");
             TryUseAbility(AbilitySlot.Ability3);
         }
 
@@ -307,41 +307,41 @@ namespace Category5
         {
             if (!IsOwner) return;
             
-            Debug.Log($"TryUseAbility called for slot {slot}");
+            // Debug.Log($"TryUseAbility called for slot {slot}");
 
             // check input blocking conditions
             if (PauseMenu.GameIsPaused)
             {
-                Debug.Log("  -> Blocked: Game paused");
+                // Debug.Log("  -> Blocked: Game paused");
                 return;
             }
             if (Category5.Core.GameFlowManager.Instance != null && Category5.Core.GameFlowManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection)
             {
-                Debug.Log("  -> Blocked: Power-up selection phase");
+                // Debug.Log("  -> Blocked: Power-up selection phase");
                 return;
             }
             if (playerController.IsDead.Value)
             {
-                Debug.Log("  -> Blocked: Player dead");
+                // Debug.Log("  -> Blocked: Player dead");
                 return;
             }
             if (playerController.IsWindRiding)
             {
-                Debug.Log("  -> Blocked: Wind riding");
+                // Debug.Log("  -> Blocked: Wind riding");
                 return;
             }
             if (playerCombat.IsCharging)
             {
-                Debug.Log("  -> Blocked: Currently charging");
+                // Debug.Log("  -> Blocked: Currently charging");
                 return;
             }
             if (IsExecutingAbility)
             {
-                Debug.Log("  -> Blocked: Already executing ability");
+                // Debug.Log("  -> Blocked: Already executing ability");
                 return;
             }
             
-            Debug.Log($"  -> Requesting ability {slot} from server");
+            // Debug.Log($"  -> Requesting ability {slot} from server");
             
             AbilityBase ability = GetAbility(slot);
 
@@ -355,13 +355,13 @@ namespace Category5
             NetworkVariable<float> cooldown = GetCooldown(slot);
             if (ability.UsesManagerCooldownGate && cooldown.Value > 0f)
             {
-                Debug.Log($"  -> Blocked: Ability on cooldown for {cooldown.Value}s more");
+                // Debug.Log($"  -> Blocked: Ability on cooldown for {cooldown.Value}s more");
                 return;
             }
             
             if (!ability.CanUse())
             {
-                Debug.Log($"  -> Blocked: Ability CanUse check failed");
+                // Debug.Log($"  -> Blocked: Ability CanUse check failed");
                 return;
             }
             
@@ -467,7 +467,7 @@ namespace Category5
 
                 float max = ability.Data.cooldownDuration;
 
-                Debug.Log($"Cooldown for {slot} reset on server for client {OwnerClientId}");
+                // Debug.Log($"Cooldown for {slot} reset on server for client {OwnerClientId}");
                 
                 // notify clients about cooldown reset
                 NotifyCooldownChangedClientRpc(slot, 0f, max);
@@ -597,7 +597,7 @@ namespace Category5
             // spawn on network
             netObj.Spawn();
             
-            Debug.Log($"Critshot fired for client {OwnerClientId}! Piercing arrow with {damageMultiplier}x damage!");
+            // Debug.Log($"Critshot fired for client {OwnerClientId}! Piercing arrow with {damageMultiplier}x damage!");
         }
 
         [Rpc(SendTo.Server)]
@@ -1525,7 +1525,7 @@ namespace Category5
                 projectileLifetime, explosionRadius, burnDmgPerTick, burnTickInterval, burnDuration);
 
             netObj.Spawn();
-            Debug.Log($"[Elementalist] fireball spawned for client {OwnerClientId}");
+            // Debug.Log($"[Elementalist] fireball spawned for client {OwnerClientId}");
         }
 
         [Rpc(SendTo.Server)]
@@ -1553,7 +1553,7 @@ namespace Category5
                 projectileLifetime, slowMultiplier, slowDuration);
 
             netObj.Spawn();
-            Debug.Log($"[Elementalist] ice projectile spawned for client {OwnerClientId}");
+            // Debug.Log($"[Elementalist] ice projectile spawned for client {OwnerClientId}");
         }
 
         [Rpc(SendTo.Server)]
@@ -1564,7 +1564,7 @@ namespace Category5
 
             int adjustedDamage = playerStats != null ? playerStats.CalculateDamage(damageCoefficient).damage : Mathf.RoundToInt(damageCoefficient * 100f);
 
-            Debug.Log($"[ElementalistE_Thunder Server] executing arc at {position}, damage={adjustedDamage}, range={arcRange}, angle={arcAngle}");
+            // Debug.Log($"[ElementalistE_Thunder Server] executing arc at {position}, damage={adjustedDamage}, range={arcRange}, angle={arcAngle}");
 
             // trigger vfx for all clients
             TriggerThunderArcVfxClientRpc(position, forward, arcRange, arcAngle);
@@ -1627,7 +1627,7 @@ namespace Category5
                 }
             }
 
-            Debug.Log($"[ElementalistE_Thunder Server] hit {enemiesHit} enemies");
+            // Debug.Log($"[ElementalistE_Thunder Server] hit {enemiesHit} enemies");
 
             if (enemiesHit > 0)
             {
@@ -1707,7 +1707,7 @@ namespace Category5
                 pullDuration, pullStrengthRampUp, explosionRadius);
 
             netObj.Spawn();
-            Debug.Log($"[Elementalist] black hole projectile spawned for client {OwnerClientId} at {position}");
+            // Debug.Log($"[Elementalist] black hole projectile spawned for client {OwnerClientId} at {position}");
         }
 
     }

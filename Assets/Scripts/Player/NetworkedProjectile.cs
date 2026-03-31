@@ -129,7 +129,7 @@ namespace Category5.Player
             if (!IsServer) return;
             if (_hasHit && !_isPiercing) return;
             
-            Debug.Log($"Projectile collision with: {other.gameObject.name} on layer {LayerMask.LayerToName(other.gameObject.layer)}");
+            // Debug.Log($"Projectile collision with: {other.gameObject.name} on layer {LayerMask.LayerToName(other.gameObject.layer)}");
             
             // ignore collision with all players (friendly fire disabled)
             if (other.TryGetComponent<PlayerController>(out _))
@@ -148,7 +148,7 @@ namespace Category5.Player
             
             if (damageable != null)
             {
-                Debug.Log($"Found IDamageable on {(damageable as MonoBehaviour)?.gameObject.name ?? "unknown"}");
+                // Debug.Log($"Found IDamageable on {(damageable as MonoBehaviour)?.gameObject.name ?? "unknown"}");
                 
                 // check if this is a boss
                 bool isBoss = other.GetComponentInParent<BossBase>() != null;
@@ -181,7 +181,7 @@ namespace Category5.Player
             }
             else
             {
-                Debug.Log($"No IDamageable found on {other.gameObject.name} or its parents");
+                // Debug.Log($"No IDamageable found on {other.gameObject.name} or its parents");
                 
                 // hit environment (wall, obstacle)
                 if (_isPiercing && _ignoreEnvironment)
@@ -316,14 +316,14 @@ namespace Category5.Player
             }
             
             // TODO: spawn impact vfx here for all clients
-            Debug.Log($"Projectile hit at {position}");
+            // Debug.Log($"Projectile hit at {position}");
         }
         
         [ClientRpc]
         private void ShowLifestealVfxClientRpc(int healAmount, Vector3 position, ClientRpcParams clientRpcParams = default)
         {
             Category5.Audio.PlayerEvents.InvokeHeal(position, healAmount);
-            Debug.Log($"Lifesteal healed {healAmount} HP!");
+            // Debug.Log($"Lifesteal healed {healAmount} HP!");
         }
     }
 }

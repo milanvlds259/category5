@@ -22,7 +22,7 @@ namespace Category5.Core
             var player = other.GetComponentInParent<PlayerController>();
             if (player != null && !player.IsDead.Value)
             {
-                Debug.Log($"killbox: player {player.OwnerClientId} fell off the map");
+                // Debug.Log($"killbox: player {player.OwnerClientId} fell off the map");
                 player.TakeDamage(99999);
                 return;
             }
@@ -31,7 +31,7 @@ namespace Category5.Core
             var enemy = other.GetComponentInParent<EnemyBase>();
             if (enemy != null)
             {
-                Debug.Log($"killbox: enemy fell off the map");
+                // Debug.Log($"killbox: enemy fell off the map");
                 enemy.TakeDamage(99999);
                 return;
             }
@@ -40,7 +40,7 @@ namespace Category5.Core
             var boss = other.GetComponentInParent<BossBase>();
             if (boss != null)
             {
-                Debug.Log($"killbox: boss fell off the map");
+                // Debug.Log($"killbox: boss fell off the map");
                 boss.TeleportToSpawn();
                 return;
             }

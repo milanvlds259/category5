@@ -55,7 +55,7 @@ namespace Category5.Core
                 NetworkManager.Singleton.OnTransportFailure += OnTransportFailure;
             }
             
-            Debug.Log("NetworkSessionManager: Session started, monitoring for disconnects");
+            // Debug.Log("NetworkSessionManager: Session started, monitoring for disconnects");
         }
         
         public override void OnNetworkDespawn()
@@ -82,7 +82,7 @@ namespace Category5.Core
         {
             if (!_isGameActive || _isShuttingDown) return;
             
-            Debug.Log($"NetworkSessionManager: Client {clientId} disconnected");
+            // Debug.Log($"NetworkSessionManager: Client {clientId} disconnected");
             
             if (IsServer)
             {
@@ -104,7 +104,7 @@ namespace Category5.Core
         {
             if (!_isGameActive || _isShuttingDown) return;
             
-            Debug.Log("NetworkSessionManager: Transport failure detected");
+            // Debug.Log("NetworkSessionManager: Transport failure detected");
             HandleLocalDisconnect("Connection to host lost");
         }
         
@@ -171,7 +171,7 @@ namespace Category5.Core
                 GameFlowManager.Instance.HandlePlayerDisconnected(clientId);
             }
             
-            Debug.Log($"NetworkSessionManager: Cleaned up state for player {clientId}");
+            // Debug.Log($"NetworkSessionManager: Cleaned up state for player {clientId}");
         }
         
         // check if the game can continue with remaining players
@@ -181,18 +181,18 @@ namespace Category5.Core
             
             int remainingPlayers = NetworkManager.Singleton.ConnectedClientsIds.Count;
             
-            Debug.Log($"NetworkSessionManager: {remainingPlayers} players remaining");
+            // Debug.Log($"NetworkSessionManager: {remainingPlayers} players remaining");
             
             if (remainingPlayers <= 0)
             {
                 // no players left, end the session
-                Debug.Log("NetworkSessionManager: No players remaining, ending session");
+                // Debug.Log("NetworkSessionManager: No players remaining, ending session");
                 EndSession();
             }
             else if (remainingPlayers == 1 && NetworkManager.Singleton.IsHost)
             {
                 // only host remains, could show "waiting for players" or continue solo
-                Debug.Log("NetworkSessionManager: Only host remaining");
+                // Debug.Log("NetworkSessionManager: Only host remaining");
                 // for now, continue the game - host can play solo or wait
             }
         }
@@ -203,7 +203,7 @@ namespace Category5.Core
             if (_isShuttingDown) return;
             _isShuttingDown = true;
             
-            Debug.Log($"NetworkSessionManager: Local disconnect - {reason}");
+            // Debug.Log($"NetworkSessionManager: Local disconnect - {reason}");
             
             // notify ui
             OnHostDisconnected?.Invoke(reason);
@@ -269,7 +269,7 @@ namespace Category5.Core
         [ClientRpc]
         private void NotifyPlayerDisconnectedClientRpc(ulong clientId, string playerName)
         {
-            Debug.Log($"NetworkSessionManager: {playerName} disconnected");
+            // Debug.Log($"NetworkSessionManager: {playerName} disconnected");
             OnPlayerDisconnected?.Invoke(clientId, playerName);
         }
         
@@ -278,7 +278,7 @@ namespace Category5.Core
         {
             if (IsServer) return; // server handles this differently
             
-            Debug.Log($"NetworkSessionManager: Session ending - {reason}");
+            // Debug.Log($"NetworkSessionManager: Session ending - {reason}");
             _isShuttingDown = true;
             OnHostDisconnected?.Invoke(reason);
             

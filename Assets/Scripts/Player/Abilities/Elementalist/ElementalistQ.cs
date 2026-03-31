@@ -54,7 +54,7 @@ namespace Category5
                 _ => ElementMode.Fire
             };
 
-            Debug.Log($"[ElementalistQ] element cycled to {currentElement}");
+            // Debug.Log($"[ElementalistQ] element cycled to {currentElement}");
 
             // notify listeners (ui, vfx)
             OnElementChanged?.Invoke(currentElement);

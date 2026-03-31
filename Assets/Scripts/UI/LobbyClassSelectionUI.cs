@@ -100,7 +100,7 @@ namespace Category5.UI
             }
             
             classDropdown.RefreshShownValue();
-            Debug.Log($"LobbyClassSelectionUI: Populated dropdown with {classDropdown.options.Count} classes");
+            // Debug.Log($"LobbyClassSelectionUI: Populated dropdown with {classDropdown.options.Count} classes");
         }
         
         private void UpdateDropdownToCurrentSelection()
@@ -138,7 +138,7 @@ namespace Category5.UI
                 LobbyManager.Instance.SendLocalPlayerClass(selectedClass);
             }
             
-            Debug.Log($"LobbyClassSelectionUI: Selected class {selectedClass}");
+            // Debug.Log($"LobbyClassSelectionUI: Selected class {selectedClass}");
         }
         
         private void OnLobbyPlayersChanged()

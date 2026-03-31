@@ -141,7 +141,7 @@ namespace Category5.Player
         public void SetClassData(PlayerClass classData)
         {
             _classData = classData;
-            Debug.Log($"PlayerStats: class data set to {classData.className} (ATK={classData.baseAttackDamage}, HP={classData.baseMaxHealth}, Armor={classData.baseArmor})");
+            // Debug.Log($"PlayerStats: class data set to {classData.className} (ATK={classData.baseAttackDamage}, HP={classData.baseMaxHealth}, Armor={classData.baseArmor})");
             RecalculateStats();
         }
 
@@ -194,7 +194,7 @@ namespace Category5.Player
                 }
             }
 
-            Debug.Log($"PlayerStats recalculated: ATK={BaseAttackDamage}, DmgMult={_damageMultiplier:F2}, FlatDmg={_flatDamageBonus}, MaxHP={TotalMaxHealth}, Armor={TotalArmor:F1}, Crit={TotalCritChance:P0}/{TotalCritDamage:F1}x");
+            // Debug.Log($"PlayerStats recalculated: ATK={BaseAttackDamage}, DmgMult={_damageMultiplier:F2}, FlatDmg={_flatDamageBonus}, MaxHP={TotalMaxHealth}, Armor={TotalArmor:F1}, Crit={TotalCritChance:P0}/{TotalCritDamage:F1}x");
 
             OnStatsChanged?.Invoke();
         }

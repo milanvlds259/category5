@@ -23,7 +23,7 @@ namespace Category5.Player
         
         public override void OnNetworkSpawn()
         {
-            Debug.Log($"PlayerClassManager.OnNetworkSpawn: IsServer={IsServer}, IsOwner={IsOwner}, SelectedClass={SelectedClass.Value}, OwnerClientId={OwnerClientId}");
+            // Debug.Log($"PlayerClassManager.OnNetworkSpawn: IsServer={IsServer}, IsOwner={IsOwner}, SelectedClass={SelectedClass.Value}, OwnerClientId={OwnerClientId}");
             
             // subscribe to class changes
             SelectedClass.OnValueChanged += OnSelectedClassChanged;
@@ -37,7 +37,7 @@ namespace Category5.Player
                 if (LobbyManager.Instance != null)
                 {
                     PlayerClassType lobbySelectedClass = LobbyManager.Instance.GetPlayerClass(OwnerClientId);
-                    Debug.Log($"PlayerClassManager: Found lobby selection {lobbySelectedClass} for player {OwnerClientId}");
+                    // Debug.Log($"PlayerClassManager: Found lobby selection {lobbySelectedClass} for player {OwnerClientId}");
                     classToLoad = lobbySelectedClass;
                     
                     // request server to set the class from lobby
@@ -47,26 +47,26 @@ namespace Category5.Player
                 {
                     // LobbyManager is gone (cleaned up during scene load), use persistent ClassSelectionManager
                     PlayerClassType persistentClass = ClassSelectionManager.GetClass();
-                    Debug.Log($"PlayerClassManager: LobbyManager not found, using persistent ClassSelectionManager: {persistentClass}");
+                    // Debug.Log($"PlayerClassManager: LobbyManager not found, using persistent ClassSelectionManager: {persistentClass}");
                     classToLoad = persistentClass;
                     
                     // if the class is different, request it via RPC
                     if (classToLoad != SelectedClass.Value)
                     {
-                        Debug.Log($"PlayerClassManager: Owner {OwnerClientId} requested class {classToLoad}");
+                        // Debug.Log($"PlayerClassManager: Owner {OwnerClientId} requested class {classToLoad}");
                         RequestSetClassServerRpc(classToLoad);
                     }
                     else
                     {
                         // class is already correct, load it directly (since OnValueChanged won't fire)
-                        Debug.Log($"PlayerClassManager: Owner {OwnerClientId} class already {classToLoad}, loading directly");
+                        // Debug.Log($"PlayerClassManager: Owner {OwnerClientId} class already {classToLoad}, loading directly");
                         LoadClassLocally(classToLoad);
                     }
                 }
             }
             else
             {
-                Debug.Log($"PlayerClassManager: Non-owner observing player {OwnerClientId} with class {SelectedClass.Value}");
+                // Debug.Log($"PlayerClassManager: Non-owner observing player {OwnerClientId} with class {SelectedClass.Value}");
                 // load class data expeditiously 
                 LoadClassLocally(SelectedClass.Value);
             }
@@ -75,7 +75,7 @@ namespace Category5.Player
         private void OnSelectedClassChanged(PlayerClassType oldClass, PlayerClassType newClass)
         {
             // when class changes, reload abilities on all instances
-            Debug.Log($"PlayerClassManager.OnSelectedClassChanged: {oldClass} -> {newClass}");
+            // Debug.Log($"PlayerClassManager.OnSelectedClassChanged: {oldClass} -> {newClass}");
             LoadClassLocally(newClass);
         }
 
@@ -92,7 +92,7 @@ namespace Category5.Player
         // load class and spawn its abilities (for the owner of this player)
         private void LoadClassLocally(PlayerClassType classType)
         {
-            Debug.Log($"PlayerClassManager.LoadClassLocally: Applying class {classType} for player {OwnerClientId} (IsOwner={IsOwner}, IsServer={IsServer})");
+            // Debug.Log($"PlayerClassManager.LoadClassLocally: Applying class {classType} for player {OwnerClientId} (IsOwner={IsOwner}, IsServer={IsServer})");
             
             PlayerClass classData = GetClassData(classType);
             if (classData == null)
@@ -101,10 +101,10 @@ namespace Category5.Player
                 return;
             }
             
-            Debug.Log($"PlayerClassManager: Found class data {classData.className}");
-            Debug.Log($"  - Ability1Prefab: {(classData.ability1Prefab != null ? classData.ability1Prefab.name : "null")}");
-            Debug.Log($"  - Ability2Prefab: {(classData.ability2Prefab != null ? classData.ability2Prefab.name : "null")}");
-            Debug.Log($"  - Ability3Prefab: {(classData.ability3Prefab != null ? classData.ability3Prefab.name : "null")}");
+            // Debug.Log($"PlayerClassManager: Found class data {classData.className}");
+            // Debug.Log($"  - Ability1Prefab: {(classData.ability1Prefab != null ? classData.ability1Prefab.name : "null")}");
+            // Debug.Log($"  - Ability2Prefab: {(classData.ability2Prefab != null ? classData.ability2Prefab.name : "null")}");
+            // Debug.Log($"  - Ability3Prefab: {(classData.ability3Prefab != null ? classData.ability3Prefab.name : "null")}");
             
             // clear existing abilities and reset ability manager references
             ClearAbilities();
@@ -135,7 +135,7 @@ namespace Category5.Player
 
             if (!IsOwner)
             {
-                Debug.Log($"PlayerClassManager: Applied non-owner class data for player {OwnerClientId}");
+                // Debug.Log($"PlayerClassManager: Applied non-owner class data for player {OwnerClientId}");
                 return;
             }
             
@@ -144,28 +144,28 @@ namespace Category5.Player
             {
                 var abilityObj = Instantiate(classData.ability1Prefab, transform);
                 abilityObj.name = "Ability1";
-                Debug.Log($"PlayerClassManager: Instantiated Ability1");
+                // Debug.Log($"PlayerClassManager: Instantiated Ability1");
             }
             
             if (classData.ability2Prefab != null)
             {
                 var abilityObj = Instantiate(classData.ability2Prefab, transform);
                 abilityObj.name = "Ability2";
-                Debug.Log($"PlayerClassManager: Instantiated Ability2");
+                // Debug.Log($"PlayerClassManager: Instantiated Ability2");
             }
             
             if (classData.ability3Prefab != null)
             {
                 var abilityObj = Instantiate(classData.ability3Prefab, transform);
                 abilityObj.name = "Ability3";
-                Debug.Log($"PlayerClassManager: Instantiated Ability3");
+                // Debug.Log($"PlayerClassManager: Instantiated Ability3");
             }
             
             // notify ability manager that abilities have been loaded
-            Debug.Log($"PlayerClassManager: Calling FindAbilitiesAfterClassLoad");
+            // Debug.Log($"PlayerClassManager: Calling FindAbilitiesAfterClassLoad");
             abilityManager.FindAbilitiesAfterClassLoad();
             
-            Debug.Log($"Loaded class: {classData.className}");
+            // Debug.Log($"Loaded class: {classData.className}");
         }        
         
         private void ClearAbilities()
@@ -204,7 +204,7 @@ namespace Category5.Player
                 return null;
             }
             
-            Debug.Log($"PlayerClassManager.GetClassData: Found {classType} -> {classData.className}");
+            // Debug.Log($"PlayerClassManager.GetClassData: Found {classType} -> {classData.className}");
             return classData;
         }
         

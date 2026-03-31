@@ -110,7 +110,7 @@ namespace Category5.Core
                 AddPlayer(NetworkManager.Singleton.LocalClientId, PlayerNameManager.Instance?.GetDisplayName() ?? "Host", true, PlayerClassType.Ranger);
             }
             
-            Debug.Log("LobbyManager: Initialized");
+            //// Debug.Log("LobbyManager: Initialized");
         }
         
         // call this when leaving the lobby
@@ -133,7 +133,7 @@ namespace Category5.Core
             _lobbyPlayers.Clear();
             _isInitialized = false;
             
-            Debug.Log("LobbyManager: Cleaned up");
+            //// Debug.Log("LobbyManager: Cleaned up");
         }
         
         private void OnClientConnected(ulong clientId)
@@ -144,7 +144,7 @@ namespace Category5.Core
             // host already added in Initialize()
             if (clientId == NetworkManager.Singleton.LocalClientId) return;
             
-            Debug.Log($"LobbyManager: Client {clientId} connected, waiting for name...");
+            // Debug.Log($": Client {clientId} connected, waiting for name...");
         }
         
         private void OnClientDisconnected(ulong clientId)
@@ -156,7 +156,7 @@ namespace Category5.Core
             {
                 if (_lobbyPlayers[i].ClientId == clientId)
                 {
-                    Debug.Log($"LobbyManager: Player {_lobbyPlayers[i].PlayerName} left");
+                    //// Debug.Log($"LobbyManager: Player {_lobbyPlayers[i].PlayerName} left");
                     _lobbyPlayers.RemoveAt(i);
                     break;
                 }
@@ -184,7 +184,7 @@ namespace Category5.Core
                 writer
             );
             
-            Debug.Log($"LobbyManager: Sent name '{name}' to server");
+            //// Debug.Log($"LobbyManager: Sent name '{name}' to server");
         }
         
         // server receives player name from client
@@ -247,7 +247,7 @@ namespace Category5.Core
                 _lobbyPlayers.Add(player);
             }
             
-            Debug.Log($"LobbyManager: Received player list with {count} players");
+            //// Debug.Log($"LobbyManager: Received player list with {count} players");
             OnLobbyPlayersChanged?.Invoke();
         }
         
@@ -283,7 +283,7 @@ namespace Category5.Core
             {
                 if (_lobbyPlayers[i].ClientId == leftClientId)
                 {
-                    Debug.Log($"LobbyManager: Player {_lobbyPlayers[i].PlayerName} left");
+                    //// Debug.Log($"LobbyManager: Player {_lobbyPlayers[i].PlayerName} left");
                     _lobbyPlayers.RemoveAt(i);
                     break;
                 }
@@ -310,7 +310,7 @@ namespace Category5.Core
             };
             
             _lobbyPlayers.Add(player);
-            Debug.Log($"LobbyManager: Added player '{playerName}' (client {clientId}, host: {isHost}, class: {selectedClass})");
+            //// Debug.Log($"LobbyManager: Added player '{playerName}' (client {clientId}, host: {isHost}, class: {selectedClass})");
             
             OnLobbyPlayersChanged?.Invoke();
         }
@@ -368,7 +368,7 @@ namespace Category5.Core
                 writer
             );
             
-            Debug.Log($"LobbyManager: Sent class selection '{classType}' to server");
+            //// Debug.Log($"LobbyManager: Sent class selection '{classType}' to server");
         }
         
         // host sets their own class directly
@@ -385,7 +385,7 @@ namespace Category5.Core
                     player.SelectedClass = classType;
                     _lobbyPlayers[i] = player;
                     
-                    Debug.Log($"LobbyManager: Host set class to {classType}");
+                    //// Debug.Log($"LobbyManager: Host set class to {classType}");
                     OnLobbyPlayersChanged?.Invoke();
                     
                     // broadcast to all clients
@@ -412,7 +412,7 @@ namespace Category5.Core
                     player.SelectedClass = classType;
                     _lobbyPlayers[i] = player;
                     
-                    Debug.Log($"LobbyManager: Player {senderClientId} selected class {classType}");
+                    //// Debug.Log($"LobbyManager: Player {senderClientId} selected class {classType}");
                     OnLobbyPlayersChanged?.Invoke();
                     
                     // broadcast updated list to all clients
@@ -443,7 +443,7 @@ namespace Category5.Core
                     writer
                 );
                 
-                Debug.Log($"LobbyManager: Sent ready state '{isReady}' to server");
+                //// Debug.Log($"LobbyManager: Sent ready state '{isReady}' to server");
             }
         }
         
@@ -460,7 +460,7 @@ namespace Category5.Core
                     player.IsReady = isReady;
                     _lobbyPlayers[i] = player;
                     
-                    Debug.Log($"LobbyManager: Host set ready to {isReady}");
+                    //// Debug.Log($"LobbyManager: Host set ready to {isReady}");
                     OnLobbyPlayersChanged?.Invoke();
                     
                     BroadcastPlayerList();
@@ -484,7 +484,7 @@ namespace Category5.Core
                     player.IsReady = isReady;
                     _lobbyPlayers[i] = player;
                     
-                    Debug.Log($"LobbyManager: Player {senderClientId} set ready to {isReady}");
+                    //// Debug.Log($"LobbyManager: Player {senderClientId} set ready to {isReady}");
                     OnLobbyPlayersChanged?.Invoke();
                     
                     BroadcastPlayerList();

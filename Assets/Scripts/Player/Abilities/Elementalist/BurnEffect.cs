@@ -47,7 +47,7 @@ namespace Category5
         public void Refresh(float newDuration)
         {
             _remainingDuration = newDuration > 0 ? newDuration : duration;
-            Debug.Log($"[BurnEffect] refreshed duration to {_remainingDuration}s");
+            // Debug.Log($"[BurnEffect] refreshed duration to {_remainingDuration}s");
         }
 
         // refresh with new parameters
@@ -65,7 +65,7 @@ namespace Category5
             _remainingDuration -= Time.deltaTime;
             if (_remainingDuration <= 0f)
             {
-                Debug.Log("[BurnEffect] expired, removing");
+                // Debug.Log("[BurnEffect] expired, removing");
                 Destroy(this);
                 return;
             }
@@ -93,7 +93,7 @@ namespace Category5
 
             _target.TakeDamage(finalDamage);
 
-            Debug.Log($"[BurnEffect] tick for {finalDamage} damage, {_remainingDuration:F1}s remaining");
+            // Debug.Log($"[BurnEffect] tick for {finalDamage} damage, {_remainingDuration:F1}s remaining");
         }
     }
 }

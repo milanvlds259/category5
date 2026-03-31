@@ -22,7 +22,7 @@ namespace Category5.Core
             Instance = this;
             DontDestroyOnLoad(gameObject);
             
-            Debug.Log($"ClassRegistry: Initialized with {availableClasses.Length} classes");
+            // Debug.Log($"ClassRegistry: Initialized with {availableClasses.Length} classes");
         }
         
         private void OnDestroy()

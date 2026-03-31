@@ -56,7 +56,7 @@ namespace Category5.UI
             {
                 Category5.Core.GameFlowManager.Instance.OnGameOver += ShowGameOver;
                 _isSubscribed = true;
-                Debug.Log("GameOverUI: Subscribed to GameFlowManager events");
+                // Debug.Log("GameOverUI: Subscribed to GameFlowManager events");
             }
         }
         
@@ -77,7 +77,7 @@ namespace Category5.UI
         {
             if (gameOverPanel == null) return;
             
-            Debug.Log("GameOverUI: Showing game over screen");
+            // Debug.Log("GameOverUI: Showing game over screen");
             
             // show panel
             gameOverPanel.SetActive(true);
@@ -118,7 +118,7 @@ namespace Category5.UI
         
         private void OnReturnToMenuClicked()
         {
-            Debug.Log("GameOverUI: Returning to menu");
+            // Debug.Log("GameOverUI: Returning to menu");
             
             // ensure cursor is unlocked before scene transition
             Cursor.lockState = CursorLockMode.None;
