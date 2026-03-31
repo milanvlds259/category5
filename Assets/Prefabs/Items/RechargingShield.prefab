@@ -9,9 +9,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7431130188438898788}
-  - component: {fileID: 4246315374999109354}
+  - component: {fileID: -3803907914738923224}
   m_Layer: 0
-  m_Name: WeatherBalloonBehaviour
+  m_Name: RechargingShield
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -32,7 +32,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &4246315374999109354
+--- !u!114 &-3803907914738923224
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -41,24 +41,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 3095713141797661695}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1500f7745d3272d439ecadf34ad4a7ee, type: 3}
+  m_Script: {fileID: 11500000, guid: 443bfb2d25a9d2241ae254cb55649ef4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Category5.Items.WeatherBalloonBehaviour
-  jumpBonus:
-  - 0.4
-  - 0.75
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Items.RechargingShieldBehaviour
+  hpPerSecond:
   - 1
   - 2
   - 4
-  fallReduction:
-  - 0.4
-  - 0.5
-  - 0.6
-  - 0.75
-  - 0.95
-  airborneResist:
-  - 0.15
-  - 0.18
-  - 0.25
-  - 0.37
-  - 0.6
+  - 7
+  - 12

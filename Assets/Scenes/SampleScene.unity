@@ -1627,7 +1627,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 9.776978, y: -49.50699}
+  m_AnchoredPosition: {x: 9.776855, y: -49.506958}
   m_SizeDelta: {x: 86.12, y: 34.7347}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &269614260
@@ -5141,7 +5141,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Items.ItemRegistry
   allItems:
-  - {fileID: 11400000, guid: aa63826c2c3de8a4c817fc5ce68a3a50, type: 2}
+  - {fileID: 11400000, guid: 78804a97dbce5dd44925f2bf364ca3c5, type: 2}
   - {fileID: 11400000, guid: b3087fbced0ac164595fa35ca8eaa269, type: 2}
   - {fileID: 11400000, guid: 17e70640f72c2c2459b5b4978c402010, type: 2}
   useWeightedSelection: 0
@@ -11554,7 +11554,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 37.9, y: -37}
+  m_AnchoredPosition: {x: 37.899902, y: -37}
   m_SizeDelta: {x: 320, y: 320}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &1669375489
@@ -13336,7 +13336,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 95.89734, y: -8.799988}
+  m_AnchoredPosition: {x: 95.89746, y: -8.800049}
   m_SizeDelta: {x: 86.1203, y: 40.7067}
   m_Pivot: {x: 1, y: 1}
 --- !u!114 &2016187003
