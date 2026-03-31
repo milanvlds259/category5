@@ -17,7 +17,7 @@ MonoBehaviour:
   characterName: Maia
   classDescription: Elementalist Battlemage
   classIcon: {fileID: 21300000, guid: 981d9a5b48e264f419ec105f6b662a4e, type: 3}
-  classPortrait: {fileID: 21300000, guid: b9c47d8973475144a8bd644bb721a523, type: 3}
+  classPortrait: {fileID: 21300000, guid: 120084b08fc98aa4589751968b741fc2, type: 3}
   ability1Prefab: {fileID: 53412344211962831, guid: a87b1a2089d00c84882b293e6ccafb91, type: 3}
   ability2Prefab: {fileID: 53412344211962831, guid: b679d062d739423438c49efdf8dfed4e, type: 3}
   ability3Prefab: {fileID: 53412344211962831, guid: 6bdf49ae402a43947a03d36de97b308a, type: 3}
