@@ -83,8 +83,9 @@ namespace Category5.UI
             
             var playerClass = ClassRegistry.Instance.GetClass(classType);
             if (playerClass == null) return defaultPortraitSprite;
-            
-            // prefer portrait, fall back to icon, then default
+
+            // prefer party portrait, fall back to portrait, fall back to icon, then default
+            if (playerClass.classPartyPortrait != null) return playerClass.classPartyPortrait;
             if (playerClass.classPortrait != null) return playerClass.classPortrait;
             if (playerClass.classIcon != null) return playerClass.classIcon;
             return defaultPortraitSprite;

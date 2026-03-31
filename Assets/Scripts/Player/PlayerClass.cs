@@ -24,7 +24,8 @@ namespace Category5.Player
         
         public Sprite classIcon; // full body art - used in character view panel
         public Sprite classPortrait; // cropped portrait - used in character select carousel
-        
+        public Sprite classPartyPortrait; // smaller portrait for party panel 
+
         [Header("Ability Prefabs")]
         public GameObject ability1Prefab; // Q
         public GameObject ability2Prefab; // E
