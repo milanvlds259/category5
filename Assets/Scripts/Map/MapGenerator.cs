@@ -10,12 +10,13 @@ using Unity.Mathematics;
 using System.Linq;
 using System.Numerics;
 using Category5.Player.WindRiding;
+using Unity.VisualScripting.ReorderableList;
 
 public class MapGenerator : MonoBehaviour
 {
     // CURRENT ISSUES!
     /*
-        - Path entrances can cross over each other
+        - Reposition Entrances not working
         - Paths can go over arenas
         - Path spacing not working
         - Want to make paths only move points side to side?
@@ -142,7 +143,7 @@ public class MapGenerator : MonoBehaviour
                 maxIterations--;
                 if (maxIterations <= 0)
                 {
-                    UnityEngine.Debug.LogWarning("Max iterations reached while trying to place an arena. Some arenas may overlap.");
+                    //UnityEngine.Debug.LogWarning("Max iterations reached while trying to place an arena. Some arenas may overlap.");
                     break; // break out of the while loop
                 }
 
@@ -193,17 +194,25 @@ public class MapGenerator : MonoBehaviour
             CreatePath(arenas[i], secondClosestArena, mapParent.transform, pathCount.ToString());
             pathCount++;
         }
-        
+        // Reposition the path entrances away from each
+        // other to reduce crowding
         foreach (Path path in paths)
         {
             RepositionEntrance(path, "A");
             RepositionEntrance(path, "B");
         }
+
+        foreach (Path path in paths)
+        {
+            AddPathMidpoints(path.gameObjectRef.GetComponent<SplineContainer>());
+        }
+        
         
         // Space out all the path points so they dont overlap!
         SpaceOutPaths();
 
-        AddWindTunnelToPaths();
+        // Add the wind tunnel component and launch pads to each path
+        if (Application.isPlaying) AddWindTunnelToPaths();
     }
 
 
@@ -236,7 +245,7 @@ public class MapGenerator : MonoBehaviour
         // since the paths will be generated from the edges of the arenas
         Collider[] colliders = Physics.OverlapCapsule(arena.transform.position - new Vector3(0, 100, 0), 
                                                     arena.transform.position + new Vector3(0, 100, 0), 
-                                                    arena.transform.localScale.x / scaleFactor, 
+                                                    arena.transform.localScale.x * 2, 
                                                     arenaMask, 
                                                     QueryTriggerInteraction.Collide
                                                     );
@@ -303,13 +312,13 @@ public class MapGenerator : MonoBehaviour
         // Path to same arena?
         if (arenaA == arenaB)
         {
-            Debug.LogWarning("Attempted to create a path between the same arena. Path creation aborted.");
+            //Debug.LogWarning("Attempted to create a path between the same arena. Path creation aborted.");
             return; // Do not create a path between the same arena
         }
         // Path to null arena?
         if (arenaA == null || arenaB == null)
         {
-            Debug.LogWarning("Attempted to create a path with a null arena reference. Path creation aborted.");
+            //Debug.LogWarning("Attempted to create a path with a null arena reference. Path creation aborted.");
             return; // Do not create a path if either arena reference is null
         }
         // Path already exists?
@@ -317,7 +326,7 @@ public class MapGenerator : MonoBehaviour
         {
             if ((path.arenaA == arenaA && path.arenaB == arenaB) || (path.arenaA == arenaB && path.arenaB == arenaA))
             {
-                Debug.LogWarning("Attempted to create a duplicate path between " + arenaA.gameObjectRef.name + " and " + arenaB.gameObjectRef.name + ". Path creation aborted.");
+                //Debug.LogWarning("Attempted to create a duplicate path between " + arenaA.gameObjectRef.name + " and " + arenaB.gameObjectRef.name + ". Path creation aborted.");
                 return; // Do not create a duplicate path
             }
         }
@@ -361,6 +370,42 @@ public class MapGenerator : MonoBehaviour
         //pathPoints.Add(Aknot);
         //pathPoints.Add(Bknot);
 
+        
+
+        // Add points to the spline before the end points to point the entrances to the
+        // path at the arenas
+        BezierKnot beforeAknot = new BezierKnot(pointBeforeA);
+        BezierKnot beforeBknot = new BezierKnot(pointBeforeB);
+        spline.Insert(1, beforeAknot, TangentMode.AutoSmooth); // Start pos
+        spline.Insert(spline.Count-1, beforeBknot, TangentMode.AutoSmooth); // End pos
+
+        // Add points to list that contains all points
+        //pathPoints.Add(beforeAknot);
+        //pathPoints.Add(beforeBknot);
+        
+        // Calls helper function that removes knots that are too sharp (not working?)
+        CleanUpPath(spline, splineContainer);
+        
+        
+        // Add a mesh to this path
+        if (Application.isPlaying) CreatePathMesh(splineContainer);
+
+        // Make path a child of the parent
+        splineContainer.gameObject.transform.parent = parent;
+
+        // Create a Path instance to hold the path's data
+        Path pathData = new Path(arenaA, arenaB, splineContainer.gameObject);
+
+        paths.Add(pathData); // Store reference to the created path
+    }
+    void AddPathMidpoints(SplineContainer splineContainer)
+    {
+        // Get spline ref
+        Spline spline = splineContainer.Spline;
+        // Get spline endpoints
+        Vector3 pointOnA = spline[0].Position;
+        Vector3 pointOnB = spline[spline.Count-1].Position;
+
         // Get the vector from arena to arena
         Vector3 betweenArenaVector = pointOnB - pointOnA;
 
@@ -401,9 +446,11 @@ public class MapGenerator : MonoBehaviour
             }
 
             // Move the position using the vector, random magnitude
-            // float curveStrength = Random.Range(30, 50);
-            //midPos += moveVector * Random.Range(20, 40);
+            float curveStrength = Random.Range(10, 30);
             
+            // Make it so that the knot is moved outwards less towards the ends of the path
+            curveStrength *= 4f * place * (1f - place); // When place is 0.5 (middle) then the full curveStrength will be used, less towards ends
+            midPos += moveVector * curveStrength;
 
             // Add the place on spline and the position into the newKnotPositions array
             knotPositions[i] = (place, midPos);
@@ -422,35 +469,10 @@ public class MapGenerator : MonoBehaviour
             // Add it to the all points list
             pathMidpoints.Add(newKnot);
             // Insert the new knot on the spline
-            spline.Insert(spline.Count - 1, newKnot, TangentMode.AutoSmooth);
+            spline.Insert(spline.Count - 2, newKnot, TangentMode.AutoSmooth);
         }
-
-        // Add points to the spline before the end points to point the entrances to the
-        // path at the arenas
-        BezierKnot beforeAknot = new BezierKnot(pointBeforeA);
-        BezierKnot beforeBknot = new BezierKnot(pointBeforeB);
-        spline.Insert(1, beforeAknot, TangentMode.AutoSmooth); // Start pos
-        spline.Insert(spline.Count-1, beforeBknot, TangentMode.AutoSmooth); // End pos
-
-        // Add points to list that contains all points
-        //pathPoints.Add(beforeAknot);
-        //pathPoints.Add(beforeBknot);
-        
-        // Calls helper function that removes knots that are too sharp (not working?)
-        CleanUpPath(spline, splineContainer);
-        
-        
-        // Add a mesh to this path
-        CreatePathMesh(splineContainer);
-
-        // Make path a child of the parent
-        splineContainer.gameObject.transform.parent = parent;
-
-        // Create a Path instance to hold the path's data
-        Path pathData = new Path(arenaA, arenaB, splineContainer.gameObject);
-
-        paths.Add(pathData); // Store reference to the created path
     }
+
     void AddWindTunnelToPaths()
     {
         foreach (Path path in paths)
@@ -479,7 +501,7 @@ public class MapGenerator : MonoBehaviour
 
     void CleanUpPath(Spline spline, SplineContainer splineContainer)
     {
-        /*
+        
         // Clean up knots that are too sharp
         // Shouldn't take more than 50 tries
         int attempts = 0;
@@ -509,7 +531,7 @@ public class MapGenerator : MonoBehaviour
             }
             attempts++;
         }
-        */
+        
     }
 
 
@@ -533,6 +555,7 @@ public class MapGenerator : MonoBehaviour
             // Set the mesh variables
             splineExtrude.Radius = 10;
             splineExtrude.FlipNormals = true;
+            splineExtrude.Capped = false;
 
             var hasMeshRenderer = container.gameObject.TryGetComponent<MeshRenderer>(out var meshRenderer);
             if (hasMeshRenderer)
@@ -571,7 +594,7 @@ public class MapGenerator : MonoBehaviour
                 arena = path.arenaB;
                 break;
             default:
-                Debug.LogWarning("Invalid entrance specified for repositioning. Must be 'A' or 'B'.");
+                //Debug.LogWarning("Invalid entrance specified for repositioning. Must be 'A' or 'B'.");
                 return;
         }
         // Set the knot to whatever index we got from whichEntrance (first or last)
@@ -587,7 +610,7 @@ public class MapGenerator : MonoBehaviour
         bool foundAngle = false;
         int attempts = 0;
         // Sweep angle to +90 degrees (from the path entrance) in increments of 1 degree, and raycast in that direction to check for other entrances
-        while (attempts < 90 && !foundAngle)
+        while (attempts < 360 && !foundAngle)
         {
             posAngle += Mathf.Deg2Rad * 1; // Increment the angle by 1 degree
             attempts++; // Increment attempts
@@ -596,9 +619,10 @@ public class MapGenerator : MonoBehaviour
             directionFromArena = new Vector3(Mathf.Cos(posAngle), 0, Mathf.Sin(posAngle));
 
             // Raycast from the arena
-            RaycastHit[] hits = Physics.RaycastAll(arena.position, directionFromArena, arena.gameObjectRef.transform.localScale.x + 50f);
+            RaycastHit[] hits = Physics.RaycastAll(arena.position, directionFromArena, arena.gameObjectRef.transform.localScale.x + 100f);
             foreach (RaycastHit hit in hits)
             {
+                //Debug.Log("POSITIVE " + arena.gameObjectRef.name + " " + hit.collider.gameObject.name + " " + path.gameObjectRef.name + " " + attempts);
                 // If we hit a path's collider other than the entrance collider
                 if (hit.collider.gameObject.CompareTag("Path") && hit.collider.gameObject != path.gameObjectRef)
                 {
@@ -614,7 +638,7 @@ public class MapGenerator : MonoBehaviour
         foundAngle = false;
         attempts = 0;
         // Sweep angle to -90 degrees (from the path entrance) in increments of 1 degree, and raycast in that direction to check for other entrances
-        while (attempts < 90 && !foundAngle)
+        while (attempts < 360 && !foundAngle)
         {
             negAngle -= Mathf.Deg2Rad * 1; // decrement the angle by 1 degree
             attempts++; // Increment attempts
@@ -623,9 +647,10 @@ public class MapGenerator : MonoBehaviour
             directionFromArena = new Vector3(Mathf.Cos(negAngle), 0, Mathf.Sin(negAngle));
 
             // Raycast from the arena
-            RaycastHit[] hits = Physics.RaycastAll(arena.position, directionFromArena, arena.gameObjectRef.transform.localScale.x + 50f);
+            RaycastHit[] hits = Physics.RaycastAll(arena.position, directionFromArena, arena.gameObjectRef.transform.localScale.x + 100f);
             foreach (RaycastHit hit in hits)
             {
+                //Debug.Log("NEGATIVE " + arena.gameObjectRef.name + " " + hit.collider.gameObject.name + " " + path.gameObjectRef.name + " " + attempts);
                 // If we hit a path's collider other than the entrance collider
                 if (hit.collider.gameObject.CompareTag("Path") && hit.collider.gameObject != path.gameObjectRef)
                 {
@@ -639,7 +664,7 @@ public class MapGenerator : MonoBehaviour
         // Now decide on the new angle of the entrance
         float newAngle = 0f;
         // compare the final pos and neg angles, and choose a random new angle that is farther from other path entrances
-        if (Mathf.Abs( (posAngle - angle) - (negAngle - angle) ) <= 0.0001f ) // If they were equal (or close enough)
+        if (Mathf.Abs( Mathf.Abs(posAngle - angle) - Mathf.Abs(negAngle - angle) ) <= 0.0001f ) // If they were equal (or close enough)
         {
             // Don't move the entrance, exit the function
             // Debug.Log("PATH " + path.gameObjectRef.name + " DIDNT MOVE ON " + arena.gameObjectRef.name);
