@@ -1045,7 +1045,7 @@ MonoBehaviour:
   descriptionText: {fileID: 692796816}
   backgroundImage: {fileID: 0}
   selectButton: {fileID: 1107157812}
-  effectsText: {fileID: 0}
+  upgradeBannerText: {fileID: 0}
 --- !u!1 &175703434
 GameObject:
   m_ObjectHideFlags: 0
@@ -1190,6 +1190,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.UI.ItemSlotUI
   iconImage: {fileID: 66224446}
   slotButton: {fileID: 889591383}
+  tierText: {fileID: 0}
   emptyColor: {r: 0.2, g: 0.2, b: 0.2, a: 0.5}
   emptySprite: {fileID: 0}
 --- !u!1 &186179444
@@ -4059,7 +4060,7 @@ MonoBehaviour:
   descriptionText: {fileID: 1536850158}
   backgroundImage: {fileID: 0}
   selectButton: {fileID: 1823255641}
-  effectsText: {fileID: 0}
+  upgradeBannerText: {fileID: 0}
 --- !u!1 &502829895
 GameObject:
   m_ObjectHideFlags: 0
@@ -5189,6 +5190,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.UI.ItemSlotUI
   iconImage: {fileID: 684392497}
   slotButton: {fileID: 717008673}
+  tierText: {fileID: 0}
   emptyColor: {r: 0.2, g: 0.2, b: 0.2, a: 0.5}
   emptySprite: {fileID: 0}
 --- !u!1 &657803990
@@ -8844,6 +8846,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.UI.ItemSlotUI
   iconImage: {fileID: 1938769377}
   slotButton: {fileID: 1121878940}
+  tierText: {fileID: 0}
   emptyColor: {r: 0.2, g: 0.2, b: 0.2, a: 0.5}
   emptySprite: {fileID: 0}
 --- !u!1 &1135481036
@@ -14874,7 +14877,7 @@ MonoBehaviour:
   descriptionText: {fileID: 1002930212}
   backgroundImage: {fileID: 0}
   selectButton: {fileID: 1283741558}
-  effectsText: {fileID: 0}
+  upgradeBannerText: {fileID: 0}
 --- !u!1 &1897791778
 GameObject:
   m_ObjectHideFlags: 0
@@ -15624,6 +15627,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.UI.ItemSlotUI
   iconImage: {fileID: 1673365780}
   slotButton: {fileID: 1712103226}
+  tierText: {fileID: 0}
   emptyColor: {r: 0.2, g: 0.2, b: 0.2, a: 0.5}
   emptySprite: {fileID: 0}
 --- !u!1 &1961604170
@@ -15846,6 +15850,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.UI.ItemSlotUI
   iconImage: {fileID: 1753942062}
   slotButton: {fileID: 479575714}
+  tierText: {fileID: 0}
   emptyColor: {r: 0.2, g: 0.2, b: 0.2, a: 0.5}
   emptySprite: {fileID: 0}
 --- !u!1 &2001617904

@@ -410,24 +410,40 @@ public class MapGenerator : MonoBehaviour
         Vector3 betweenArenaVector = pointOnB - pointOnA;
 
 
-        // the max number of bends/curves in the path
-        int maxCurves = 0;
+        // the number of bends/curves in the path
+        int minCurves = 1;
+        int maxCurves = 1;
+        // The max amplitude of the path curves
+        float maxCurveStrength = 1;
 
-        if (betweenArenaVector.magnitude <= 50) maxCurves = 1;
-        else if (betweenArenaVector.magnitude <= 100) maxCurves = 2;
-        else if (betweenArenaVector.magnitude <= 150) maxCurves = 4;
-        else maxCurves = 5;
+        if (betweenArenaVector.magnitude <= 50) {
+            maxCurves = 0;
+            minCurves = 0;
+        }
+        else if (betweenArenaVector.magnitude <= 100) {
+            maxCurves = 1;
+            maxCurveStrength = 5;
+        }
+        else if (betweenArenaVector.magnitude <= 150) {
+            maxCurves = 2;
+            maxCurveStrength = 20;
+        }
+        else {
+            maxCurves = 3;
+            maxCurveStrength = 30;
+        }
 
         // Array that stores a tuple of the percentage along the spline and the position given to that knot
         // The length of this array decides how many random curves are added
-        (float placeOnSpline, Vector3 position)[] knotPositions = new (float, Vector3)[Random.Range(1, maxCurves)];
+        (float placeOnSpline, Vector3 position)[] knotPositions = new (float, Vector3)[Random.Range(minCurves, maxCurves)];
 
         // Add some random curves
         for (int i = 0; i < knotPositions.Length; i++)
         {
             // A percentage of the spline, used by EvaluatePosition
             // to get the position of where that point is along the spline
-            float place = Random.Range(0.125f, 0.865f);
+            // float place = Random.Range(0.125f, 0.865f);
+            float place = (0.74f) / (knotPositions.Length+1) * (i+1) + 0.125f;
             // The position on the spline based on the place value
             Vector3 midPos = splineContainer.EvaluatePosition(spline, place);
 
@@ -446,7 +462,7 @@ public class MapGenerator : MonoBehaviour
             }
 
             // Move the position using the vector, random magnitude
-            float curveStrength = Random.Range(10, 30);
+            float curveStrength = Random.Range(10, maxCurveStrength);
             
             // Make it so that the knot is moved outwards less towards the ends of the path
             curveStrength *= 4f * place * (1f - place); // When place is 0.5 (middle) then the full curveStrength will be used, less towards ends
@@ -691,7 +707,7 @@ public class MapGenerator : MonoBehaviour
 
         // Do the same for the secondary knot, slightly farther out
         BezierKnot secondaryKnot = path.spline[secondaryKnotIndex];
-        secondaryKnot.Position = newPoint + newDirection * 25f;
+        secondaryKnot.Position = newPoint + newDirection * 20f;
         path.spline.SetKnot(secondaryKnotIndex, secondaryKnot);
     }
 
