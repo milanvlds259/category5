@@ -44,9 +44,11 @@ namespace Category5.UI
         private PlayerClass _playerClass;
         private bool _isSelected;
         private bool _isHovered;
+        private bool _isTaken;
         
         public PlayerClass PlayerClass => _playerClass;
         public bool IsSelected => _isSelected;
+        public bool IsTaken => _isTaken;
         
         // set up the card with class data
         public void Setup(PlayerClass playerClass, Sprite fallbackSprite)
@@ -111,14 +113,28 @@ namespace Category5.UI
 
         public void OnPointerClick(PointerEventData eventData)
         {
+            if (_isTaken) return;
             OnCardClicked?.Invoke(this);
+        }
+        
+        // mark this card as taken by another player - greys out portrait and blocks selection
+        public void SetTaken(bool taken)
+        {
+            _isTaken = taken;
+            
+            if (portraitImage != null)
+                portraitImage.color = taken ? new Color(0.35f, 0.35f, 0.35f, 1f) : Color.white;
+            
+            UpdateVisuals();
         }
         
         private void UpdateVisuals()
         {
             if (cardBackground == null) return;
             
-            if (_isSelected)
+            if (_isTaken)
+                cardBackground.color = new Color(0.12f, 0.12f, 0.12f, 0.8f);
+            else if (_isSelected)
                 cardBackground.color = selectedColor;
             else if (_isHovered)
                 cardBackground.color = hoverColor;

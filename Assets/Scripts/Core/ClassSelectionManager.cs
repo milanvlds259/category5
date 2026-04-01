@@ -9,7 +9,7 @@ namespace Category5.Core
     {
         public static ClassSelectionManager Instance { get; private set; }
 
-        private PlayerClassType _localPlayerSelectedClass = PlayerClassType.Ranger;
+        private int _selectedClassId = PlayerClass.NoClassId;
 
         private void Awake()
         {
@@ -33,23 +33,23 @@ namespace Category5.Core
             return go.AddComponent<ClassSelectionManager>();
         }
 
-        // set the local player's selected class (called from lobby UI)
-        public static void SetClass(PlayerClassType classType)
+        // set the local player's selected class id (called from lobby ui)
+        public static void SetClass(int classId)
         {
-            GetOrCreateInstance()._localPlayerSelectedClass = classType;
-            // Debug.Log($"ClassSelectionManager: Local player class set to {classType}");
+            GetOrCreateInstance()._selectedClassId = classId;
+            // Debug.Log($"ClassSelectionManager: Local player class id set to {classId}");
         }
 
-        // get the local player's selected class (called by PlayerClassManager)
-        public static PlayerClassType GetClass()
+        // get the local player's selected class id (called by PlayerClassManager)
+        public static int GetClassId()
         {
-            return GetOrCreateInstance()._localPlayerSelectedClass;
+            return GetOrCreateInstance()._selectedClassId;
         }
 
         // reset selection (call when returning to menu or starting new game)
         public void ResetSelection()
         {
-            _localPlayerSelectedClass = PlayerClassType.Ranger;
+            _selectedClassId = PlayerClass.NoClassId;
         }
     }
 }

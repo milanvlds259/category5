@@ -8,7 +8,7 @@ namespace Category5.Player
     public class PlayerClassManager : NetworkBehaviour
     {
         [Header("Class Selection")]
-        public NetworkVariable<PlayerClassType> SelectedClass = new NetworkVariable<PlayerClassType>(PlayerClassType.Ranger);
+        public NetworkVariable<int> SelectedClassId = new NetworkVariable<int>(PlayerClass.NoClassId);
         
         private PlayerAbilityManager abilityManager;
         private PlayerCombat playerCombat;
@@ -26,35 +26,35 @@ namespace Category5.Player
             // Debug.Log($"PlayerClassManager.OnNetworkSpawn: IsServer={IsServer}, IsOwner={IsOwner}, SelectedClass={SelectedClass.Value}, OwnerClientId={OwnerClientId}");
             
             // subscribe to class changes
-            SelectedClass.OnValueChanged += OnSelectedClassChanged;
+            SelectedClassId.OnValueChanged += OnSelectedClassChanged;
             
             // if owner, request the class selection from lobby or persistent selection
             if (IsOwner)
             {
-                PlayerClassType classToLoad = SelectedClass.Value;
+                int classToLoad = SelectedClassId.Value;
                 
                 // check if LobbyManager has a selected class for this player
                 if (LobbyManager.Instance != null)
                 {
-                    PlayerClassType lobbySelectedClass = LobbyManager.Instance.GetPlayerClass(OwnerClientId);
+                    int lobbySelectedClass = LobbyManager.Instance.GetPlayerClassId(OwnerClientId);
                     // Debug.Log($"PlayerClassManager: Found lobby selection {lobbySelectedClass} for player {OwnerClientId}");
                     classToLoad = lobbySelectedClass;
                     
                     // request server to set the class from lobby
-                    RequestSetClassServerRpc(classToLoad);
+                    RequestSetClassIdServerRpc(classToLoad);
                 }
                 else
                 {
                     // LobbyManager is gone (cleaned up during scene load), use persistent ClassSelectionManager
-                    PlayerClassType persistentClass = ClassSelectionManager.GetClass();
+                    int persistentClass = ClassSelectionManager.GetClassId();
                     // Debug.Log($"PlayerClassManager: LobbyManager not found, using persistent ClassSelectionManager: {persistentClass}");
                     classToLoad = persistentClass;
                     
                     // if the class is different, request it via RPC
-                    if (classToLoad != SelectedClass.Value)
+                    if (classToLoad != SelectedClassId.Value)
                     {
                         // Debug.Log($"PlayerClassManager: Owner {OwnerClientId} requested class {classToLoad}");
-                        RequestSetClassServerRpc(classToLoad);
+                        RequestSetClassIdServerRpc(classToLoad);
                     }
                     else
                     {
@@ -66,13 +66,13 @@ namespace Category5.Player
             }
             else
             {
-                // Debug.Log($"PlayerClassManager: Non-owner observing player {OwnerClientId} with class {SelectedClass.Value}");
+                // Debug.Log($"PlayerClassManager: Non-owner observing player {OwnerClientId} with class {SelectedClassId.Value}");
                 // load class data expeditiously 
-                LoadClassLocally(SelectedClass.Value);
+                LoadClassLocally(SelectedClassId.Value);
             }
         }
         
-        private void OnSelectedClassChanged(PlayerClassType oldClass, PlayerClassType newClass)
+        private void OnSelectedClassChanged(int oldClass, int newClass)
         {
             // when class changes, reload abilities on all instances
             // Debug.Log($"PlayerClassManager.OnSelectedClassChanged: {oldClass} -> {newClass}");
@@ -81,23 +81,29 @@ namespace Category5.Player
 
         // client requests to set their class
         [Rpc(SendTo.Server)]
-        public void RequestSetClassServerRpc(PlayerClassType classType)
+        public void RequestSetClassIdServerRpc(int classId)
         {
             if (!IsServer) return;
             
             // server updates the selected class (triggers OnValueChanged on all clients)
-            SelectedClass.Value = classType;
+            SelectedClassId.Value = classId;
         }
 
         // load class and spawn its abilities (for the owner of this player)
-        private void LoadClassLocally(PlayerClassType classType)
+        private void LoadClassLocally(int classId)
         {
-            // Debug.Log($"PlayerClassManager.LoadClassLocally: Applying class {classType} for player {OwnerClientId} (IsOwner={IsOwner}, IsServer={IsServer})");
+            // Debug.Log($"PlayerClassManager.LoadClassLocally: Applying classId {classId} for player {OwnerClientId} (IsOwner={IsOwner}, IsServer={IsServer})");
             
-            PlayerClass classData = GetClassData(classType);
+            if (classId == PlayerClass.NoClassId)
+            {
+                // no class selected yet (e.g. player spawned before selecting in lobby)
+                return;
+            }
+            
+            PlayerClass classData = GetClassData(classId);
             if (classData == null)
             {
-                Debug.LogError($"PlayerClassManager: No class data found for {classType}!");
+                Debug.LogError($"PlayerClassManager: No class data found for classId {classId}!");
                 return;
             }
             
@@ -188,7 +194,7 @@ namespace Category5.Player
             }
         }
         
-        private PlayerClass GetClassData(PlayerClassType classType)
+        private PlayerClass GetClassData(int classId)
         {
             // get class definition from the registry (single source of truth)
             if (ClassRegistry.Instance == null)
@@ -197,26 +203,26 @@ namespace Category5.Player
                 return null;
             }
             
-            PlayerClass classData = ClassRegistry.Instance.GetClass(classType);
+            PlayerClass classData = ClassRegistry.Instance.GetClass(classId);
             if (classData == null)
             {
-                Debug.LogError($"PlayerClassManager.GetClassData: No class data found for {classType}!");
+                Debug.LogError($"PlayerClassManager.GetClassData: No class data found for classId {classId}!");
                 return null;
             }
             
-            // Debug.Log($"PlayerClassManager.GetClassData: Found {classType} -> {classData.className}");
+            // Debug.Log($"PlayerClassManager.GetClassData: Found classId {classId} -> {classData.className}");
             return classData;
         }
         
         // public method to set class (call before spawning or during lobby)
-        public void SetSelectedClass(PlayerClassType classType)
+        public void SetSelectedClassId(int classId)
         {
-            SelectedClass.Value = classType;
+            SelectedClassId.Value = classId;
         }
         
-        public PlayerClassType GetSelectedClass()
+        public int GetSelectedClassId()
         {
-            return SelectedClass.Value;
+            return SelectedClassId.Value;
         }
     }
 }

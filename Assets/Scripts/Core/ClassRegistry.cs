@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 using Category5.Player;
 
 namespace Category5.Core
@@ -9,7 +10,7 @@ namespace Category5.Core
     {
         public static ClassRegistry Instance { get; private set; }
         
-        [SerializeField] private PlayerClass[] availableClasses = new PlayerClass[5];
+        [SerializeField] private PlayerClass[] availableClasses = new PlayerClass[0];
         
         private void Awake()
         {
@@ -33,26 +34,26 @@ namespace Category5.Core
             }
         }
         
-        // get a specific class by type
-        public PlayerClass GetClass(PlayerClassType classType)
+        // get a specific class by id
+        public PlayerClass GetClass(int classId)
         {
             foreach (var playerClass in availableClasses)
             {
-                if (playerClass != null && playerClass.classType == classType)
+                if (playerClass != null && playerClass.classId == classId)
                 {
                     return playerClass;
                 }
             }
             
-            Debug.LogError($"ClassRegistry: No class data found for {classType}!");
+            Debug.LogError($"ClassRegistry: No class data found for classId {classId}!");
             return null;
         }
         
-        // get the name of a class by type
-        public string GetClassName(PlayerClassType classType)
+        // get the name of a class by id
+        public string GetClassName(int classId)
         {
-            var classData = GetClass(classType);
-            return classData != null ? classData.className : classType.ToString();
+            var classData = GetClass(classId);
+            return classData != null ? classData.className : $"Unknown({classId})";
         }
         
         // get all available classes
@@ -61,19 +62,19 @@ namespace Category5.Core
             return availableClasses;
         }
         
-        // get a class by name (for UI dropdowns, etc.)
-        public PlayerClassType GetClassTypeByName(string className)
+        // get a class id by name (for ui dropdowns, etc.)
+        public int GetClassIdByName(string className)
         {
             foreach (var playerClass in availableClasses)
             {
                 if (playerClass != null && playerClass.className == className)
                 {
-                    return playerClass.classType;
+                    return playerClass.classId;
                 }
             }
             
-            Debug.LogWarning($"ClassRegistry: No class found with name '{className}', defaulting to Ranger");
-            return PlayerClassType.Ranger;
+            Debug.LogWarning($"ClassRegistry: No class found with name '{className}'");
+            return PlayerClass.NoClassId;
         }
     }
 }

@@ -6,6 +6,7 @@ using TMPro;
 using System;
 using System.Collections;
 using Category5.Core;
+using Category5.Player;
 
 namespace Category5.UI
 {
@@ -837,14 +838,32 @@ namespace Category5.UI
         }
         
         // update ready button text based on current state
+        // button is disabled until the player has selected a class
         private void UpdateReadyButtonVisual()
         {
             if (readyButtonText == null || LobbyManager.Instance == null) return;
+            if (NetworkManager.Singleton == null) return;
             
+            int classId = LobbyManager.Instance.GetPlayerClassId(NetworkManager.Singleton.LocalClientId);
+            bool hasClass = classId != PlayerClass.NoClassId;
+            
+            if (!hasClass)
+            {
+                readyButtonText.text = "Select a class";
+                if (readyButton != null)
+                {
+                    readyButton.interactable = false;
+                    var colors = readyButton.colors;
+                    colors.normalColor = new Color(0.5f, 0.5f, 0.5f);
+                    readyButton.colors = colors;
+                }
+                return;
+            }
+            
+            if (readyButton != null) readyButton.interactable = true;
             bool isReady = LobbyManager.Instance.IsLocalPlayerReady();
             readyButtonText.text = isReady ? "Unready" : "Ready!";
             
-            // optionally change button color
             if (readyButton != null)
             {
                 var colors = readyButton.colors;

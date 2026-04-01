@@ -2,21 +2,15 @@ using UnityEngine;
 
 namespace Category5.Player
 {
-    // enum defining all player classes
-    public enum PlayerClassType
-    {
-        Fighter,
-        Ranger,
-        Elementalist,
-        Assassin,
-        Enchanter
-    }
-    
     // scriptable object defining a player class and its abilities
     [CreateAssetMenu(fileName = "New Player Class", menuName = "Category5/Player Class")]
     public class PlayerClass : ScriptableObject
     {
-        public PlayerClassType classType;
+        // sentinel value meaning "no class selected" - used in lobby and network layer
+        public const int NoClassId = -1;
+
+        [Tooltip("unique numeric id for this class - used for networking and registry lookups. assign manually and never reuse ids")]
+        public int classId;
         public string className;
         public string characterName;
         [TextArea(3, 5)]

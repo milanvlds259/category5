@@ -75,8 +75,7 @@ namespace Category5.Editor
         static readonly ColumnDef[] PlayerClassColumns =
         {
             new ColumnDef { label = "Name",      width = 110, editable = true,  propName = "className"          },
-            new ColumnDef { label = "Type",      width = 90,  editable = false, propName = null,
-                            getDisplayValue = o => (o as PlayerClass)?.classType.ToString() ?? "" },
+            new ColumnDef { label = "ID",        width = 90,  editable = true,  propName = "classId"            },
             new ColumnDef { label = "Combat",    width = 60,  editable = true,  propName = "combatClass"        },
             new ColumnDef { label = "Base DMG",  width = 65,  editable = true,  propName = "baseAttackDamage"   },
             new ColumnDef { label = "Max HP",    width = 55,  editable = true,  propName = "baseMaxHealth"      },

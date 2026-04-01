@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8f9d0aa058f97e644a9eea914321dfdc, type: 3}
   m_Name: Enchanter
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.PlayerClass
-  classType: 4
+  classId: 4
   className: Enchanter
   characterName: Jay
   classDescription: Electric Enchanter

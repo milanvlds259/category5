@@ -107,38 +107,51 @@ namespace Category5.UI
         {
             if (classDropdown == null) return;
             if (LobbyManager.Instance == null) return;
+            if (ClassRegistry.Instance == null) return;
             
-            // get the local player's current class selection from lobby
+            // get the local player's current class id from lobby
             ulong localClientId = NetworkManager.Singleton.LocalClientId;
-            PlayerClassType selectedClass = LobbyManager.Instance.GetPlayerClass(localClientId);
+            int selectedClassId = LobbyManager.Instance.GetPlayerClassId(localClientId);
             
-            // set dropdown to the selected class index
-            classDropdown.value = (int)selectedClass;
+            // find the dropdown index whose classId matches
+            var allClasses = ClassRegistry.Instance.GetAllClasses();
+            for (int i = 0; i < allClasses.Length; i++)
+            {
+                if (allClasses[i] != null && allClasses[i].classId == selectedClassId)
+                {
+                    classDropdown.value = i;
+                    return;
+                }
+            }
         }
         
         private void OnClassSelectionChanged(int index)
         {
             if (LobbyManager.Instance == null) return;
             if (NetworkManager.Singleton == null) return;
+            if (ClassRegistry.Instance == null) return;
             
-            PlayerClassType selectedClass = (PlayerClassType)index;
+            // look up the class id from the registry by dropdown index (not enum cast)
+            var allClasses = ClassRegistry.Instance.GetAllClasses();
+            if (index < 0 || index >= allClasses.Length || allClasses[index] == null) return;
+            int classId = allClasses[index].classId;
             
             // save to persistent ClassSelectionManager (creates it if needed)
-            ClassSelectionManager.SetClass(selectedClass);
+            ClassSelectionManager.SetClass(classId);
             
             // send to server
             if (NetworkManager.Singleton.IsServer)
             {
                 // host sets directly
-                LobbyManager.Instance.SetHostPlayerClass(selectedClass);
+                LobbyManager.Instance.SetHostPlayerClassId(classId);
             }
             else
             {
                 // client sends to server
-                LobbyManager.Instance.SendLocalPlayerClass(selectedClass);
+                LobbyManager.Instance.SendLocalPlayerClassId(classId);
             }
             
-            // Debug.Log($"LobbyClassSelectionUI: Selected class {selectedClass}");
+            // Debug.Log($"LobbyClassSelectionUI: Selected classId {classId}");
         }
         
         private void OnLobbyPlayersChanged()
