@@ -17,6 +17,7 @@ MonoBehaviour:
     while you have mana deal <color=#A78BFA><b>{0}%</b></color> bonus damage and
     spend <color=#88DDFF><b>{1}</b></color> mana.
 
+
     <size=80%><color=#aaaaaa>Also
     applies to Forceful Impact hits.</color></size>'
   icon: {fileID: 0}
