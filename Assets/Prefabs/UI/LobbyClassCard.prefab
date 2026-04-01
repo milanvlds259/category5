@@ -173,7 +173,7 @@ RectTransform:
   m_AnchorMin: {x: 1, y: 0.5}
   m_AnchorMax: {x: 1, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 240, y: 240}
+  m_SizeDelta: {x: 580, y: 160}
   m_Pivot: {x: 1, y: 0.5}
 --- !u!222 &6936274799343168860
 CanvasRenderer:
@@ -203,7 +203,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: eb1ab762f0be2874cb614318846a991e, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 3e325369b16f8334d9a473ba53915f62, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -403,6 +403,8 @@ MonoBehaviour:
   normalColor: {r: 0.2, g: 0.2, b: 0.2, a: 0.8}
   hoverColor: {r: 0.3, g: 0.3, b: 0.3, a: 0.9}
   selectedColor: {r: 0.25, g: 0.5, b: 0.45, a: 0.9}
+  hoverScale: 1.08
+  scaleSpeed: 8
 --- !u!114 &3892278147595584990
 MonoBehaviour:
   m_ObjectHideFlags: 0

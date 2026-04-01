@@ -4,6 +4,7 @@ using UnityEngine.EventSystems;
 using TMPro;
 using Category5.Player;
 using System;
+using System.Collections;
 
 namespace Category5.UI
 {
@@ -22,7 +23,19 @@ namespace Category5.UI
         [SerializeField] private Color normalColor = new Color(0.2f, 0.2f, 0.2f, 0.8f);
         [SerializeField] private Color hoverColor = new Color(0.3f, 0.3f, 0.3f, 0.9f);
         [SerializeField] private Color selectedColor = new Color(0.25f, 0.5f, 0.45f, 0.9f);
-        
+
+        [Header("hover scale")]
+        [SerializeField] private float hoverScale = 1.08f;
+        [SerializeField] private float scaleSpeed = 8f;
+
+        private Vector3 _normalScale;
+        private Coroutine _scaleCoroutine;
+
+        private void Awake()
+        {
+            _normalScale = transform.localScale;
+        }
+
         // events
         public static event Action<LobbyClassCard> OnCardClicked;
         public static event Action<LobbyClassCard> OnCardHoverEnter;
@@ -77,6 +90,7 @@ namespace Category5.UI
         {
             _isHovered = true;
             UpdateVisuals();
+            ScaleTo(hoverScale);
             OnCardHoverEnter?.Invoke(this);
         }
         
@@ -84,9 +98,17 @@ namespace Category5.UI
         {
             _isHovered = false;
             UpdateVisuals();
+            ScaleTo(1f);
             OnCardHoverExit?.Invoke(this);
         }
-        
+
+        private void ScaleTo(float targetScale)
+        {
+            if (_scaleCoroutine != null)
+                StopCoroutine(_scaleCoroutine);
+            _scaleCoroutine = StartCoroutine(ScaleCoroutine(_normalScale * targetScale));
+        }
+
         public void OnPointerClick(PointerEventData eventData)
         {
             OnCardClicked?.Invoke(this);
@@ -102,6 +124,20 @@ namespace Category5.UI
                 cardBackground.color = hoverColor;
             else
                 cardBackground.color = normalColor;
+        }
+
+        private IEnumerator ScaleCoroutine(Vector3 targetScale)
+        {
+            while (!Mathf.Approximately(transform.localScale.x, targetScale.x))
+            {
+                transform.localScale = Vector3.Lerp(
+                    transform.localScale,
+                    targetScale,
+                    Time.deltaTime * scaleSpeed
+                );
+                yield return null;
+            }
+            transform.localScale = targetScale;
         }
     }
 }
