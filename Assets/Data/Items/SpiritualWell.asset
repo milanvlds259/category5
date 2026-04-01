@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a5fd3245b27c2c419efd63766ca013e, type: 3}
+  m_Name: SpiritualWell
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Items.ItemData
+  itemName: Spiritual Well
+  description: 'Max mana increased by <color=#88DDFF><b>50%</b></color>. Basic attacks
+    while you have mana deal <color=#A78BFA><b>{0}%</b></color> bonus damage and
+    spend <color=#88DDFF><b>{1}</b></color> mana.
+
+    <size=80%><color=#aaaaaa>Also
+    applies to Forceful Impact hits.</color></size>'
+  icon: {fileID: 0}
+  category: 0
+  effects: []
+  behaviourPrefab: {fileID: 3095713141797661695, guid: 09d67c9b918bf1b4e8ab5131c1721347, type: 3}
+  glowColor: {r: 0.24126014, g: 0.44972605, b: 0.94716984, a: 1}
+  visualEffectPrefab: {fileID: 0}
+  goldCost: 0

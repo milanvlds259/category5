@@ -851,6 +851,20 @@ namespace Category5.Player
             OnSprintEnded?.Invoke(transform.position);
         }
 
+        // spend mana — server only, used by item behaviours like Spiritual Well
+        public void SpendMana(int amount)
+        {
+            if (!IsServer) return;
+            CurrentMana.Value = Mathf.Max(0, CurrentMana.Value - amount);
+        }
+
+        // restore mana — server only
+        public void RestoreMana(int amount)
+        {
+            if (!IsServer) return;
+            CurrentMana.Value = Mathf.Min(MaxMana, CurrentMana.Value + amount);
+        }
+
         public void TakeDamage(int damage)
         {
             if (!IsServer) return;
