@@ -15,7 +15,7 @@ MonoBehaviour:
   abilityName: One-Shot Blast
   description: Fire a massive piercing arrow that deals massive damage. Pierces through
     all enemies and walls, only stops on bosses.
-  abilityIcon: {fileID: 0}
+  abilityIcon: {fileID: 21300000, guid: 1f95dee1cff721e45b1388511e5cb71d, type: 3}
   cooldownDuration: 24
   damageCoefficient: 8
   castTime: 0

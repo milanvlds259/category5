@@ -15,7 +15,7 @@ MonoBehaviour:
   abilityName: Quickbow
   description: Increases attack speed and charge speed for 5 seconds. Fully charged
     shots fire a rapid burst of 5 arrows.
-  abilityIcon: {fileID: 0}
+  abilityIcon: {fileID: 21300000, guid: f0aa2fa04d40fd646beaff3fb6f4f215, type: 3}
   cooldownDuration: 10
   damageCoefficient: 0
   castTime: 0

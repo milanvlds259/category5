@@ -16,7 +16,7 @@ MonoBehaviour:
   description: 'Fire a grappling hook that upon hitting an enemy it either: pulls
     you toward the enemy if it is a boss and pulls the enemy towrd you if it''s a
     regular enemy'
-  abilityIcon: {fileID: 0}
+  abilityIcon: {fileID: 21300000, guid: ca95ae6497a6a034da62961066e2d9ac, type: 3}
   cooldownDuration: 8
   damageCoefficient: 0
   castTime: 0

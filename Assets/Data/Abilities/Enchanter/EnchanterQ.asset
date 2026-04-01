@@ -15,7 +15,7 @@ MonoBehaviour:
   abilityName: Lightning Spear
   description: Charge to thrust your spear and pierce through enemies. Grants 1 charge
     per enemy hit
-  abilityIcon: {fileID: 21300000, guid: 68723a88458691443acdaafeae2491fa, type: 3}
+  abilityIcon: {fileID: 21300000, guid: 6ee3832e0ddb1fd4a8e54cc1a4b9fc12, type: 3}
   cooldownDuration: 5
   damageCoefficient: 2
   castTime: 0
