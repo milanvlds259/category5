@@ -15,7 +15,7 @@ MonoBehaviour:
   abilityName: Arrow Storm
   description: Fire a tracker arrow that creates a damage-over-time zone on impact.
     Enemies in the zone take damage every 0.5s and are slowed by 40%.
-  abilityIcon: {fileID: 0}
+  abilityIcon: {fileID: 21300000, guid: d4c5a2ef6dba9f244a288ef24a9e73f0, type: 3}
   cooldownDuration: 12
   damageCoefficient: 0.25
   castTime: 0

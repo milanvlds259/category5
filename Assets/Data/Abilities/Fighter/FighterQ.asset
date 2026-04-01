@@ -15,7 +15,7 @@ MonoBehaviour:
   abilityName: Overhead Slam
   description: Slam your weapon on the ground, dealing damage and knocking up enemies.
     If you are airborne, it launches you forward as well.
-  abilityIcon: {fileID: 0}
+  abilityIcon: {fileID: 21300000, guid: 02c7b45d13886424aa6c0d5a30048489, type: 3}
   cooldownDuration: 6
   damageCoefficient: 2.4
   castTime: 0

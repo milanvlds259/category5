@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.AbilityData
   abilityName: Elementalism
   description: Cycles your active element, changing the effects of your E ability.
-  abilityIcon: {fileID: 21300000, guid: f49981ed6f7d6814ba429004585db713, type: 3}
+  abilityIcon: {fileID: 21300000, guid: 07d7b898bef763342b2363f8a1e12ae5, type: 3}
   cooldownDuration: 0.75
   damageCoefficient: 0
   castTime: 0

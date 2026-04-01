@@ -46,6 +46,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.ElementalistQ
   abilityData: {fileID: 11400000, guid: b4677d6230b127e4e9235ef53699ed01, type: 2}
   currentElement: 0
-  fireIcon: {fileID: 21300000, guid: f49981ed6f7d6814ba429004585db713, type: 3}
-  iceIcon: {fileID: 21300000, guid: 31703c5b43106b3459105ec3628616da, type: 3}
-  thunderIcon: {fileID: 21300000, guid: ff00768deec35894fbdf64c12b7a96cf, type: 3}
+  fireIcon: {fileID: 21300000, guid: 07d7b898bef763342b2363f8a1e12ae5, type: 3}
+  iceIcon: {fileID: 21300000, guid: 07d7b898bef763342b2363f8a1e12ae5, type: 3}
+  thunderIcon: {fileID: 21300000, guid: 07d7b898bef763342b2363f8a1e12ae5, type: 3}

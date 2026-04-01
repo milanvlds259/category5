@@ -15,7 +15,7 @@ MonoBehaviour:
   abilityName: Charged Beacon
   description: 'Consumes all charges. Throw a beacon that heals nearby allies over
     time. Lasts longer for every charge consumed. '
-  abilityIcon: {fileID: 21300000, guid: 67b74da19c9951946bf467d63e274dfb, type: 3}
+  abilityIcon: {fileID: 21300000, guid: fcb7d7d6f203e5f439cfe95a026e22d0, type: 3}
   cooldownDuration: 7
   damageCoefficient: 0
   castTime: 0
