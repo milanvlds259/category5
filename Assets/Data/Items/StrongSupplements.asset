@@ -20,6 +20,6 @@ MonoBehaviour:
   category: 0
   effects: []
   behaviourPrefab: {fileID: 3095713141797661695, guid: 99c913d892d4d5549a296eb964175a54, type: 3}
-  glowColor: {r: 0, g: 1, b: 0.4670217, a: 1}
+  glowColor: {r: 0, g: 0.8867924, b: 0.19215488, a: 1}
   visualEffectPrefab: {fileID: 0}
   goldCost: 0

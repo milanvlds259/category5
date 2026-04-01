@@ -16,7 +16,6 @@ MonoBehaviour:
   description: 'Hitting an enemy reduces their damage output by <color=#4FC3F7><b>{0}%</b></color>
     for <color=#FFD700><b>{1}s</b></color>. Hitting again resets the duration.
 
-    
 
     <size=80%><color=#aaaaaa>Only
     {2}% effective on bosses.</color></size>'
