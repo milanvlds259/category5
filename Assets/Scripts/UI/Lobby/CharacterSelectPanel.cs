@@ -87,6 +87,26 @@ namespace Category5.UI
                 _cards.Add(card);
             }
             
+            // make sure the card container expands to fit all cards so the scroll rect can scroll
+            var fitter = cardContainer.GetComponent<ContentSizeFitter>();
+            if (fitter == null)
+                fitter = cardContainer.gameObject.AddComponent<ContentSizeFitter>();
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            
+            // force layout rebuild immediately so content height is correct before first scroll
+            if (cardContainer is RectTransform rt)
+                LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
+            
+            // ensure the scroller background catches raycasts so scroll works in empty areas between cards
+            if (scrollRect != null)
+            {
+                var bg = scrollRect.GetComponent<Image>();
+                if (bg == null)
+                    bg = scrollRect.gameObject.AddComponent<Image>();
+                bg.color = Color.clear;
+                bg.raycastTarget = true;
+            }
+            
             // make sure character view panel starts hidden
             if (characterViewPanel != null)
                 characterViewPanel.gameObject.SetActive(false);

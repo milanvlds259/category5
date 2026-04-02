@@ -10,7 +10,7 @@ namespace Category5.UI
 {
     // individual class card in the lobby select list
     // click to select, hover to show character view panel
-    public class LobbyClassCard : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
+    public class LobbyClassCard : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler, IScrollHandler
     {
         [Header("display")]
         [SerializeField] private Image portraitImage;
@@ -30,10 +30,13 @@ namespace Category5.UI
 
         private Vector3 _normalScale;
         private Coroutine _scaleCoroutine;
+        private ScrollRect _parentScrollRect;
 
         private void Awake()
         {
             _normalScale = transform.localScale;
+            // cache the parent scroll rect so scroll events can be forwarded up
+            _parentScrollRect = GetComponentInParent<ScrollRect>();
         }
 
         // events
@@ -115,6 +118,13 @@ namespace Category5.UI
         {
             if (_isTaken) return;
             OnCardClicked?.Invoke(this);
+        }
+
+        // forward scroll events up to the parent scroll rect so the card list can be scrolled
+        public void OnScroll(PointerEventData eventData)
+        {
+            if (_parentScrollRect != null)
+                _parentScrollRect.OnScroll(eventData);
         }
         
         // mark this card as taken by another player - greys out portrait and blocks selection
