@@ -47,6 +47,10 @@ namespace Category5.Enemies
         [Header("components")]
         [SerializeField] protected EnemyHealthBar healthBar;
         
+        // animator driven by CurrentState NetworkVariable (all clients)
+        protected Animator _animator;
+        private static readonly int _stateHash = Animator.StringToHash("State");
+        
         // networked state
         public NetworkVariable<int> CurrentHealth = new NetworkVariable<int>();
         public NetworkVariable<EnemyState> CurrentState = new NetworkVariable<EnemyState>(EnemyState.Idle);
@@ -123,6 +127,9 @@ namespace Category5.Enemies
         
         protected virtual void Awake()
         {
+            // cache animator from child model - driven by CurrentState on all clients
+            _animator = GetComponentInChildren<Animator>();
+            
             // try to cache a character controller if present
             characterController = GetComponent<CharacterController>();
             
@@ -155,6 +162,10 @@ namespace Category5.Enemies
             }
             
             CurrentHealth.OnValueChanged += OnHealthChanged;
+            CurrentState.OnValueChanged += OnStateChanged;
+
+            // set initial animator state so late-joining clients get the right animation
+            UpdateAnimatorState(CurrentState.Value);
             
             // initialize health bar
             if (healthBar != null)
@@ -203,6 +214,19 @@ namespace Category5.Enemies
         public override void OnNetworkDespawn()
         {
             CurrentHealth.OnValueChanged -= OnHealthChanged;
+            CurrentState.OnValueChanged -= OnStateChanged;
+        }
+
+        // called on all clients when CurrentState changes - keeps animator in sync without NetworkAnimator
+        private void OnStateChanged(EnemyState oldState, EnemyState newState)
+        {
+            UpdateAnimatorState(newState);
+        }
+
+        private void UpdateAnimatorState(EnemyState state)
+        {
+            if (_animator != null)
+                _animator.SetInteger(_stateHash, (int)state);
         }
         
         protected virtual void InitializeFromData()

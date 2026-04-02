@@ -18,7 +18,6 @@ MonoBehaviour:
     <color=#FFD700><b>{1}s</b></color>.
 
 
-
     <size=80%><color=#aaaaaa>Resets at
     the start of each new round.</color></size>'
   icon: {fileID: 0}
