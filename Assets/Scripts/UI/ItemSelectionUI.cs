@@ -207,7 +207,7 @@ namespace Category5.UI
         {
             if (_hasSelected) return;
 
-            Debug.Log($"ItemSelectionUI: Selected item {item.ItemName}");
+            // Debug.Log($"ItemSelectionUI: Selected item {item.ItemName}");
 
             // check if player already owns this item (tier upgrade, no replacement needed)
             var playerInventory = GetLocalPlayerInventory();
@@ -256,7 +256,7 @@ namespace Category5.UI
         {
             if (_hasSelected || string.IsNullOrEmpty(_pendingItemId)) return;
 
-            Debug.Log($"ItemSelectionUI: Replacing slot {slotIndex} with {_pendingItemId}");
+            // Debug.Log($"ItemSelectionUI: Replacing slot {slotIndex} with {_pendingItemId}");
 
             _hasSelected = true;
             DisableAllCards();
@@ -278,7 +278,7 @@ namespace Category5.UI
         {
             if (_hasSelected) return;
 
-            Debug.Log("ItemSelectionUI: Skipped item selection");
+            // Debug.Log("ItemSelectionUI: Skipped item selection");
 
             _hasSelected = true;
             DisableAllCards();

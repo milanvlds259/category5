@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: AssassinR
   m_EditorClassIdentifier: Assembly-CSharp::Category5.AbilityData
   abilityName: Convergence
-  description: Dash to a target location and create a burst explosion around the
-    landing spot. If the explosion hits 3+ enemies, both Dash Slash charges reset
-    immediately.
+  description: Blink to a target location and create a burst explosion along the
+    path and around the landing spot. If the explosion hits 3+ enemies, both Dash
+    Slash charges reset immediately.
   abilityIcon: {fileID: 0}
-  cooldownDuration: 12
+  cooldownDuration: 15
   damageCoefficient: 2.5
   castTime: 0
   manaCost: 0

@@ -130,6 +130,12 @@ namespace Category5.Player
 
         // Dodge State
         private bool _isDodging;
+        private bool _isInvulnerable;  // set by items like Backup Plan
+        public bool IsInvulnerable
+        {
+            get => _isInvulnerable;
+            set => _isInvulnerable = value;
+        }
         private float _dodgeTimer;
         private float _lastDodgeTime = -10f;
         private Vector3 _dodgeDirection;
@@ -156,6 +162,11 @@ namespace Category5.Player
         
         // public property (ui can read this later)
         public bool IsSprinting => _isSprinting;
+        public bool IsDodging => _isDodging;
+
+        // fired on owner when CharacterController hits a non-ground surface while sprinting or dodging
+        // passes (this player, hit gameobject) — used by ForcefulImpactBehaviour
+        public static event System.Action<PlayerController, GameObject> OnBodyContact;
         
         // cached reference to wind rider controller
         private WindRiderController _windRider;
@@ -204,7 +215,7 @@ namespace Category5.Player
             if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsListening)
             {
                 _isOffline = true;
-                Debug.Log("PlayerController: Offline mode detected. Enabling local control.");
+                // Debug.Log("PlayerController: Offline mode detected. Enabling local control.");
                 
                 var camera = FindFirstObjectByType<Category5.ThirdPersonCamera>();
                 if (camera != null)
@@ -324,7 +335,7 @@ namespace Category5.Player
         // called when player name changes on network
         private void OnPlayerNameChangedCallback(FixedString64Bytes oldName, FixedString64Bytes newName)
         {
-            Debug.Log($"PlayerController: Name changed from '{oldName}' to '{newName}'");
+            // Debug.Log($"PlayerController: Name changed from '{oldName}' to '{newName}'");
             OnPlayerNameChanged?.Invoke(this);
         }
         
@@ -345,7 +356,7 @@ namespace Category5.Player
             }
             
             PlayerName.Value = new FixedString64Bytes(name);
-            Debug.Log($"PlayerController: Server set name to '{name}' for client {OwnerClientId}");
+            // Debug.Log($"PlayerController: Server set name to '{name}' for client {OwnerClientId}");
         }
         
         // get the display name as a string (convenience method)
@@ -840,6 +851,20 @@ namespace Category5.Player
             OnSprintEnded?.Invoke(transform.position);
         }
 
+        // spend mana — server only, used by item behaviours like Spiritual Well
+        public void SpendMana(int amount)
+        {
+            if (!IsServer) return;
+            CurrentMana.Value = Mathf.Max(0, CurrentMana.Value - amount);
+        }
+
+        // restore mana — server only
+        public void RestoreMana(int amount)
+        {
+            if (!IsServer) return;
+            CurrentMana.Value = Mathf.Min(MaxMana, CurrentMana.Value + amount);
+        }
+
         public void TakeDamage(int damage)
         {
             if (!IsServer) return;
@@ -848,9 +873,9 @@ namespace Category5.Player
             if (IsDead.Value) return;
             
             // i-frame check
-            if (_isDodging) 
+            if (_isDodging || _isInvulnerable)
             {
-                Debug.Log("Player dodged damage!");
+                // Debug.Log("Player dodged damage!");
                 OnPlayerDodgedAttack?.Invoke(_dodgeTimer);
                 return;
             }
@@ -863,7 +888,7 @@ namespace Category5.Player
             }
 
             CurrentHealth.Value -= (_playerStats != null ? _playerStats.ApplyArmor(effectiveDamage) : effectiveDamage);
-            Debug.Log($"Player took {damage} damage (after armor). Health: {CurrentHealth.Value}");
+            // Debug.Log($"Player took {damage} damage (after armor). Health: {CurrentHealth.Value}");
             
             // cancel any charging attack when taking damage
             CancelChargeOnDamageClientRpc(new ClientRpcParams
@@ -1142,6 +1167,10 @@ namespace Category5.Player
             
             // Debug.Log($"PlayerController: OnControllerColliderHit with {hit.gameObject.name} (normal: {hit.normal}, upwardDot: {upwardDot:F2})");
             
+            // fire body contact event when sprinting or dodging (used by Forceful Impact item)
+            if (_isSprinting || _isDodging)
+                OnBodyContact?.Invoke(this, hit.gameObject);
+
             // notify FighterE ability if it's grappling
             if (GetComponent<PlayerAbilityManager>() != null)
             {

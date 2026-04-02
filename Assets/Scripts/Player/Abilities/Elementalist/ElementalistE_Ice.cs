@@ -29,7 +29,7 @@ namespace Category5
 
             Vector3 direction = GetFlatForwardDirection();
 
-            Debug.Log($"[ElementalistE_Ice] launching ice lance from {spawnPos} toward {direction}");
+            // Debug.Log($"[ElementalistE_Ice] launching ice lance from {spawnPos} toward {direction}");
 
             OnIceLanceLaunched?.Invoke(spawnPos, direction);
             SpawnVfx(spawnPos);

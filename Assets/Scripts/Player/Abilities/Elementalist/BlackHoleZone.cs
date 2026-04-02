@@ -169,7 +169,7 @@ namespace Category5
             if (_hasExploded) return;
             _hasExploded = true;
 
-            Debug.Log($"[BlackHoleZone] exploding at {transform.position} with radius {explosionRadius}");
+            // Debug.Log($"[BlackHoleZone] exploding at {transform.position} with radius {explosionRadius}");
 
             Collider[] hits = Physics.OverlapSphere(transform.position, explosionRadius);
             int enemiesHit = 0;
@@ -322,7 +322,7 @@ namespace Category5
         private void NotifySpawnedClientRpc(Vector3 position, float radius)
         {
             OnBlackHoleSpawned?.Invoke(position, radius);
-            Debug.Log($"[BlackHoleZone] spawned at {position}");
+            // Debug.Log($"[BlackHoleZone] spawned at {position}");
         }
 
         [ClientRpc]
@@ -335,7 +335,7 @@ namespace Category5
         private void NotifyExplosionClientRpc(Vector3 position, int enemiesHit)
         {
             OnBlackHoleExploded?.Invoke(position, enemiesHit);
-            Debug.Log($"[BlackHoleZone] explosion vfx at {position}, hit {enemiesHit}");
+            // Debug.Log($"[BlackHoleZone] explosion vfx at {position}, hit {enemiesHit}");
         }
 
         [ClientRpc]

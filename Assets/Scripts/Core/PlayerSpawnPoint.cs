@@ -46,7 +46,7 @@ namespace Category5.Core
                 // sort by spawn index for consistent ordering
                 spawnPoints.Sort((a, b) => a.GetSpawnIndex().CompareTo(b.GetSpawnIndex()));
                 
-                Debug.Log($"PlayerSpawnPoint: Found {spawnPoints.Count} spawn points via fallback search");
+                // Debug.Log($"PlayerSpawnPoint: Found {spawnPoints.Count} spawn points via fallback search");
             }
         }
         

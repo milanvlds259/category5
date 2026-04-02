@@ -86,7 +86,7 @@ namespace Category5.UI
             UpdateVoiceChatLabel();
             
             // placeholder - future integration with voice chat system
-            Debug.Log($"LobbySettingsPanel: Voice chat set to {enabled} (placeholder)");
+            // Debug.Log($"LobbySettingsPanel: Voice chat set to {enabled} (placeholder)");
         }
         
         private void OnMusicVolumeChanged(float value)
@@ -98,7 +98,7 @@ namespace Category5.UI
             
             // placeholder - future integration with AudioManager
             // AudioManager.Instance?.SetMusicVolume(value / 100f);
-            Debug.Log($"LobbySettingsPanel: Music volume set to {value}% (placeholder)");
+            // Debug.Log($"LobbySettingsPanel: Music volume set to {value}% (placeholder)");
         }
         
         private void OnSfxVolumeChanged(float value)
@@ -110,7 +110,7 @@ namespace Category5.UI
             
             // placeholder - future integration with AudioManager
             // AudioManager.Instance?.SetSfxVolume(value / 100f);
-            Debug.Log($"LobbySettingsPanel: SFX volume set to {value}% (placeholder)");
+            // Debug.Log($"LobbySettingsPanel: SFX volume set to {value}% (placeholder)");
         }
         
         private void UpdateLabels()

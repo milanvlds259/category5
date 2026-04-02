@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System;
 using System.Collections.Generic;
 using Category5.Core;
 using Unity.Netcode;
@@ -11,6 +12,8 @@ namespace Category5.UI
     // displays chat messages and handles input
     public class LobbyChatUI : MonoBehaviour
     {
+        // fired when player presses enter on an empty input - tells controller to close the panel
+        public static event Action OnCloseRequested;
         [Header("message display")]
         [SerializeField] private ScrollRect messageScrollRect;
         [SerializeField] private RectTransform messageContainer;
@@ -90,6 +93,13 @@ namespace Category5.UI
         
         private void OnInputSubmit(string text)
         {
+            // empty submit = close the chat panel
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                OnCloseRequested?.Invoke();
+                return;
+            }
+            
             SendMessage();
             
             // keep focus on input field for quick chatting

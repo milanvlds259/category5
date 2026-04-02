@@ -87,7 +87,7 @@ namespace Category5.Core
                 RequestChatHistory();
             }
             
-            Debug.Log("LobbyChatManager: Initialized");
+            // Debug.Log("LobbyChatManager: Initialized");
         }
         
         // call this when leaving the lobby
@@ -106,7 +106,7 @@ namespace Category5.Core
             _messageBuffer.Clear();
             _isInitialized = false;
             
-            Debug.Log("LobbyChatManager: Cleaned up");
+            // Debug.Log("LobbyChatManager: Cleaned up");
         }
         
         // send a chat message (called by local player)
@@ -207,6 +207,8 @@ namespace Category5.Core
             if (NetworkManager.Singleton.IsServer) return;
             
             reader.ReadValueSafe(out ChatMessage chatMsg);
+            // buffer it so the ui can read missed messages when the panel is opened later
+            AddMessageToBuffer(chatMsg);
             OnChatMessageReceived?.Invoke(chatMsg);
         }
         
@@ -282,7 +284,11 @@ namespace Category5.Core
                 history.Add(msg);
             }
             
-            Debug.Log($"LobbyChatManager: Received {count} messages of chat history");
+            // store history locally so GetMessageBuffer() works when the panel opens later
+            _messageBuffer.Clear();
+            _messageBuffer.AddRange(history);
+            
+            // Debug.Log($"LobbyChatManager: Received {count} messages of chat history");
             OnChatHistoryLoaded?.Invoke(history);
         }
         

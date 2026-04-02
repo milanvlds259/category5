@@ -35,7 +35,7 @@ namespace Category5
             Vector3 position = playerController.transform.position + Vector3.up * 1f;
             Vector3 forward = playerController.transform.forward;
 
-            Debug.Log($"[ElementalistE_Thunder] executing thunder arc at {position}, forward {forward}");
+            // Debug.Log($"[ElementalistE_Thunder] executing thunder arc at {position}, forward {forward}");
 
             OnThunderArcExecute?.Invoke(position, forward, arcRange, arcAngle);
             SpawnVfx(position);

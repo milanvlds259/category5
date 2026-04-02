@@ -103,7 +103,7 @@ namespace Category5
                 if (boss != null)
                 {
                     // bosses don't have ApplyMovementModifier yet, but damage still applies
-                    Debug.Log("[IceProjectile] hit boss, slow not applied (not implemented on bosses)");
+                    // Debug.Log("[IceProjectile] hit boss, slow not applied (not implemented on bosses)");
                 }
 
                 // show damage number to attacking player
@@ -132,14 +132,14 @@ namespace Category5
                     }
                 }
 
-                Debug.Log($"[IceProjectile] hit {targetObj.name} for {finalDamage} damage, applied slow");
+                // Debug.Log($"[IceProjectile] hit {targetObj.name} for {finalDamage} damage, applied slow");
 
                 // pierce through - do NOT stop
                 return;
             }
 
             // hit environment - stop (ice lance shatters on walls)
-            Debug.Log($"[IceProjectile] hit environment {other.gameObject.name}, despawning");
+            // Debug.Log($"[IceProjectile] hit environment {other.gameObject.name}, despawning");
             NotifyIceShatterClientRpc(transform.position);
             DespawnProjectile();
         }

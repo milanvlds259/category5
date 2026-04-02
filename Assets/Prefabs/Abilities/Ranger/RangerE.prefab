@@ -47,7 +47,7 @@ MonoBehaviour:
   abilityData: {fileID: 11400000, guid: bda3beae2c88c7b419e919172ee02753, type: 2}
   zoneRadius: 8
   zoneDuration: 6
-  damageTickInterval: 0.5
+  damageTickInterval: 0.25
   slowMultiplier: 0.6
   arrowSpeed: 20
   arrowLifetime: 5

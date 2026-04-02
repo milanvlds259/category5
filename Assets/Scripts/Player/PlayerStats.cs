@@ -57,6 +57,12 @@ namespace Category5.Player
         // dynamic attack damage bonus from item behaviours (e.g. Strong Supplements) that changes with HP
         private float _dynamicAttackDamageBonus = 0f;
 
+        // dynamic max mana bonus from item behaviours (e.g. Spiritual Well)
+        private int _dynamicMaxManaBonus = 0;
+
+        // additive damage multiplier applied to basic attacks only when mana is available (Spiritual Well)
+        private float _basicAttackManaMultiplier = 0f;
+
         // base stat accessors (from class data or fallback)
         public float BaseAttackDamage => _classData != null ? _classData.baseAttackDamage : fallbackAttackDamage;
         private int BaseMaxHealth => _classData != null ? _classData.baseMaxHealth : fallbackMaxHealth;
@@ -79,7 +85,7 @@ namespace Category5.Player
         public int MaxHealthBonus => _maxHealthBonus + _dynamicMaxHealthBonus;
         public int TotalMaxHealth => BaseMaxHealth + _maxHealthBonus + _dynamicMaxHealthBonus;
         public int MaxManaBonus => _maxManaBonus;
-        public int TotalMaxMana => BaseMaxMana + _maxManaBonus;
+        public int TotalMaxMana => BaseMaxMana + _maxManaBonus + _dynamicMaxManaBonus;
         public float DodgeCooldownReduction => _dodgeCooldownReduction;
         public float EffectiveDodgeCooldown => Mathf.Max(0.5f, BaseDodgeCooldown - _dodgeCooldownReduction);
         public int LifestealAmount => _lifestealAmount;
@@ -109,6 +115,23 @@ namespace Category5.Player
                 _dynamicAttackDamageBonus = bonus;
                 OnStatsChanged?.Invoke();
             }
+        }
+
+        // set dynamic max mana bonus from item behaviours (e.g. Spiritual Well)
+        public void SetDynamicMaxManaBonus(int bonus)
+        {
+            if (_dynamicMaxManaBonus != bonus)
+            {
+                _dynamicMaxManaBonus = bonus;
+                OnStatsChanged?.Invoke();
+            }
+        }
+
+        // set the additive bonus multiplier applied to basic attacks when mana is available
+        // 0 = no bonus, 0.3 = +30% damage on basic attacks while mana > 0
+        public void SetBasicAttackManaMultiplier(float bonus)
+        {
+            _basicAttackManaMultiplier = bonus;
         }
 
         // set dynamic max hp bonus from item behaviours (e.g. Recharging Shield)
@@ -141,7 +164,7 @@ namespace Category5.Player
         public void SetClassData(PlayerClass classData)
         {
             _classData = classData;
-            Debug.Log($"PlayerStats: class data set to {classData.className} (ATK={classData.baseAttackDamage}, HP={classData.baseMaxHealth}, Armor={classData.baseArmor})");
+            // Debug.Log($"PlayerStats: class data set to {classData.className} (ATK={classData.baseAttackDamage}, HP={classData.baseMaxHealth}, Armor={classData.baseArmor})");
             RecalculateStats();
         }
 
@@ -194,7 +217,7 @@ namespace Category5.Player
                 }
             }
 
-            Debug.Log($"PlayerStats recalculated: ATK={BaseAttackDamage}, DmgMult={_damageMultiplier:F2}, FlatDmg={_flatDamageBonus}, MaxHP={TotalMaxHealth}, Armor={TotalArmor:F1}, Crit={TotalCritChance:P0}/{TotalCritDamage:F1}x");
+            // Debug.Log($"PlayerStats recalculated: ATK={BaseAttackDamage}, DmgMult={_damageMultiplier:F2}, FlatDmg={_flatDamageBonus}, MaxHP={TotalMaxHealth}, Armor={TotalArmor:F1}, Crit={TotalCritChance:P0}/{TotalCritDamage:F1}x");
 
             OnStatsChanged?.Invoke();
         }
@@ -274,6 +297,10 @@ namespace Category5.Player
         {
             float effectiveMultiplier = GetEffectiveDamageMultiplier();
             float rawDmg = EffectiveAttackDamage * damageCoefficient * effectiveMultiplier + _flatDamageBonus;
+
+            // apply spiritual well mana bonus (basic attacks only — abilities use their own path)
+            if (_basicAttackManaMultiplier > 0f)
+                rawDmg *= (1f + _basicAttackManaMultiplier);
             
             // crit roll (server-side)
             bool wasCrit = UnityEngine.Random.value < TotalCritChance;

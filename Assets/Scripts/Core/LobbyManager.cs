@@ -13,7 +13,7 @@ namespace Category5.Core
         public ulong ClientId;
         public FixedString64Bytes PlayerName;
         public bool IsHost;
-        public PlayerClassType SelectedClass;
+        public int SelectedClassId;
         public bool IsReady;
         
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
@@ -21,7 +21,7 @@ namespace Category5.Core
             serializer.SerializeValue(ref ClientId);
             serializer.SerializeValue(ref PlayerName);
             serializer.SerializeValue(ref IsHost);
-            serializer.SerializeValue(ref SelectedClass);
+            serializer.SerializeValue(ref SelectedClassId);
             serializer.SerializeValue(ref IsReady);
         }
         
@@ -106,11 +106,11 @@ namespace Category5.Core
             
             if (NetworkManager.Singleton.IsServer)
             {
-                // host adds themselves immediately with ranger as default class
-                AddPlayer(NetworkManager.Singleton.LocalClientId, PlayerNameManager.Instance?.GetDisplayName() ?? "Host", true, PlayerClassType.Ranger);
+                // host adds themselves with no class selected by default
+                AddPlayer(NetworkManager.Singleton.LocalClientId, PlayerNameManager.Instance?.GetDisplayName() ?? "Host", true, PlayerClass.NoClassId);
             }
             
-            Debug.Log("LobbyManager: Initialized");
+            //// Debug.Log("LobbyManager: Initialized");
         }
         
         // call this when leaving the lobby
@@ -133,7 +133,7 @@ namespace Category5.Core
             _lobbyPlayers.Clear();
             _isInitialized = false;
             
-            Debug.Log("LobbyManager: Cleaned up");
+            //// Debug.Log("LobbyManager: Cleaned up");
         }
         
         private void OnClientConnected(ulong clientId)
@@ -144,7 +144,7 @@ namespace Category5.Core
             // host already added in Initialize()
             if (clientId == NetworkManager.Singleton.LocalClientId) return;
             
-            Debug.Log($"LobbyManager: Client {clientId} connected, waiting for name...");
+            // Debug.Log($": Client {clientId} connected, waiting for name...");
         }
         
         private void OnClientDisconnected(ulong clientId)
@@ -156,7 +156,7 @@ namespace Category5.Core
             {
                 if (_lobbyPlayers[i].ClientId == clientId)
                 {
-                    Debug.Log($"LobbyManager: Player {_lobbyPlayers[i].PlayerName} left");
+                    //// Debug.Log($"LobbyManager: Player {_lobbyPlayers[i].PlayerName} left");
                     _lobbyPlayers.RemoveAt(i);
                     break;
                 }
@@ -184,7 +184,7 @@ namespace Category5.Core
                 writer
             );
             
-            Debug.Log($"LobbyManager: Sent name '{name}' to server");
+            //// Debug.Log($"LobbyManager: Sent name '{name}' to server");
         }
         
         // server receives player name from client
@@ -247,7 +247,7 @@ namespace Category5.Core
                 _lobbyPlayers.Add(player);
             }
             
-            Debug.Log($"LobbyManager: Received player list with {count} players");
+            //// Debug.Log($"LobbyManager: Received player list with {count} players");
             OnLobbyPlayersChanged?.Invoke();
         }
         
@@ -283,7 +283,7 @@ namespace Category5.Core
             {
                 if (_lobbyPlayers[i].ClientId == leftClientId)
                 {
-                    Debug.Log($"LobbyManager: Player {_lobbyPlayers[i].PlayerName} left");
+                    //// Debug.Log($"LobbyManager: Player {_lobbyPlayers[i].PlayerName} left");
                     _lobbyPlayers.RemoveAt(i);
                     break;
                 }
@@ -292,7 +292,7 @@ namespace Category5.Core
             OnLobbyPlayersChanged?.Invoke();
         }
         
-        private void AddPlayer(ulong clientId, string playerName, bool isHost, PlayerClassType selectedClass = PlayerClassType.Ranger)
+        private void AddPlayer(ulong clientId, string playerName, bool isHost, int selectedClassId = PlayerClass.NoClassId)
         {
             // check if already exists
             foreach (var p in _lobbyPlayers)
@@ -305,12 +305,12 @@ namespace Category5.Core
                 ClientId = clientId,
                 PlayerName = new FixedString64Bytes(playerName),
                 IsHost = isHost,
-                SelectedClass = selectedClass,
+                SelectedClassId = selectedClassId,
                 IsReady = false
             };
             
             _lobbyPlayers.Add(player);
-            Debug.Log($"LobbyManager: Added player '{playerName}' (client {clientId}, host: {isHost}, class: {selectedClass})");
+            //// Debug.Log($"LobbyManager: Added player '{playerName}' (client {clientId}, host: {isHost}, class: {selectedClass})");
             
             OnLobbyPlayersChanged?.Invoke();
         }
@@ -340,27 +340,27 @@ namespace Category5.Core
             return $"Player {clientId}";
         }
         
-        // get a player's selected class by client id
-        public PlayerClassType GetPlayerClass(ulong clientId)
+        // get a player's selected class id by client id
+        public int GetPlayerClassId(ulong clientId)
         {
             foreach (var p in _lobbyPlayers)
             {
                 if (p.ClientId == clientId)
                 {
-                    return p.SelectedClass;
+                    return p.SelectedClassId;
                 }
             }
-            return PlayerClassType.Ranger; // default fallback
+            return PlayerClass.NoClassId;
         }
         
-        // client sends their selected class to server
-        public void SendLocalPlayerClass(PlayerClassType classType)
+        // client sends their selected class id to server
+        public void SendLocalPlayerClassId(int classId)
         {
             if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsClient) return;
             if (NetworkManager.Singleton.IsServer) return; // host updates directly
             
             using var writer = new FastBufferWriter(16, Allocator.Temp);
-            writer.WriteValueSafe((int)classType);
+            writer.WriteValueSafe(classId);
             
             NetworkManager.Singleton.CustomMessagingManager.SendNamedMessage(
                 MSG_PLAYER_CLASS,
@@ -368,54 +368,59 @@ namespace Category5.Core
                 writer
             );
             
-            Debug.Log($"LobbyManager: Sent class selection '{classType}' to server");
+            //// Debug.Log($"LobbyManager: Sent class selection '{classType}' to server");
         }
         
-        // host sets their own class directly
-        public void SetHostPlayerClass(PlayerClassType classType)
+        // host sets their own class id directly
+        public void SetHostPlayerClassId(int classId)
         {
             if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsServer) return;
             
-            // update local list
+            ulong localId = NetworkManager.Singleton.LocalClientId;
+            
+            // reject if another player already has this class
+            if (IsClassTaken(classId, localId)) return;
+            
             for (int i = 0; i < _lobbyPlayers.Count; i++)
             {
-                if (_lobbyPlayers[i].ClientId == NetworkManager.Singleton.LocalClientId)
+                if (_lobbyPlayers[i].ClientId == localId)
                 {
                     var player = _lobbyPlayers[i];
-                    player.SelectedClass = classType;
+                    player.SelectedClassId = classId;
+                    player.IsReady = false; // auto-unready on class change
                     _lobbyPlayers[i] = player;
                     
-                    Debug.Log($"LobbyManager: Host set class to {classType}");
                     OnLobbyPlayersChanged?.Invoke();
-                    
-                    // broadcast to all clients
                     BroadcastPlayerList();
                     break;
                 }
             }
         }
         
-        // server receives class selection from client
+        // server receives class id selection from client
         private void OnPlayerClassReceived(ulong senderClientId, FastBufferReader reader)
         {
             if (!NetworkManager.Singleton.IsServer) return;
             
-            reader.ReadValueSafe(out int classInt);
-            PlayerClassType classType = (PlayerClassType)classInt;
+            reader.ReadValueSafe(out int classId);
             
-            // update player's class
+            // if another player already has this class, reject by broadcasting current state
+            if (IsClassTaken(classId, senderClientId))
+            {
+                BroadcastPlayerList();
+                return;
+            }
+            
             for (int i = 0; i < _lobbyPlayers.Count; i++)
             {
                 if (_lobbyPlayers[i].ClientId == senderClientId)
                 {
                     var player = _lobbyPlayers[i];
-                    player.SelectedClass = classType;
+                    player.SelectedClassId = classId;
+                    player.IsReady = false; // auto-unready on class change
                     _lobbyPlayers[i] = player;
                     
-                    Debug.Log($"LobbyManager: Player {senderClientId} selected class {classType}");
                     OnLobbyPlayersChanged?.Invoke();
-                    
-                    // broadcast updated list to all clients
                     BroadcastPlayerList();
                     break;
                 }
@@ -443,7 +448,7 @@ namespace Category5.Core
                     writer
                 );
                 
-                Debug.Log($"LobbyManager: Sent ready state '{isReady}' to server");
+                //// Debug.Log($"LobbyManager: Sent ready state '{isReady}' to server");
             }
         }
         
@@ -456,13 +461,14 @@ namespace Category5.Core
             {
                 if (_lobbyPlayers[i].ClientId == NetworkManager.Singleton.LocalClientId)
                 {
+                    // can't ready up without a class
+                    if (isReady && _lobbyPlayers[i].SelectedClassId == PlayerClass.NoClassId) return;
+                    
                     var player = _lobbyPlayers[i];
                     player.IsReady = isReady;
                     _lobbyPlayers[i] = player;
                     
-                    Debug.Log($"LobbyManager: Host set ready to {isReady}");
                     OnLobbyPlayersChanged?.Invoke();
-                    
                     BroadcastPlayerList();
                     break;
                 }
@@ -480,17 +486,32 @@ namespace Category5.Core
             {
                 if (_lobbyPlayers[i].ClientId == senderClientId)
                 {
+                    // can't ready up without a class
+                    if (isReady && _lobbyPlayers[i].SelectedClassId == PlayerClass.NoClassId) return;
+                    
                     var player = _lobbyPlayers[i];
                     player.IsReady = isReady;
                     _lobbyPlayers[i] = player;
                     
-                    Debug.Log($"LobbyManager: Player {senderClientId} set ready to {isReady}");
                     OnLobbyPlayersChanged?.Invoke();
-                    
                     BroadcastPlayerList();
                     break;
                 }
             }
+        }
+        
+        // returns true if any player other than excludeClientId has the given classId
+        // NoClassId is never considered taken
+        private bool IsClassTaken(int classId, ulong excludeClientId)
+        {
+            if (classId == PlayerClass.NoClassId) return false;
+            
+            foreach (var p in _lobbyPlayers)
+            {
+                if (p.ClientId != excludeClientId && p.SelectedClassId == classId)
+                    return true;
+            }
+            return false;
         }
         
         // check if all players are ready (for host to start game)

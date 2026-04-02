@@ -20,7 +20,7 @@ namespace Category5.Player
         // current model instance
         private GameObject _currentModel;
         private ModelData _currentModelData;
-        private PlayerClassType _currentLoadedClass = (PlayerClassType)(-1);
+        private int _currentLoadedClass = PlayerClass.NoClassId;
         
         // cached references
         private PlayerClassManager _classManager;
@@ -77,38 +77,41 @@ namespace Category5.Player
             }
             
             // subscribe to class changes so model swaps on all clients
-            _classManager.SelectedClass.OnValueChanged += OnSelectedClassChanged;
+            _classManager.SelectedClassId.OnValueChanged += OnSelectedClassChanged;
             
             // load the initial model based on current class value
-            LoadModel(_classManager.SelectedClass.Value);
+            LoadModel(_classManager.SelectedClassId.Value);
         }
         
         public override void OnNetworkDespawn()
         {
             if (_classManager != null)
             {
-                _classManager.SelectedClass.OnValueChanged -= OnSelectedClassChanged;
+                _classManager.SelectedClassId.OnValueChanged -= OnSelectedClassChanged;
             }
         }
         
-        private void OnSelectedClassChanged(PlayerClassType oldClass, PlayerClassType newClass)
+        private void OnSelectedClassChanged(int oldClass, int newClass)
         {
             LoadModel(newClass);
         }
         
-        // loads the model prefab for the given class
+        // loads the model prefab for the given class id
         // runs on all clients independently
-        public void LoadModel(PlayerClassType classType)
+        public void LoadModel(int classId)
         {
             // skip if already loaded this class
-            if (classType == _currentLoadedClass) return;
-            _currentLoadedClass = classType;
+            if (classId == _currentLoadedClass) return;
+            _currentLoadedClass = classId;
+            
+            // no class selected - skip model load
+            if (classId == PlayerClass.NoClassId) return;
             
             // get class data from registry
-            PlayerClass classData = GetClassData(classType);
+            PlayerClass classData = GetClassData(classId);
             if (classData == null)
             {
-                Debug.LogWarning($"PlayerModelManager: No class data found for {classType}");
+                Debug.LogWarning($"PlayerModelManager: No class data found for classId {classId}");
                 return;
             }
             
@@ -162,7 +165,7 @@ namespace Category5.Player
             // fire event so other systems can react (PlayerCombat, vfx, etc)
             OnModelLoaded?.Invoke(_playerController, _animator);
             
-            Debug.Log($"PlayerModelManager: Loaded model for class {classType} ({classData.className})");
+            // Debug.Log($"PlayerModelManager: Loaded model for class {classType} ({classData.className})");
         }
 
         // removes all children from model root so only current class model remains
@@ -324,8 +327,8 @@ namespace Category5.Player
             }
         }
         
-        // gets class data from the class registryy
-        private PlayerClass GetClassData(PlayerClassType classType)
+        // gets class data from the class registry
+        private PlayerClass GetClassData(int classId)
         {
             if (ClassRegistry.Instance == null)
             {
@@ -333,7 +336,7 @@ namespace Category5.Player
                 return null;
             }
             
-            return ClassRegistry.Instance.GetClass(classType);
+            return ClassRegistry.Instance.GetClass(classId);
         }
     }
 }

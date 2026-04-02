@@ -24,7 +24,7 @@ namespace Category5.Utils
 
             if (NetworkManager.Singleton != null && !NetworkManager.Singleton.IsListening)
             {
-                Debug.Log("AutoStartHost: Starting Host...");
+                // Debug.Log("AutoStartHost: Starting Host...");
                 bool success = NetworkManager.Singleton.StartHost();
                 if (!success)
                 {

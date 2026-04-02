@@ -179,6 +179,12 @@ namespace Category5.Player
         // fired after damage is applied to an enemy. passes damage dealt, target, and crit status
         public event Action<int, GameObject, bool> OnPlayerDealtDamage;
 
+        // called by networked projectile so ranged attacks also fire the dealt-damage event
+        public void NotifyDealtDamage(int damage, GameObject target, bool wasCrit)
+        {
+            OnPlayerDealtDamage?.Invoke(damage, target, wasCrit);
+        }
+
 
         private void Awake()
         {

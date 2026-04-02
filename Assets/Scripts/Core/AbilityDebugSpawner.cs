@@ -63,7 +63,7 @@ namespace Category5
             if (netObj != null)
             {
                 netObj.Spawn();
-                Debug.Log($"Spawned dummy player at {spawnPos}");
+                // Debug.Log($"Spawned dummy player at {spawnPos}");
             }
             else
             {
@@ -98,7 +98,7 @@ namespace Category5
             if (netObj != null)
             {
                 netObj.Spawn();
-                Debug.Log($"Spawned enemy at {spawnPos}");
+                // Debug.Log($"Spawned enemy at {spawnPos}");
             }
             else
             {

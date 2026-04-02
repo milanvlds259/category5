@@ -38,7 +38,7 @@ namespace Category5.Enemies
             if (!IsServer) return;
 
             Health.Value -= damage;
-            Debug.Log($"Dummy took {damage} damage. Health: {Health.Value}");
+            // Debug.Log($"Dummy took {damage} damage. Health: {Health.Value}");
 
             // visual feedback (server side trigger, but we should use ClientRpc for proper visuals)
             PlayHitEffectClientRpc();

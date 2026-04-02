@@ -26,13 +26,14 @@ namespace Category5.UI
         
         private PlayerClass[] _availableClasses;
         private List<LobbyClassCard> _cards = new List<LobbyClassCard>();
-        private int _selectedIndex = 0;
+        private int _selectedIndex = -1;
         
         private void OnEnable()
         {
             LobbyClassCard.OnCardClicked += OnCardClicked;
             LobbyClassCard.OnCardHoverEnter += OnCardHoverEnter;
             LobbyClassCard.OnCardHoverExit += OnCardHoverExit;
+            LobbyManager.OnLobbyPlayersChanged += RefreshCardStates;
         }
         
         private void OnDisable()
@@ -40,6 +41,7 @@ namespace Category5.UI
             LobbyClassCard.OnCardClicked -= OnCardClicked;
             LobbyClassCard.OnCardHoverEnter -= OnCardHoverEnter;
             LobbyClassCard.OnCardHoverExit -= OnCardHoverExit;
+            LobbyManager.OnLobbyPlayersChanged -= RefreshCardStates;
         }
         
         // call this when entering the lobby
@@ -63,12 +65,12 @@ namespace Category5.UI
             ClearCards();
             
             // find saved selection
-            var savedClass = ClassSelectionManager.GetClass();
-            _selectedIndex = 0;
+            var savedClassId = ClassSelectionManager.GetClassId();
+            _selectedIndex = -1;
             
             for (int i = 0; i < _availableClasses.Length; i++)
             {
-                if (_availableClasses[i].classType == savedClass)
+                if (savedClassId != PlayerClass.NoClassId && _availableClasses[i].classId == savedClassId)
                 {
                     _selectedIndex = i;
                     break;
@@ -85,13 +87,76 @@ namespace Category5.UI
                 _cards.Add(card);
             }
             
+            // make sure the card container expands to fit all cards so the scroll rect can scroll
+            var fitter = cardContainer.GetComponent<ContentSizeFitter>();
+            if (fitter == null)
+                fitter = cardContainer.gameObject.AddComponent<ContentSizeFitter>();
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            
+            // force layout rebuild immediately so content height is correct before first scroll
+            if (cardContainer is RectTransform rt)
+                LayoutRebuilder.ForceRebuildLayoutImmediate(rt);
+            
+            // ensure the scroller background catches raycasts so scroll works in empty areas between cards
+            if (scrollRect != null)
+            {
+                var bg = scrollRect.GetComponent<Image>();
+                if (bg == null)
+                    bg = scrollRect.gameObject.AddComponent<Image>();
+                bg.color = Color.clear;
+                bg.raycastTarget = true;
+            }
+            
             // make sure character view panel starts hidden
             if (characterViewPanel != null)
                 characterViewPanel.gameObject.SetActive(false);
+            
+            // sync taken states from current lobby
+            RefreshCardStates();
+        }
+        
+        // called whenever lobby player list changes — updates which cards are greyed out
+        private void RefreshCardStates()
+        {
+            if (_cards.Count == 0 || _availableClasses == null) return;
+            if (LobbyManager.Instance == null || NetworkManager.Singleton == null) return;
+            
+            ulong localId = NetworkManager.Singleton.LocalClientId;
+            var players = LobbyManager.Instance.GetLobbyPlayers();
+            
+            // collect classes taken by other players
+            var takenIds = new HashSet<int>();
+            foreach (var p in players)
+            {
+                if (p.ClientId != localId && p.SelectedClassId != PlayerClass.NoClassId)
+                    takenIds.Add(p.SelectedClassId);
+            }
+            
+            // sync local selection index to server-authoritative state
+            int serverClassId = LobbyManager.Instance.GetPlayerClassId(localId);
+            _selectedIndex = -1;
+            for (int i = 0; i < _availableClasses.Length; i++)
+            {
+                if (_availableClasses[i].classId == serverClassId)
+                {
+                    _selectedIndex = i;
+                    break;
+                }
+            }
+            
+            // update each card's selected and taken state
+            for (int i = 0; i < _cards.Count; i++)
+            {
+                _cards[i].SetSelected(i == _selectedIndex);
+                _cards[i].SetTaken(takenIds.Contains(_availableClasses[i].classId));
+            }
         }
         
         private void OnCardClicked(LobbyClassCard clickedCard)
         {
+            // ignore clicks on taken cards (another player has this class)
+            if (clickedCard.IsTaken) return;
+            
             // find which index was clicked
             int index = _cards.IndexOf(clickedCard);
             if (index < 0 || index >= _availableClasses.Length) return;
@@ -107,7 +172,7 @@ namespace Category5.UI
                 _cards[i].SetSelected(i == _selectedIndex);
             
             // save selection locally
-            ClassSelectionManager.SetClass(selectedClass.classType);
+            ClassSelectionManager.SetClass(selectedClass.classId);
             
             // send to server via lobby manager
             if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsClient)
@@ -115,12 +180,12 @@ namespace Category5.UI
                 if (NetworkManager.Singleton.IsServer)
                 {
                     if (LobbyManager.Instance != null)
-                        LobbyManager.Instance.SetHostPlayerClass(selectedClass.classType);
+                        LobbyManager.Instance.SetHostPlayerClassId(selectedClass.classId);
                 }
                 else
                 {
                     if (LobbyManager.Instance != null)
-                        LobbyManager.Instance.SendLocalPlayerClass(selectedClass.classType);
+                        LobbyManager.Instance.SendLocalPlayerClassId(selectedClass.classId);
                 }
             }
         }
@@ -154,7 +219,7 @@ namespace Category5.UI
         // public accessor for currently selected class
         public PlayerClass GetSelectedClass()
         {
-            if (_availableClasses == null || _selectedIndex >= _availableClasses.Length)
+            if (_availableClasses == null || _selectedIndex < 0 || _selectedIndex >= _availableClasses.Length)
                 return null;
             return _availableClasses[_selectedIndex];
         }

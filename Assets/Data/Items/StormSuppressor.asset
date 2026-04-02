@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a5fd3245b27c2c419efd63766ca013e, type: 3}
+  m_Name: StormSuppressor
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Items.ItemData
+  itemName: Storm Suppressor
+  description: 'Hitting an enemy reduces their damage output by <color=#4FC3F7><b>{0}%</b></color>
+    for <color=#FFD700><b>{1}s</b></color>. Hitting again resets the duration.
+
+
+    <size=80%><color=#aaaaaa>Only
+    {2}% effective on bosses.</color></size>'
+  icon: {fileID: 0}
+  category: 0
+  effects: []
+  behaviourPrefab: {fileID: 3095713141797661695, guid: 4f924d0123354db438bdb6d2b36e5881, type: 3}
+  glowColor: {r: 0.7650337, g: 0.10451402, b: 0.8792453, a: 1}
+  visualEffectPrefab: {fileID: 0}
+  goldCost: 0

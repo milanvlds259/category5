@@ -37,7 +37,7 @@ namespace Category5
         
         public override void Execute()
         {
-            Debug.Log("RangerQ.Execute() called");
+            // Debug.Log("RangerQ.Execute() called");
             
             // start the buff
             if (buffCoroutine != null)

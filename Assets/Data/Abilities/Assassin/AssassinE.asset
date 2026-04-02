@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: AssassinE
   m_EditorClassIdentifier: Assembly-CSharp::Category5.AbilityData
   abilityName: Blade Dance
-  description: Spin and dash in a circle, hitting enemies around you. Damage scales
-    with damage buff stacks from Dash Slash.
+  description: Spin and dash in a circle, continuously damaging enemies around you.
+    Damage scales with damage buff stacks from Dash Slash.
   abilityIcon: {fileID: 0}
   cooldownDuration: 6
   damageCoefficient: 1.65

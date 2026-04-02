@@ -46,7 +46,7 @@ namespace Category5.Items
                 }
                 _itemLookup[item.UniqueId] = item;
             }
-            Debug.Log($"ItemRegistry: Loaded {_itemLookup.Count} items");
+            // Debug.Log($"ItemRegistry: Loaded {_itemLookup.Count} items");
         }
 
         // get item by its unique id

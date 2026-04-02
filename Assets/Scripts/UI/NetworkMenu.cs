@@ -6,6 +6,7 @@ using TMPro;
 using System;
 using System.Collections;
 using Category5.Core;
+using Category5.Player;
 
 namespace Category5.UI
 {
@@ -40,6 +41,7 @@ namespace Category5.UI
         [SerializeField] private CharacterViewPanel characterViewPanel;     // hover overlay (starts hidden)
         [SerializeField] private LobbyPartyPanel lobbyPartyPanel;           // party portrait panel + join code header
         [SerializeField] private LobbySettingsPanel lobbySettingsPanel;     // settings overlay
+        [SerializeField] private ChatToggleController chatToggleController; // indicator + chat panel toggle
         
         [Header("status & connecting")]
         [SerializeField] private TextMeshProUGUI statusText;
@@ -804,6 +806,16 @@ namespace Category5.UI
             {
                 lobbySettingsPanel.Initialize();
             }
+
+            // initialize chat indicator + panel toggle
+            if (chatToggleController != null)
+            {
+                chatToggleController.Initialize();
+            }
+            else
+            {
+                Debug.LogError("NetworkMenu: chatToggleController is null - assign it in the inspector on NetworkMenu");
+            }
         }
         
         // cleanup lobby panels when leaving
@@ -813,6 +825,12 @@ namespace Category5.UI
             if (characterViewPanel != null)
             {
                 characterViewPanel.gameObject.SetActive(false);
+            }
+
+            // cleanup chat (disables input action)
+            if (chatToggleController != null)
+            {
+                chatToggleController.Cleanup();
             }
         }
         
@@ -837,14 +855,32 @@ namespace Category5.UI
         }
         
         // update ready button text based on current state
+        // button is disabled until the player has selected a class
         private void UpdateReadyButtonVisual()
         {
             if (readyButtonText == null || LobbyManager.Instance == null) return;
+            if (NetworkManager.Singleton == null) return;
             
+            int classId = LobbyManager.Instance.GetPlayerClassId(NetworkManager.Singleton.LocalClientId);
+            bool hasClass = classId != PlayerClass.NoClassId;
+            
+            if (!hasClass)
+            {
+                readyButtonText.text = "Select a class";
+                if (readyButton != null)
+                {
+                    readyButton.interactable = false;
+                    var colors = readyButton.colors;
+                    colors.normalColor = new Color(0.5f, 0.5f, 0.5f);
+                    readyButton.colors = colors;
+                }
+                return;
+            }
+            
+            if (readyButton != null) readyButton.interactable = true;
             bool isReady = LobbyManager.Instance.IsLocalPlayerReady();
             readyButtonText.text = isReady ? "Unready" : "Ready!";
             
-            // optionally change button color
             if (readyButton != null)
             {
                 var colors = readyButton.colors;

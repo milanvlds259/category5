@@ -70,7 +70,7 @@ namespace Category5.UI
             BossBase boss = FindFirstObjectByType<BossBase>();
             if (boss != null && boss.IsSpawned)
             {
-                Debug.Log("UIManager: Found existing boss, registering");
+                // Debug.Log("UIManager: Found existing boss, registering");
                 RegisterBoss(boss);
             }
         }

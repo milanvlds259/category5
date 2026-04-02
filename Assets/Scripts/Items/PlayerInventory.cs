@@ -101,7 +101,7 @@ namespace Category5.Items
                 if (inventorySlots[i].IsEmpty)
                 {
                     inventorySlots[i] = new InventorySlot(itemId, i, 1);
-                    Debug.Log($"PlayerInventory: Added item '{itemId}' to slot {i} for player {OwnerClientId}");
+                    // Debug.Log($"PlayerInventory: Added item '{itemId}' to slot {i} for player {OwnerClientId}");
                     return true;
                 }
             }
@@ -135,7 +135,7 @@ namespace Category5.Items
 
             var oldItemId = inventorySlots[slotIndex].itemId.ToString();
             inventorySlots[slotIndex] = new InventorySlot(newItemId, slotIndex, 1);
-            Debug.Log($"PlayerInventory: Replaced item '{oldItemId}' with '{newItemId}' at slot {slotIndex} for player {OwnerClientId}");
+            // Debug.Log($"PlayerInventory: Replaced item '{oldItemId}' with '{newItemId}' at slot {slotIndex} for player {OwnerClientId}");
             return true;
         }
 
@@ -162,7 +162,7 @@ namespace Category5.Items
 
             var itemId = inventorySlots[slotIndex].itemId.ToString();
             inventorySlots[slotIndex] = InventorySlot.Empty(slotIndex);
-            Debug.Log($"PlayerInventory: Removed item '{itemId}' from slot {slotIndex} for player {OwnerClientId}");
+            // Debug.Log($"PlayerInventory: Removed item '{itemId}' from slot {slotIndex} for player {OwnerClientId}");
             return true;
         }
 
@@ -236,7 +236,7 @@ namespace Category5.Items
                 inventorySlots[i] = InventorySlot.Empty(i);
             }
 
-            Debug.Log($"PlayerInventory: Cleared inventory for player {OwnerClientId}");
+            // Debug.Log($"PlayerInventory: Cleared inventory for player {OwnerClientId}");
         }
 
         // helper method to get all items as list (for PlayerStats to read)
@@ -316,7 +316,7 @@ namespace Category5.Items
 
                     int newTier = currentTier + 1;
                     inventorySlots[i] = new InventorySlot(itemId, i, newTier);
-                    Debug.Log($"PlayerInventory: Upgraded '{itemId}' to tier {newTier} for player {OwnerClientId}");
+                    // Debug.Log($"PlayerInventory: Upgraded '{itemId}' to tier {newTier} for player {OwnerClientId}");
                     return true;
                 }
             }

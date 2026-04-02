@@ -35,7 +35,7 @@ namespace Category5
 
             Vector3 direction = GetAimDirection(spawnPos);
 
-            Debug.Log($"[ElementalistE_Fire] launching fireball from {spawnPos} toward {direction}");
+            // Debug.Log($"[ElementalistE_Fire] launching fireball from {spawnPos} toward {direction}");
 
             // fire event for local vfx/sfx
             OnFireballLaunched?.Invoke(spawnPos, direction);

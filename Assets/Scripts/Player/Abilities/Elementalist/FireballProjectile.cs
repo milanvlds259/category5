@@ -121,7 +121,7 @@ namespace Category5
 
         private void Explode(Vector3 position)
         {
-            Debug.Log($"[FireballProjectile] exploding at {position} with radius {explosionRadius}");
+            // Debug.Log($"[FireballProjectile] exploding at {position} with radius {explosionRadius}");
 
             if (showDebugExplosionSphere)
             {
@@ -313,7 +313,7 @@ namespace Category5
         private void FireballExplodeClientRpc(Vector3 position, int enemiesHit)
         {
             OnFireballExplode?.Invoke(position, enemiesHit);
-            Debug.Log($"[FireballProjectile] explosion vfx at {position}, hit {enemiesHit} enemies");
+            // Debug.Log($"[FireballProjectile] explosion vfx at {position}, hit {enemiesHit} enemies");
         }
 
         [ClientRpc]

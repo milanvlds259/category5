@@ -82,7 +82,7 @@ namespace Category5
                 return;
             }
 
-            Debug.Log($"[ElementalistE_Dispatcher] delegating to {active.GetType().Name} (element: {_elementCycler?.CurrentElement})");
+            // Debug.Log($"[ElementalistE_Dispatcher] delegating to {active.GetType().Name} (element: {_elementCycler?.CurrentElement})");
             active.Execute();
         }
 

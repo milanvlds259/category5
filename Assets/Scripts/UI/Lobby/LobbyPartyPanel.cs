@@ -66,7 +66,7 @@ namespace Category5.UI
                 if (entry != null)
                 {
                     // look up the portrait sprite for this player's selected class
-                    Sprite portrait = GetClassPortrait(player.SelectedClass);
+                    Sprite portrait = GetClassPortrait(player.SelectedClassId);
                     string playerName = player.PlayerName.ToString();
                     
                     entry.Setup(playerName, player.IsReady, portrait);
@@ -76,12 +76,13 @@ namespace Category5.UI
             }
         }
         
-        // get portrait sprite for a class type from the registry
-        private Sprite GetClassPortrait(PlayerClassType classType)
+        // get portrait sprite for a class id from the registry
+        private Sprite GetClassPortrait(int classId)
         {
+            if (classId == PlayerClass.NoClassId) return defaultPortraitSprite;
             if (ClassRegistry.Instance == null) return defaultPortraitSprite;
             
-            var playerClass = ClassRegistry.Instance.GetClass(classType);
+            var playerClass = ClassRegistry.Instance.GetClass(classId);
             if (playerClass == null) return defaultPortraitSprite;
 
             // prefer party portrait, fall back to portrait, fall back to icon, then default

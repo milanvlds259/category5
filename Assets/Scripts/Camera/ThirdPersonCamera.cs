@@ -144,7 +144,7 @@ namespace Category5
             _isSpectating = true;
             _originalTarget = target;
             
-            Debug.Log("ThirdPersonCamera: Entering spectator mode");
+            // Debug.Log("ThirdPersonCamera: Entering spectator mode");
             
             // find alive players to spectate
             UpdateSpectateTargets();
@@ -161,7 +161,7 @@ namespace Category5
         {
             _isSpectating = false;
             
-            Debug.Log("ThirdPersonCamera: Exiting spectator mode");
+            // Debug.Log("ThirdPersonCamera: Exiting spectator mode");
             
             // return to original target
             if (_originalTarget != null)
@@ -225,7 +225,7 @@ namespace Category5
             
             // get player name or id for ui
             string playerName = $"Player {player.OwnerClientId + 1}";
-            Debug.Log($"ThirdPersonCamera: Now spectating {playerName}");
+            // Debug.Log($"ThirdPersonCamera: Now spectating {playerName}");
             
             OnSpectateTargetChanged?.Invoke(playerName);
         }

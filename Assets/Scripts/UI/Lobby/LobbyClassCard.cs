@@ -10,7 +10,7 @@ namespace Category5.UI
 {
     // individual class card in the lobby select list
     // click to select, hover to show character view panel
-    public class LobbyClassCard : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
+    public class LobbyClassCard : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler, IScrollHandler
     {
         [Header("display")]
         [SerializeField] private Image portraitImage;
@@ -30,10 +30,13 @@ namespace Category5.UI
 
         private Vector3 _normalScale;
         private Coroutine _scaleCoroutine;
+        private ScrollRect _parentScrollRect;
 
         private void Awake()
         {
             _normalScale = transform.localScale;
+            // cache the parent scroll rect so scroll events can be forwarded up
+            _parentScrollRect = GetComponentInParent<ScrollRect>();
         }
 
         // events
@@ -44,9 +47,11 @@ namespace Category5.UI
         private PlayerClass _playerClass;
         private bool _isSelected;
         private bool _isHovered;
+        private bool _isTaken;
         
         public PlayerClass PlayerClass => _playerClass;
         public bool IsSelected => _isSelected;
+        public bool IsTaken => _isTaken;
         
         // set up the card with class data
         public void Setup(PlayerClass playerClass, Sprite fallbackSprite)
@@ -111,14 +116,35 @@ namespace Category5.UI
 
         public void OnPointerClick(PointerEventData eventData)
         {
+            if (_isTaken) return;
             OnCardClicked?.Invoke(this);
+        }
+
+        // forward scroll events up to the parent scroll rect so the card list can be scrolled
+        public void OnScroll(PointerEventData eventData)
+        {
+            if (_parentScrollRect != null)
+                _parentScrollRect.OnScroll(eventData);
+        }
+        
+        // mark this card as taken by another player - greys out portrait and blocks selection
+        public void SetTaken(bool taken)
+        {
+            _isTaken = taken;
+            
+            if (portraitImage != null)
+                portraitImage.color = taken ? new Color(0.35f, 0.35f, 0.35f, 1f) : Color.white;
+            
+            UpdateVisuals();
         }
         
         private void UpdateVisuals()
         {
             if (cardBackground == null) return;
             
-            if (_isSelected)
+            if (_isTaken)
+                cardBackground.color = new Color(0.12f, 0.12f, 0.12f, 0.8f);
+            else if (_isSelected)
                 cardBackground.color = selectedColor;
             else if (_isHovered)
                 cardBackground.color = hoverColor;
