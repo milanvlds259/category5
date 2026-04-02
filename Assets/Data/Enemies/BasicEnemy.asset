@@ -18,9 +18,9 @@ MonoBehaviour:
   moveSpeed: 3.5
   rotationSpeed: 360
   damage: 5
-  attackRange: 2
+  attackRange: 1.5
   attackCooldown: 2
-  staggerDuration: 0.25
+  staggerDuration: 0.2
   attacks:
   - {fileID: 11400000, guid: 8a3b72f1581956b44b34379656c17dfb, type: 2}
   detectionRange: 45
@@ -46,4 +46,7 @@ MonoBehaviour:
     groundedConfirmFrames: 2
     groundedLossFrames: 2
     launchDecayRate: 12
+  obstacleAvoidanceType: 4
+  avoidancePriority: 50
+  stoppingDistanceFactor: 0.9
   gizmoColor: {r: 1, g: 0, b: 0, a: 1}
