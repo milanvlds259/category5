@@ -72,6 +72,9 @@ namespace Category5.Player
         [SerializeField] private Vector3 groundCheckOffset = new Vector3(0, 0.1f, 0);
         [SerializeField] private LayerMask groundLayers = 1; // Default layer
 
+        [Header("Cloud Check")]
+        [SerializeField] private LayerMask cloudLayer = 8; // CloudSurface layer
+
         [Header("Dodge Settings")]
         [SerializeField] private float dodgeDuration = 0.5f;
         [SerializeField] private float dodgeDistance = 8f;
@@ -85,6 +88,8 @@ namespace Category5.Player
         private Vector3 _velocity;
         private Vector3 _externalVelocity;
         private bool _isGrounded;
+        private bool _isClouded; // Surfing on clouds (wait I'm clouded)
+        private bool _isGliding;
         private bool _isOffline = false;
         
         // cached reference to player combat for charge state
@@ -471,7 +476,7 @@ namespace Category5.Player
             {
                 _inputActions.Player.Enable();
                 _inputActions.Player.Jump.performed += OnJump;
-                _inputActions.Player.Dodge.performed += OnDodge;
+                _inputActions.Player.Dodge.started += OnDodge;
                 _inputActions.Player.Sprint.performed += OnSprint;
             }
         }
@@ -489,6 +494,7 @@ namespace Category5.Player
 
         private void Update()
         {
+            Debug.Log(_velocity);
             if (!IsOwner && !_isOffline) return;
             
             // dead players cannot do anything
@@ -633,9 +639,30 @@ namespace Category5.Player
 
         private void HandleGravity()
         {
+            if (Physics.CheckSphere(transform.position + groundCheckOffset, groundCheckRadius, cloudLayer, QueryTriggerInteraction.Collide))
+            {
+                if (_isGliding)
+                    _isClouded = true;
+            }
+            else
+            {
+                _isClouded = false;
+            }
+
             // custom ground check is more reliable than CharacterController.isGrounded
             bool wasGrounded = _isGrounded;
-            _isGrounded = Physics.CheckSphere(transform.position + groundCheckOffset, groundCheckRadius, groundLayers, QueryTriggerInteraction.Ignore);
+            
+            if (Physics.CheckSphere(transform.position + groundCheckOffset, groundCheckRadius, groundLayers, QueryTriggerInteraction.Ignore)
+                    && !_isClouded)
+            {
+                _isGrounded = true;
+                _isGliding = false;
+            }
+            else
+            {
+                _isGrounded = false;
+            }
+            
 
             // fire airborne state change event for item behaviours
             if (wasGrounded && !_isGrounded)
@@ -647,9 +674,16 @@ namespace Category5.Player
                 OnPlayerAirborneStateChanged?.Invoke(false); // landed
             }
 
-            if (_isGrounded && _velocity.y < 0)
+            if ( (_isGrounded) && _velocity.y < 0)
             {
                 _velocity.y = -2f; // small downward force to keep grounded
+            }
+            if (_isClouded && _velocity.y < 0)
+            {
+                _velocity.y = 0f;
+                // Want some bounce/give later
+                // _velocity.y = Mathf.Clamp(_velocity.y, -1f, 1f);
+                // _velocity.y += -_velocity.y * 70f * Time.deltaTime;
             }
 
             // process jump buffer
@@ -657,10 +691,11 @@ namespace Category5.Player
             {
                 _jumpBufferCounter -= Time.deltaTime;
                 
-                if (_isGrounded)
+                if (_isGrounded || _isClouded)
                 {
                     // v = sqrt(h * -2 * g)
                     _velocity.y = Mathf.Sqrt(jumpHeight * JumpHeightMultiplier * -2f * gravity);
+                    
                     _jumpBufferCounter = 0;
                 }
             }
@@ -735,7 +770,13 @@ namespace Category5.Player
             // block dodge while charging ranged attack
             if (_playerCombat != null && _playerCombat.IsCharging) return;
             
-            if (_isDodging || !_isGrounded) return;
+            if (_isDodging) return;
+
+            if (!_isGrounded) 
+            {
+                _isGliding = true;
+                return;
+            }
             
             // use effective cooldown from player inventory if available
             float effectiveCooldown = _playerStats != null ? _playerStats.EffectiveDodgeCooldown : dodgeCooldown;

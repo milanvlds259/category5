@@ -264,6 +264,21 @@ public class MapGenerator : MonoBehaviour
             collider.height = 100f; // Set the height
             collider.center = new Vector3(0, 10, 0); // Center the collider on the arena
             collider.isTrigger = true; // Set the collider to be a trigger so players can fall through
+
+            // Add cloud layer
+            GameObject cloudLayer = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            cloudLayer.GetComponent<CapsuleCollider>().enabled = false; // Disable the cloud layer's collider
+            cloudLayer.transform.position = arena.transform.position;
+            cloudLayer.transform.localScale = new Vector3(
+                                            collider.radius * 2 * arena.transform.localScale.x,
+                                            1f,
+                                            collider.radius * 2 * arena.transform.localScale.x
+                                            );
+            cloudLayer.transform.parent = arena.transform;
+            MeshCollider cloudCollider = cloudLayer.AddComponent<MeshCollider>();
+            cloudCollider.convex = true; // Set convex to true so it can be a trigger
+            cloudCollider.isTrigger = true; // Add a mesh collider and set it to be a trigger so players can fall through
+            cloudLayer.layer = 8;
             
             // Set the arena's name and make it a child of the parent param
             if (!string.IsNullOrEmpty(numberforname))
@@ -353,9 +368,9 @@ public class MapGenerator : MonoBehaviour
         // These will be the start and end points of the path
         Vector3 pointOnA = arenaA.arenaBounds.ClosestPoint(arenaB.position);
         Vector3 pointOnB = arenaB.arenaBounds.ClosestPoint(pointOnA);
-        // Make sure the points are at the level of the arena
-        pointOnA = new Vector3(pointOnA.x, arenaA.position.y, pointOnA.z);
-        pointOnB = new Vector3(pointOnB.x, arenaB.position.y, pointOnB.z);
+        // Make sure the points are at the level of the arena (plus a little to be above cloud level)
+        pointOnA = new Vector3(pointOnA.x, arenaA.position.y + + 5f, pointOnA.z);
+        pointOnB = new Vector3(pointOnB.x, arenaB.position.y + 5f, pointOnB.z);
 
         BezierKnot Aknot = new BezierKnot(pointOnA);
         BezierKnot Bknot = new BezierKnot(pointOnB);
