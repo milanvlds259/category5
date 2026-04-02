@@ -154,6 +154,18 @@ namespace Category5.Enemies
         [Tooltip("physics parameters for this enemy type")]
         public EnemyPhysicsData physics = new EnemyPhysicsData();
 
+        [Header("navmesh")]
+        [Tooltip("avoidance quality - high quality avoids other agents cleanly but costs more cpu")]
+        public UnityEngine.AI.ObstacleAvoidanceType obstacleAvoidanceType = UnityEngine.AI.ObstacleAvoidanceType.HighQualityObstacleAvoidance;
+
+        [Tooltip("lower priority = other agents yield to this one (0 = always wins, 99 = always yields)")]
+        [Range(0, 99)]
+        public int avoidancePriority = 50;
+
+        [Tooltip("fraction of attackRange at which the agent stops moving toward the target (0.9 = stop just inside attack range)")]
+        [Range(0.1f, 1.5f)]
+        public float stoppingDistanceFactor = 0.9f;
+
         [Header("editor")]
         [Tooltip("color used for gizmos in scene view")]
         public Color gizmoColor = Color.red;

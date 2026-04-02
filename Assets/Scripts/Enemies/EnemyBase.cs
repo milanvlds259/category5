@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.AI;
 using Unity.Netcode;
 using Category5.Core;
 using Category5.Audio;
@@ -115,6 +116,14 @@ namespace Category5.Enemies
         // movement
         protected Vector3 spawnPosition;
         protected float _groundY;
+
+        // navmesh agent - server only
+        // clients have it disabled since NetworkTransform handles position sync
+        private NavMeshAgent _agent;
+        // true when the agent is enabled and successfully placed on the navmesh
+        private bool _agentOnMesh;
+        // set when ApplyLaunch boots the enemy off the navmesh so we know to re-enable it
+        private bool _agentDisabledByLaunch;
         
         // rigidbody for physics interactions (kinematic since we control movement)
         protected Rigidbody _rigidbody;
@@ -133,6 +142,11 @@ namespace Category5.Enemies
         {
             // cache visuals - handles animator and hit flash on all clients
             _visuals = GetComponent<EnemyVisuals>();
+
+            // cache nav mesh agent - will be configured and enabled after spawn (server only)
+            _agent = GetComponent<NavMeshAgent>();
+            if (_agent != null)
+                _agent.enabled = false;
             
             // cache and configure rigidbody for trigger collision detection
             _rigidbody = GetComponent<Rigidbody>();
@@ -207,11 +221,20 @@ namespace Category5.Enemies
 
             _groundY = transform.position.y;
             spawnPosition = transform.position;
+
+            // configure and enable the agent on the server after everything else is set up
+            if (IsServer)
+                ConfigureAgent();
         }
         
         public override void OnNetworkDespawn()
         {
-            // nothing to unsubscribe - EnemyVisuals handles its own NetworkVariable subscriptions
+            // stop and disable the agent cleanly
+            if (_agent != null)
+            {
+                _agent.isStopped = true;
+                _agent.enabled = false;
+            }
         }
         
         protected virtual void InitializeFromData()
@@ -250,6 +273,57 @@ namespace Category5.Enemies
             }
         }
 
+        // configures and enables the NavMeshAgent using values from enemyData
+        // called after InitializeFromData so all stats are ready
+        private void ConfigureAgent()
+        {
+            if (_agent == null) return;
+
+            // read collider radius so the agent footprint matches the physics shape
+            float agentRadius = 0.5f;
+            float agentHeight = 2f;
+            var cap = GetComponent<CapsuleCollider>();
+            if (cap != null)
+            {
+                agentRadius = cap.radius * Mathf.Max(transform.localScale.x, transform.localScale.z);
+                agentHeight = cap.height * transform.localScale.y;
+            }
+
+            _agent.enabled = true;
+            _agent.speed = _effectiveMoveSpeed;
+            _agent.angularSpeed = rotationSpeed;
+            _agent.radius = agentRadius;
+            _agent.height = agentHeight;
+            _agent.acceleration = 50f;
+            _agent.autoBraking = false;
+            _agent.updateUpAxis = false;
+            _agent.stoppingDistance = (enemyData != null) ? attackRange * enemyData.stoppingDistanceFactor : attackRange * 0.9f;
+            if (enemyData != null)
+            {
+                _agent.obstacleAvoidanceType = enemyData.obstacleAvoidanceType;
+                _agent.avoidancePriority = enemyData.avoidancePriority;
+            }
+
+            // check whether we landed on a valid navmesh position after enabling
+            _agentOnMesh = _agent.isOnNavMesh;
+            if (!_agentOnMesh)
+            {
+                // try to warp to the nearest navmesh position within 2 units
+                NavMeshHit hit;
+                if (NavMesh.SamplePosition(transform.position, out hit, 2f, NavMesh.AllAreas))
+                {
+                    _agent.Warp(hit.position);
+                    _agentOnMesh = true;
+                }
+                else
+                {
+                    // no navmesh nearby - fall back to direct transform movement
+                    _agent.enabled = false;
+                    _agentOnMesh = false;
+                }
+            }
+        }
+
         // sets up minimap trackable component for radar visibility
         private void InitializeMinimapTrackable()
         {
@@ -275,24 +349,30 @@ namespace Category5.Enemies
         {
             if (!IsServer) return;
             if (_isDead) return;
-            // update ground check so movement and gizmos can use current grounded state
-            UpdateGroundCheck();
 
-            // update vertical velocity from gravity
-            ApplyGravity();
+            // manual physics only runs when the agent is off the navmesh (launched / no navmesh baked)
+            bool useManualPhysics = !_agentOnMesh;
+            if (useManualPhysics)
+            {
+                UpdateGroundCheck();
+                ApplyGravity();
+            }
 
             UpdateTargetTimer();
             UpdateCooldowns();
             HandleStateMachine();
-            
-            // handle grapple pulling
+
             HandleGrapplePull();
-            
-            // handle ability launch velocity (fighter q slam etc.)
             HandleLaunchVelocity();
 
-            // after state updates apply vertical displacement so enemies fall when not grounded
-            ApplyVerticalDisplacement();
+            if (useManualPhysics)
+            {
+                ApplyVerticalDisplacement();
+
+                // once the enemy has landed and their launch velocity has decayed, re-enable the agent
+                if (_agentDisabledByLaunch && _isGrounded && _launchHorizontalVelocity.sqrMagnitude < 0.1f)
+                    TryReEnableAgent();
+            }
         }
         
         private void UpdateTargetTimer()
@@ -312,8 +392,9 @@ namespace Category5.Enemies
                 attackCooldownTimer -= Time.deltaTime;
             }
             
-            // update movement modifiers
+            // update movement modifiers and keep agent speed in sync
             UpdateMovementModifiers();
+            SyncAgentSpeed();
         }
         
         private void UpdateMovementModifiers()
@@ -366,6 +447,13 @@ namespace Category5.Enemies
             
             // immediately recalculate effective speed
             UpdateMovementModifiers();
+        }
+
+        // keep agent speed in sync with movement modifiers every frame
+        private void SyncAgentSpeed()
+        {
+            if (_agent != null && _agent.enabled && _agentOnMesh)
+                _agent.speed = _effectiveMoveSpeed;
         }
         
         // =====================================
@@ -464,7 +552,9 @@ namespace Category5.Enemies
             }
             
             // move toward target
-            RotateTowardTarget();
+            // when on the navmesh the agent handles rotation via angularSpeed - no need to call RotateTowardTarget
+            if (!_agentOnMesh)
+                RotateTowardTarget();
             MoveTowardTarget();
         }
         
@@ -537,12 +627,15 @@ namespace Category5.Enemies
         {
             CurrentState.Value = EnemyState.Idle;
             stateTimer = 0f;
+            StopAgent();
         }
         
         protected virtual void TransitionToChase()
         {
             CurrentState.Value = EnemyState.Chase;
             stateTimer = 0f;
+            if (_agent != null && _agent.enabled && _agentOnMesh)
+                _agent.isStopped = false;
         }
         
         protected virtual void TransitionToAttack()
@@ -560,6 +653,7 @@ namespace Category5.Enemies
             // set the state timer to the attack's configured duration
             stateTimer = _currentAttack != null ? _currentAttack.attackDuration : 0.5f;
 
+            StopAgent();
             ExecuteAttack();
         }
 
@@ -592,6 +686,18 @@ namespace Category5.Enemies
         {
             CurrentState.Value = EnemyState.Stagger;
             stateTimer = staggerDuration;
+            StopAgent();
+        }
+
+        // stop the agent in place without disabling it
+        // stays on the navmesh so it still participates in avoidance, just doesn't move
+        private void StopAgent()
+        {
+            if (_agent != null && _agent.enabled && _agentOnMesh)
+            {
+                _agent.isStopped = true;
+                _agent.ResetPath();
+            }
         }
         
         // =====================================
@@ -670,16 +776,24 @@ namespace Category5.Enemies
             MoveTowardPosition(currentTarget.position);
         }
 
-        // move toward any world-space position at the effective move speed
+        // move toward any world-space position
+        // uses the NavMeshAgent when on the mesh, falls back to direct transform move when airborne
         protected void MoveTowardPosition(Vector3 worldPos)
         {
             if (_isBeingGrappled) return;
 
+            if (_agentOnMesh && _agent != null && _agent.enabled)
+            {
+                _agent.isStopped = false;
+                _agent.SetDestination(worldPos);
+                return;
+            }
+
+            // fallback: direct transform movement when off the navmesh
             Vector3 direction = worldPos - transform.position;
             direction.y = 0f;
             if (direction.sqrMagnitude < 0.01f) return;
             direction.Normalize();
-
             transform.position += direction * _effectiveMoveSpeed * Time.deltaTime;
         }
         
@@ -902,22 +1016,47 @@ namespace Category5.Enemies
         {
             if (!IsServer) return;
             if (_isDead) return;
+
+            // disable the agent so manual gravity and horizontal velocity take over
+            if (_agent != null && _agent.enabled)
+            {
+                _agent.isStopped = true;
+                _agent.enabled = false;
+                _agentOnMesh = false;
+                _agentDisabledByLaunch = true;
+            }
             
             _launchHorizontalVelocity = new Vector3(velocity.x, 0f, velocity.z);
             
-            // override vertical velocity so the enemy gets launched upward
             if (velocity.y > 0f)
             {
                 _verticalVelocity = velocity.y;
                 _isGrounded = false;
-                // reset debounce counters - otherwise UpdateGroundCheck re-confirms grounded
-                // on the very next frame before the enemy has had a chance to move
                 _groundedTrueCounter = 0;
                 _groundedFalseCounter = 0;
             }
             
             // interrupt chasing/attacking
             TransitionToStagger();
+        }
+
+        // called after landing from a launch - warps the agent back onto the navmesh and re-enables it
+        private void TryReEnableAgent()
+        {
+            if (_agent == null) return;
+
+            NavMeshHit hit;
+            if (NavMesh.SamplePosition(transform.position, out hit, 2f, NavMesh.AllAreas))
+            {
+                _agent.enabled = true;
+                _agent.Warp(hit.position);
+                _agentOnMesh = true;
+                _agentDisabledByLaunch = false;
+
+                if (CurrentState.Value == EnemyState.Chase)
+                    _agent.isStopped = false;
+            }
+            // no nearby navmesh: stays in manual physics mode and tries again next frame
         }
         
         private void HandleLaunchVelocity()
@@ -937,6 +1076,10 @@ namespace Category5.Enemies
         public void StartGrapple(Transform targetTransform, float pullSpeed)
         {
             if (!IsServer) return;
+
+            // stop the agent so grapple movement has full control
+            // we keep it enabled (not disabled) so it stays on the navmesh during the pull
+            StopAgent();
             
             _isBeingGrappled = true;
             _grappleTargetTransform = targetTransform;
@@ -957,6 +1100,17 @@ namespace Category5.Enemies
             
             _isBeingGrappled = false;
             _grappleTargetTransform = null;
+
+            // warp the agent to our new position and resume movement if still chasing
+            if (_agent != null && _agent.enabled && _agentOnMesh)
+            {
+                NavMeshHit hit;
+                if (NavMesh.SamplePosition(transform.position, out hit, 2f, NavMesh.AllAreas))
+                    _agent.Warp(hit.position);
+
+                if (CurrentState.Value == EnemyState.Chase)
+                    _agent.isStopped = false;
+            }
         }
         
         // check if currently being grappled
@@ -1039,6 +1193,14 @@ namespace Category5.Enemies
             _isDead = true;
             
             CurrentState.Value = EnemyState.Dead;
+
+            // shut down the agent so it stops affecting avoidance for surviving enemies
+            if (_agent != null)
+            {
+                _agent.isStopped = true;
+                _agent.enabled = false;
+                _agentOnMesh = false;
+            }
             
             // fire kill attribution event for item behaviours (server only)
             OnEnemyKilledBy?.Invoke(LastDamagerClientId, transform.position, gameObject);
