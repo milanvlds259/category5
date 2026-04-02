@@ -207,6 +207,8 @@ namespace Category5.Core
             if (NetworkManager.Singleton.IsServer) return;
             
             reader.ReadValueSafe(out ChatMessage chatMsg);
+            // buffer it so the ui can read missed messages when the panel is opened later
+            AddMessageToBuffer(chatMsg);
             OnChatMessageReceived?.Invoke(chatMsg);
         }
         
@@ -281,6 +283,10 @@ namespace Category5.Core
                 reader.ReadValueSafe(out ChatMessage msg);
                 history.Add(msg);
             }
+            
+            // store history locally so GetMessageBuffer() works when the panel opens later
+            _messageBuffer.Clear();
+            _messageBuffer.AddRange(history);
             
             // Debug.Log($"LobbyChatManager: Received {count} messages of chat history");
             OnChatHistoryLoaded?.Invoke(history);

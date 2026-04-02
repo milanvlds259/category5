@@ -41,6 +41,7 @@ namespace Category5.UI
         [SerializeField] private CharacterViewPanel characterViewPanel;     // hover overlay (starts hidden)
         [SerializeField] private LobbyPartyPanel lobbyPartyPanel;           // party portrait panel + join code header
         [SerializeField] private LobbySettingsPanel lobbySettingsPanel;     // settings overlay
+        [SerializeField] private ChatToggleController chatToggleController; // indicator + chat panel toggle
         
         [Header("status & connecting")]
         [SerializeField] private TextMeshProUGUI statusText;
@@ -805,6 +806,16 @@ namespace Category5.UI
             {
                 lobbySettingsPanel.Initialize();
             }
+
+            // initialize chat indicator + panel toggle
+            if (chatToggleController != null)
+            {
+                chatToggleController.Initialize();
+            }
+            else
+            {
+                Debug.LogError("NetworkMenu: chatToggleController is null - assign it in the inspector on NetworkMenu");
+            }
         }
         
         // cleanup lobby panels when leaving
@@ -814,6 +825,12 @@ namespace Category5.UI
             if (characterViewPanel != null)
             {
                 characterViewPanel.gameObject.SetActive(false);
+            }
+
+            // cleanup chat (disables input action)
+            if (chatToggleController != null)
+            {
+                chatToggleController.Cleanup();
             }
         }
         
