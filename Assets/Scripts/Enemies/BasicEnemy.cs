@@ -7,144 +7,47 @@ using Category5.Player;
 namespace Category5.Enemies
 {
     // basic melee enemy that chases and attacks players
-    // uses EnemyData for all stats - designers can create variants via ScriptableObjects
+    // all attack timing and damage is handled in EnemyBase using EnemyAttackData
+    // this class only adds the taunt system so FighterR can redirect this enemy
     public class BasicEnemy : EnemyBase, ICanBeTaunted
     {
-        [Header("attack settings")]
-        [SerializeField] private float attackDuration = 0.5f;
-        [SerializeField] private float damageDelay = 0.25f;
-        
-        [Header("visual feedback")]
-        [SerializeField] private Renderer meshRenderer;
-        
-        private Color _originalColor;
-        private bool _hasDealtDamageThisAttack;
-        private float _damageDelayTimer;
-        
         // taunt system
         private Transform tauntSourceTransform;
         private float tauntEndTime;
-        
-        protected override void Awake()
-        {
-            base.Awake();
-            
-            if (meshRenderer == null)
-            {
-                meshRenderer = GetComponentInChildren<Renderer>();
-            }
-        }
-        
-        public override void OnNetworkSpawn()
-        {
-            base.OnNetworkSpawn();
-            
-            // cache original color for hit flash
-            if (meshRenderer != null)
-            {
-                _originalColor = meshRenderer.material.color;
-                
-                // apply enemy color tint if specified
-                if (enemyData != null && enemyData.enemyColor != Color.white)
-                {
-                    meshRenderer.material.color = enemyData.enemyColor;
-                    _originalColor = enemyData.enemyColor;
-                }
-            }
-        }
-        
+
         // =====================================
         // attack implementation
         // =====================================
-        
+
         protected override void ExecuteAttack()
         {
-            stateTimer = attackDuration;
-            _hasDealtDamageThisAttack = false;
-            _damageDelayTimer = damageDelay;
-            
-            // fire attack event
+            // fire the attack event so audio and vfx systems can react
+            // base already set stateTimer, _damageDelayTimer, and _currentAttack before calling this
             NotifyAttackClientRpc(transform.position);
         }
-        
+
         [ClientRpc]
         private void NotifyAttackClientRpc(Vector3 position)
         {
             EnemyEvents.InvokeAttack(position, elementType);
         }
-        
+
         protected override void OnAttackUpdate()
         {
             // rotate toward target during attack
             RotateTowardTarget();
-            
-            // deal damage after delay
-            if (!_hasDealtDamageThisAttack)
-            {
-                _damageDelayTimer -= Time.deltaTime;
-                if (_damageDelayTimer <= 0f)
-                {
-                    DealDamage();
-                    _hasDealtDamageThisAttack = true;
-                }
-            }
-            
+
             base.OnAttackUpdate();
         }
-        
-        private void DealDamage()
-        {
-            if (currentTargetController == null) return;
 
-            // check if still in range
-            if (!IsTargetInRange(attackRange * 1.2f)) return;
-
-            int finalDamage = Mathf.Max(1, Mathf.RoundToInt(damage * DamageOutputMultiplier));
-            currentTargetController.TakeDamage(finalDamage);
-        }
-        
-        // =====================================
-        // visual feedback
-        // =====================================
-        
-        protected override void OnHealthChanged(int oldHealth, int newHealth)
-        {
-            base.OnHealthChanged(oldHealth, newHealth);
-            
-            // flash red on damage
-            if (newHealth < oldHealth)
-            {
-                PlayHitFlashClientRpc();
-            }
-        }
-        
-        [ClientRpc]
-        private void PlayHitFlashClientRpc()
-        {
-            if (meshRenderer != null)
-            {
-                StartCoroutine(HitFlashCoroutine());
-            }
-        }
-        
-        private System.Collections.IEnumerator HitFlashCoroutine()
-        {
-            if (meshRenderer != null)
-            {
-                meshRenderer.material.color = Color.red;
-                yield return new WaitForSeconds(0.1f);
-                meshRenderer.material.color = _originalColor;
-            }
-        }
-        
         // =====================================
         // gizmos
         // =====================================
-        
+
         protected override void OnDrawGizmosSelected()
         {
             base.OnDrawGizmosSelected();
-            
+
             // draw attack direction
             if (currentTarget != null)
             {
@@ -152,22 +55,22 @@ namespace Category5.Enemies
                 Gizmos.DrawLine(transform.position, transform.position + transform.forward * attackRange);
             }
         }
-        
+
         // =====================================
         // taunt system (ICanBeTaunted)
         // =====================================
-        
+
         public void SetTauntTarget(Transform target)
         {
             tauntSourceTransform = target;
             tauntEndTime = Time.time + 4f; // taunt for 4 seconds
         }
-        
+
         public void ClearTauntTarget()
         {
             tauntSourceTransform = null;
         }
-        
+
         // override GetEffectiveTarget to prioritize taunt
         protected override Transform GetEffectiveTarget()
         {
@@ -176,7 +79,7 @@ namespace Category5.Enemies
             {
                 return tauntSourceTransform;
             }
-            
+
             // otherwise return the normal target
             return currentTarget;
         }

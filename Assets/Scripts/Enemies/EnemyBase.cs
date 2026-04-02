@@ -47,9 +47,8 @@ namespace Category5.Enemies
         [Header("components")]
         [SerializeField] protected EnemyHealthBar healthBar;
         
-        // animator driven by CurrentState NetworkVariable (all clients)
-        protected Animator _animator;
-        private static readonly int _stateHash = Animator.StringToHash("State");
+        // visuals component handles animator + hit flash on all clients
+        protected EnemyVisuals _visuals;
         
         // networked state
         public NetworkVariable<int> CurrentHealth = new NetworkVariable<int>();
@@ -72,31 +71,37 @@ namespace Category5.Enemies
         
         // movement modifiers (for abilities like spiralbow slow)
         private Dictionary<string, MovementModifier> _movementModifiers = new Dictionary<string, MovementModifier>();
+        // pre-allocated list so UpdateMovementModifiers doesn't allocate every frame
+        private readonly List<string> _keysToRemove = new List<string>(4);
         private float _effectiveMoveSpeed;
 
         [Header("timing & targeting")]
         [SerializeField] protected float targetUpdateInterval = 0.5f;
         
-        [Header("ground check")]
-        // make these public so derived concrete enemy components can edit them in the inspector
-        public float groundCheckRadius = 0.2f;
-        public Vector3 groundCheckOffset = new Vector3(0f, 0.1f, 0f);
-        public LayerMask groundLayers = 1; // default to Default layer
+        // ground check - values come from enemyData.physics on spawn
+        protected float groundCheckRadius = 0.2f;
+        protected Vector3 groundCheckOffset = new Vector3(0f, -0.64f, 0f);
+        public LayerMask groundLayers = 1;
         public bool showGroundCheckGizmo = true;
         protected bool _isGrounded = false;
 
-        [Header("ground check stability")]
-        [SerializeField] protected int groundedConfirmFrames = 3;
-        [SerializeField] protected int groundedLossFrames = 3;
+        // ground check stability counters
+        private int _groundedConfirmFrames = 2;
+        private int _groundedLossFrames = 2;
         private int _groundedTrueCounter = 0;
         private int _groundedFalseCounter = 0;
 
-        [Header("gravity")]
-        // gravity parameters (public so concrete enemy components can tune them)
-        public float gravity = -20f;
-        public float groundedStickForce = -2f; // small downward force to keep grounded
-        public float terminalVelocity = -50f;
+        // gravity - values come from enemyData.physics on spawn
+        protected float gravity = -20f;
+        protected float groundedStickForce = -2f;
+        protected float terminalVelocity = -50f;
         protected float _verticalVelocity = 0f;
+        
+        // current selected attack (chosen each time we enter attack state)
+        protected EnemyAttackData _currentAttack;
+        // tracks whether base damage was already dealt this attack cycle
+        private bool _hasDealtDamageThisAttack;
+        private float _damageDelayTimer;
         
         // targeting
         protected Transform currentTarget;
@@ -108,7 +113,6 @@ namespace Category5.Enemies
         protected float attackCooldownTimer;
         
         // movement
-        protected CharacterController characterController;
         protected Vector3 spawnPosition;
         protected float _groundY;
         
@@ -127,11 +131,8 @@ namespace Category5.Enemies
         
         protected virtual void Awake()
         {
-            // cache animator from child model - driven by CurrentState on all clients
-            _animator = GetComponentInChildren<Animator>();
-            
-            // try to cache a character controller if present
-            characterController = GetComponent<CharacterController>();
+            // cache visuals - handles animator and hit flash on all clients
+            _visuals = GetComponent<EnemyVisuals>();
             
             // cache and configure rigidbody for trigger collision detection
             _rigidbody = GetComponent<Rigidbody>();
@@ -161,28 +162,26 @@ namespace Category5.Enemies
                 EnemyEvents.InvokeSpawn(transform.position, elementType);
             }
             
-            CurrentHealth.OnValueChanged += OnHealthChanged;
-            CurrentState.OnValueChanged += OnStateChanged;
-
-            // set initial animator state so late-joining clients get the right animation
-            UpdateAnimatorState(CurrentState.Value);
-            
             // initialize health bar
             if (healthBar != null)
             {
                 healthBar.Initialize(this);
             }
 
+            // let EnemyVisuals know what data to use for initial color + vfx
+            if (_visuals != null)
+            {
+                _visuals.Initialize(enemyData);
+            }
+
+            // fire the spawn vfx
+            if (_visuals != null)
+            {
+                _visuals.PlaySpawnVfx(enemyData);
+            }
+
             // initialize minimap trackable for radar display
             InitializeMinimapTrackable();
-
-            // remove character controller at runtime so movement and physics rely on transform and regular colliders
-            // this avoids conflicts between CharacterController movement and NetworkTransform interpolation
-            if (characterController != null)
-            {
-                Destroy(characterController);
-                characterController = null;
-            }
 
             // ensure we have a non-trigger collider so projectiles (which use trigger colliders) can detect hits
             Collider anyCollider = GetComponent<Collider>() ?? GetComponentInChildren<Collider>();
@@ -206,27 +205,13 @@ namespace Category5.Enemies
                 }
             }
 
-            // do not perform a raycast ground snap here; rely on the ground check sphere for grounding
             _groundY = transform.position.y;
             spawnPosition = transform.position;
         }
         
         public override void OnNetworkDespawn()
         {
-            CurrentHealth.OnValueChanged -= OnHealthChanged;
-            CurrentState.OnValueChanged -= OnStateChanged;
-        }
-
-        // called on all clients when CurrentState changes - keeps animator in sync without NetworkAnimator
-        private void OnStateChanged(EnemyState oldState, EnemyState newState)
-        {
-            UpdateAnimatorState(newState);
-        }
-
-        private void UpdateAnimatorState(EnemyState state)
-        {
-            if (_animator != null)
-                _animator.SetInteger(_stateHash, (int)state);
+            // nothing to unsubscribe - EnemyVisuals handles its own NetworkVariable subscriptions
         }
         
         protected virtual void InitializeFromData()
@@ -235,7 +220,7 @@ namespace Category5.Enemies
             // always populate runtime stats from the EnemyData asset
             maxHealth = enemyData.maxHealth;
             moveSpeed = enemyData.moveSpeed;
-            _effectiveMoveSpeed = moveSpeed; // initialize effective speed
+            _effectiveMoveSpeed = moveSpeed;
             rotationSpeed = enemyData.rotationSpeed;
             damage = enemyData.damage;
             attackRange = enemyData.attackRange;
@@ -249,6 +234,19 @@ namespace Category5.Enemies
             if (enemyData.scaleMultiplier != 1f)
             {
                 transform.localScale = Vector3.one * enemyData.scaleMultiplier;
+            }
+
+            // pull physics parameters from data so designers can tune them per enemy type
+            if (enemyData.physics != null)
+            {
+                gravity = enemyData.physics.gravity;
+                groundedStickForce = enemyData.physics.groundedStickForce;
+                terminalVelocity = enemyData.physics.terminalVelocity;
+                groundCheckRadius = enemyData.physics.groundCheckRadius;
+                groundCheckOffset = enemyData.physics.groundCheckOffset;
+                _groundedConfirmFrames = enemyData.physics.groundedConfirmFrames;
+                _groundedLossFrames = enemyData.physics.groundedLossFrames;
+                _launchDecayRate = enemyData.physics.launchDecayRate;
             }
         }
 
@@ -321,17 +319,17 @@ namespace Category5.Enemies
         private void UpdateMovementModifiers()
         {
             // tick down modifier durations and remove expired ones
-            List<string> toRemove = new List<string>();
+            _keysToRemove.Clear();
             foreach (var kvp in _movementModifiers)
             {
                 kvp.Value.remainingDuration -= Time.deltaTime;
                 if (kvp.Value.remainingDuration <= 0f)
                 {
-                    toRemove.Add(kvp.Key);
+                    _keysToRemove.Add(kvp.Key);
                 }
             }
             
-            foreach (var key in toRemove)
+            foreach (var key in _keysToRemove)
             {
                 _movementModifiers.Remove(key);
             }
@@ -402,12 +400,36 @@ namespace Category5.Enemies
             }
         }
         
+        // wander state
+        private float _wanderTimer;
+        private Vector3 _wanderDestination;
+        private bool _hasWanderDestination;
+
         protected virtual void OnIdleUpdate()
         {
             // check for target using effective target (respects taunt)
             if (GetEffectiveTarget() != null && GetDistanceToTarget() <= detectionRange)
             {
+                _hasWanderDestination = false;
                 TransitionToChase();
+                return;
+            }
+
+            // wander if configured to do so
+            if (enemyData != null && enemyData.idleBehavior == IdleBehavior.Wander)
+            {
+                _wanderTimer -= Time.deltaTime;
+
+                if (!_hasWanderDestination || _wanderTimer <= 0f)
+                {
+                    // pick a new random destination within wanderRadius of spawn
+                    Vector2 offset = UnityEngine.Random.insideUnitCircle * enemyData.wanderRadius;
+                    _wanderDestination = spawnPosition + new Vector3(offset.x, 0f, offset.y);
+                    _hasWanderDestination = true;
+                    _wanderTimer = enemyData.wanderInterval;
+                }
+
+                MoveTowardPosition(_wanderDestination);
             }
         }
         
@@ -448,6 +470,17 @@ namespace Category5.Enemies
         
         protected virtual void OnAttackUpdate()
         {
+            // deal damage after the configured delay
+            if (!_hasDealtDamageThisAttack)
+            {
+                _damageDelayTimer -= Time.deltaTime;
+                if (_damageDelayTimer <= 0f)
+                {
+                    DealDamageToTarget();
+                    _hasDealtDamageThisAttack = true;
+                }
+            }
+
             if (stateTimer <= 0f)
             {
                 // attack finished, go back to chase or idle
@@ -460,6 +493,24 @@ namespace Category5.Enemies
                     TransitionToIdle();
                 }
             }
+        }
+
+        // deals damage to the current target - uses _currentAttack multiplier if set
+        protected void DealDamageToTarget()
+        {
+            if (currentTargetController == null) return;
+
+            float range = _currentAttack != null && _currentAttack.attackRangeOverride > 0f
+                ? _currentAttack.attackRangeOverride
+                : attackRange;
+
+            if (!IsTargetInRange(range * 1.2f)) return;
+
+            float multiplier = _currentAttack != null ? _currentAttack.damageMultiplier : 1f;
+            int finalDamage = Mathf.Max(1, Mathf.RoundToInt(damage * multiplier * DamageOutputMultiplier));
+            currentTargetController.TakeDamage(finalDamage);
+
+            OnAttackHit(currentTargetController, finalDamage);
         }
         
         protected virtual void OnStaggerUpdate()
@@ -496,9 +547,45 @@ namespace Category5.Enemies
         
         protected virtual void TransitionToAttack()
         {
+            // pick an attack from the data asset using weighted random selection
+            _currentAttack = SelectAttack();
+
             CurrentState.Value = EnemyState.Attack;
             attackCooldownTimer = attackCooldown;
+
+            // set up base damage timer
+            _hasDealtDamageThisAttack = false;
+            _damageDelayTimer = _currentAttack != null ? _currentAttack.damageDelay : 0.25f;
+
+            // set the state timer to the attack's configured duration
+            stateTimer = _currentAttack != null ? _currentAttack.attackDuration : 0.5f;
+
             ExecuteAttack();
+        }
+
+        // weighted random selection from EnemyData.attacks
+        // falls back to null if no attacks are configured
+        private EnemyAttackData SelectAttack()
+        {
+            if (enemyData == null || enemyData.attacks == null || enemyData.attacks.Length == 0)
+                return null;
+
+            int totalWeight = 0;
+            foreach (var a in enemyData.attacks)
+            {
+                if (a != null) totalWeight += Mathf.Max(1, a.selectionWeight);
+            }
+
+            int roll = UnityEngine.Random.Range(0, totalWeight);
+            int accumulated = 0;
+            foreach (var a in enemyData.attacks)
+            {
+                if (a == null) continue;
+                accumulated += Mathf.Max(1, a.selectionWeight);
+                if (roll < accumulated) return a;
+            }
+
+            return enemyData.attacks[0];
         }
         
         protected virtual void TransitionToStagger()
@@ -511,8 +598,12 @@ namespace Category5.Enemies
         // abstract methods for subclasses
         // =====================================
         
-        // executes the enemy's attack, sets stateTimer for attack duration
-        protected abstract void ExecuteAttack();
+        // called when an attack is triggered - subclasses fire events and vfx here
+        // stateTimer is already set to attackDuration before this is called
+        protected virtual void ExecuteAttack() { }
+
+        // called when base damage is dealt - virtual so subclasses can react (e.g. vfx)
+        protected virtual void OnAttackHit(PlayerController target, int finalDamage) { }
         
         // =====================================
         // targeting
@@ -573,29 +664,23 @@ namespace Category5.Enemies
         
         protected virtual void MoveTowardTarget()
         {
-            // don't move if being grappled
-            if (_isBeingGrappled)
-            {
-                return;
-            }
-            
+            if (_isBeingGrappled) return;
             if (currentTarget == null) return;
-            
-            Vector3 direction = GetDirectionToTarget();
-            if (direction == Vector3.zero) return;
-            
-            Vector3 movement = direction * _effectiveMoveSpeed * Time.deltaTime;
-            
-            if (characterController != null)
-            {
-                // add gravity
-                movement.y = -9.81f * Time.deltaTime;
-                characterController.Move(movement);
-            }
-            else
-            {
-                transform.position += movement;
-            }
+
+            MoveTowardPosition(currentTarget.position);
+        }
+
+        // move toward any world-space position at the effective move speed
+        protected void MoveTowardPosition(Vector3 worldPos)
+        {
+            if (_isBeingGrappled) return;
+
+            Vector3 direction = worldPos - transform.position;
+            direction.y = 0f;
+            if (direction.sqrMagnitude < 0.01f) return;
+            direction.Normalize();
+
+            transform.position += direction * _effectiveMoveSpeed * Time.deltaTime;
         }
         
         // =====================================
@@ -636,7 +721,7 @@ namespace Category5.Enemies
             {
                 _groundedTrueCounter++;
                 _groundedFalseCounter = 0;
-                if (_groundedTrueCounter >= groundedConfirmFrames)
+                if (_groundedTrueCounter >= _groundedConfirmFrames)
                 {
                     _isGrounded = true;
                 }
@@ -645,7 +730,7 @@ namespace Category5.Enemies
             {
                 _groundedFalseCounter++;
                 _groundedTrueCounter = 0;
-                if (_groundedFalseCounter >= groundedLossFrames)
+                if (_groundedFalseCounter >= _groundedLossFrames)
                 {
                     _isGrounded = false;
                 }
@@ -673,13 +758,6 @@ namespace Category5.Enemies
         protected void ApplyVerticalDisplacement()
         {
             float deltaY = _verticalVelocity * Time.deltaTime;
-
-            if (characterController != null)
-            {
-                // CharacterController handles collisions itself
-                characterController.Move(Vector3.up * deltaY);
-                return;
-            }
 
             // if currently considered grounded, avoid large downward raycasts which can cause toggling
             if (_isGrounded)
@@ -808,12 +886,7 @@ namespace Category5.Enemies
         {
             if (!IsServer) return;
             
-            // apply the knockback
-            if (TryGetComponent<CharacterController>(out var cc))
-            {
-                cc.Move(knockbackForce * Time.deltaTime);
-            }
-            else if (TryGetComponent<Rigidbody>(out var rb))
+            if (TryGetComponent<Rigidbody>(out var rb))
             {
                 rb.linearVelocity += knockbackForce;
             }
@@ -821,7 +894,7 @@ namespace Category5.Enemies
         
         // horizontal launch velocity applied by abilities (e.g. fighter q slam)
         private Vector3 _launchHorizontalVelocity = Vector3.zero;
-        [SerializeField] private float launchDecayRate = 12f;
+        private float _launchDecayRate = 12f;
         
         // launch the enemy with a velocity impulse (server-only)
         // horizontal component decays over time; vertical overrides gravity
@@ -852,7 +925,7 @@ namespace Category5.Enemies
             if (_launchHorizontalVelocity.sqrMagnitude < 0.01f) return;
             
             transform.position += _launchHorizontalVelocity * Time.deltaTime;
-            _launchHorizontalVelocity = Vector3.MoveTowards(_launchHorizontalVelocity, Vector3.zero, launchDecayRate * Time.deltaTime);
+            _launchHorizontalVelocity = Vector3.MoveTowards(_launchHorizontalVelocity, Vector3.zero, _launchDecayRate * Time.deltaTime);
         }
         
         // grapple state for continuous pulling (used by fighter e grappling hook)
@@ -952,11 +1025,9 @@ namespace Category5.Enemies
         {
             EnemyEvents.InvokeHurt(position, damageAmount, elementType);
         }
-        
-        protected virtual void OnHealthChanged(int oldHealth, int newHealth)
-        {
-            // subclasses can override for visual feedback
-        }
+
+        // no longer needed - EnemyVisuals subscribes to CurrentHealth directly
+        protected virtual void OnHealthChanged(int oldHealth, int newHealth) { }
         
         // =====================================
         // death
@@ -984,14 +1055,25 @@ namespace Category5.Enemies
             // stub for power-up manager integration
             // PowerUpManager.Instance?.OnEnemyDied(elementType, transform.position);
             
-            // despawn after a short delay for death effects
-            Invoke(nameof(DespawnEnemy), 0.1f);
+            // fire death vfx before despawning
+            NotifyDeathVfxClientRpc();
+
+            // wait for death animation to finish before despawning
+            float linger = enemyData != null ? enemyData.deathLingerDuration : 1.5f;
+            Invoke(nameof(DespawnEnemy), linger);
         }
         
         [ClientRpc]
         private void NotifyDeathClientRpc(Vector3 position)
         {
             EnemyEvents.InvokeDeath(position, elementType);
+        }
+
+        [ClientRpc]
+        private void NotifyDeathVfxClientRpc()
+        {
+            if (_visuals != null)
+                _visuals.PlayDeathVfx(enemyData);
         }
         
         private void DespawnEnemy()

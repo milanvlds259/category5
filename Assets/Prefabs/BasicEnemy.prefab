@@ -389,6 +389,7 @@ GameObject:
   - component: {fileID: 2682225846311773495}
   - component: {fileID: 1739887912001192785}
   - component: {fileID: 2426898582857304214}
+  - component: {fileID: 2260423141955489376}
   m_Layer: 6
   m_Name: BasicEnemy
   m_TagString: Untagged
@@ -458,21 +459,10 @@ MonoBehaviour:
   CurrentState:
     m_InternalValue: 0
   targetUpdateInterval: 0.5
-  groundCheckRadius: 0.22
-  groundCheckOffset: {x: 0, y: -0.64, z: 0}
   groundLayers:
     serializedVersion: 2
     m_Bits: 1
   showGroundCheckGizmo: 1
-  groundedConfirmFrames: 2
-  groundedLossFrames: 2
-  gravity: -20
-  groundedStickForce: -2
-  terminalVelocity: -50
-  launchDecayRate: 12
-  attackDuration: 0.5
-  damageDelay: 0.25
-  meshRenderer: {fileID: 1148078893352477821}
 --- !u!114 &4612037905845914644
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -591,6 +581,21 @@ CapsuleCollider:
   m_Height: 1.6409066
   m_Direction: 1
   m_Center: {x: -0.03667295, y: 0.09597695, z: 0.034182906}
+--- !u!114 &2260423141955489376
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8760921033380370291}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 003a5a30e16e065429b41b10195dfe69, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Enemies.EnemyVisuals
+  meshRenderer: {fileID: 1148078893352477821}
+  hitFlashColor: {r: 1, g: 0, b: 0, a: 0}
+  hitFlashDuration: 0.101
 --- !u!1001 &5941969102619404821
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -650,7 +655,7 @@ PrefabInstance:
     - target: {fileID: 875228639317543314, guid: e76b9e6fa0741b0419d7dfd9f8d40039, type: 3}
       propertyPath: 'm_Materials.Array.data[1]'
       value: 
-      objectReference: {fileID: 2100000, guid: 1537fea543b6ba8439d04382ef1aaa5c, type: 2}
+      objectReference: {fileID: 2100000, guid: 5a6ca08498ed9ba448ef976e57003c28, type: 2}
     - target: {fileID: 875228639317543314, guid: e76b9e6fa0741b0419d7dfd9f8d40039, type: 3}
       propertyPath: 'm_Materials.Array.data[2]'
       value: 
