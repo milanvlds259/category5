@@ -47,6 +47,7 @@ public class MapGenerator : MonoBehaviour
     // Keep track of all path points to make sure they're not too close together
     private List<BezierKnot> pathMidpoints = new List<BezierKnot>();
 
+    [SerializeField] Material cloudMaterial;
 
     // Mesh to generate along paths
     [SerializeField] Mesh pathMesh;
@@ -268,13 +269,14 @@ public class MapGenerator : MonoBehaviour
             // Add cloud layer
             GameObject cloudLayer = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             cloudLayer.GetComponent<CapsuleCollider>().enabled = false; // Disable the cloud layer's collider
-            cloudLayer.transform.position = arena.transform.position;
+            cloudLayer.transform.position = new Vector3(arena.transform.position.x, arena.transform.position.y - 5f, arena.transform.position.z);
             cloudLayer.transform.localScale = new Vector3(
                                             collider.radius * 2 * arena.transform.localScale.x,
                                             1f,
                                             collider.radius * 2 * arena.transform.localScale.x
                                             );
             cloudLayer.transform.parent = arena.transform;
+            cloudLayer.GetComponent<MeshRenderer>().material = cloudMaterial; // Set the cloud material
             MeshCollider cloudCollider = cloudLayer.AddComponent<MeshCollider>();
             cloudCollider.convex = true; // Set convex to true so it can be a trigger
             cloudCollider.isTrigger = true; // Add a mesh collider and set it to be a trigger so players can fall through
