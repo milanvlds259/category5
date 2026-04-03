@@ -56,7 +56,14 @@ namespace Category5.UI
         [SerializeField] private float connectionTimeout = 10f;
 
         [Header("UI Animations")]
-        [SerializeField] private float panelFadeDuration = 0.2f;
+        [SerializeField] private float mainMenuPanelFadeDuration = 0.2f;
+        [SerializeField] private float mainMenuPanelSlideDuration = 0.5f;
+        [SerializeField] private float mainMenuPanelSlideDistance = 40f;
+
+        [SerializeField] private RectTransform mainMenuRect;
+        [SerializeField] private RectTransform titleLogoRect;
+
+        [SerializeField] private Vector2 mainMenuStartPos;
 
         private UnityTransport transport;
         private bool isInLobby = false;
@@ -64,6 +71,8 @@ namespace Category5.UI
         private bool isRelayReady = false;
         private string currentJoinCode;
         private Coroutine connectionTimeoutCoroutine;
+
+        private bool animFirstLoop = true; // know if we should play animation of main menu panel on game launch
 
         private void Awake()
         {
@@ -683,17 +692,26 @@ namespace Category5.UI
 
             if (titlePanel != null)
             {
+
                 ShowUI(titlePanel);
             }
 
             if (titleLogoImage != null)
             {
-                titleLogoImage.SetActive(true);
+                AnimatePanelIn(titleLogoImage, titleLogoRect);
+                //ShowUI(titleLogoImage);
             }
 
             if (mainMenuPanel != null)
             {
-                HideUI(mainMenuPanel);
+                if (animFirstLoop)
+                {
+
+                    HideUI(mainMenuPanel);
+                    animFirstLoop = false;
+                }
+                    AnimatePanelOut(mainMenuPanel, mainMenuRect);
+
             }
 
             if (lobbyPanel != null)
@@ -712,7 +730,8 @@ namespace Category5.UI
 
             if (titleLogoImage != null)
             {
-                titleLogoImage.SetActive(false);
+                //HideUI(titleLogoImage);
+                AnimatePanelOut(titleLogoImage, titleLogoRect);
             }
 
             if (mainMenuPanel != null)
@@ -720,7 +739,7 @@ namespace Category5.UI
                 //ShowUI(mainMenuPanel);
 
                 // call animation for main menu panel
-                AnimatePanelIn(mainMenuPanel);
+                AnimatePanelIn(mainMenuPanel, mainMenuRect);
             }
 
             SetButtonsInteractable(isRelayReady);
@@ -933,16 +952,40 @@ namespace Category5.UI
             }
         }
 
-        private void AnimatePanelIn(GameObject panel) // DOTween animation for fading in panels (used on main menu panel when coming from title screen)
+        private void AnimatePanelIn(GameObject panel, RectTransform rect) // DOTween animation for fading in panels (used on main menu panel when coming from title screen)
         {
             if (panel != null)
             {
                 CanvasGroup canvasGroup = panel.GetComponent<CanvasGroup>();
                 if (canvasGroup != null)
                 {
-                    canvasGroup.DOFade(1, panelFadeDuration);
+                    Sequence seq = DOTween.Sequence();
+
+
+                    seq.Append(canvasGroup.DOFade(1, mainMenuPanelFadeDuration));
+                    seq.Join(rect.DOAnchorPos(new Vector2(mainMenuStartPos[0], mainMenuStartPos[1]), mainMenuPanelSlideDuration));
+
                     canvasGroup.interactable = true;
                     canvasGroup.blocksRaycasts = true;
+                }
+            }
+        }
+
+        private void AnimatePanelOut(GameObject panel, RectTransform rect) // DOTween animation for fading out panels
+        {
+            if (panel != null)
+            {
+                CanvasGroup canvasGroup = panel.GetComponent<CanvasGroup>();
+                if (canvasGroup != null)
+                {
+                    Sequence seq = DOTween.Sequence();
+
+                    seq.Append(canvasGroup.DOFade(0, mainMenuPanelFadeDuration));
+                    seq.Join(rect.DOAnchorPos(new Vector2(mainMenuStartPos[0], mainMenuStartPos[1] - mainMenuPanelSlideDistance), mainMenuPanelSlideDuration));
+
+                    canvasGroup.interactable = false;
+                    canvasGroup.blocksRaycasts = false;
+
                 }
             }
         }
@@ -972,6 +1015,14 @@ namespace Category5.UI
                     canvasGroup.interactable = true;
                     canvasGroup.blocksRaycasts = true;
                 }
+            }
+        }
+
+        private void ReturnRectToStartPos(RectTransform rect) // helper to return a rect transform to its original position (used for main menu panel when returning to title screen)
+        {
+            if (rect != null)
+            {
+                rect.anchoredPosition = new Vector2(mainMenuStartPos[0], mainMenuStartPos[1]);
             }
         }
     }

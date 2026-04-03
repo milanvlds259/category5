@@ -4299,13 +4299,14 @@ GameObject:
   - component: {fileID: 833448506}
   - component: {fileID: 833448508}
   - component: {fileID: 833448507}
+  - component: {fileID: 833448509}
   m_Layer: 5
   m_Name: TitleLogo
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &833448506
 RectTransform:
   m_ObjectHideFlags: 0
@@ -4363,6 +4364,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 833448505}
   m_CullTransparentMesh: 1
+--- !u!225 &833448509
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 833448505}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &851414222
 GameObject:
   m_ObjectHideFlags: 0
@@ -8295,6 +8308,11 @@ MonoBehaviour:
   gameSceneName: SampleScene
   maxRelayConnections: 4
   connectionTimeout: 10
+  mainMenuPanelFadeDuration: 0.2
+  mainMenuPanelSlideDuration: 0.2
+  mainMenuPanelSlideDistance: 60
+  mainMenuRect: {fileID: 338597895}
+  mainMenuStartPos: {x: -296.94, y: -199.0983}
 --- !u!4 &1644692366
 Transform:
   m_ObjectHideFlags: 0
