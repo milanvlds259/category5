@@ -268,8 +268,8 @@ public class MapGenerator : MonoBehaviour
 
             // Add cloud layer
             GameObject cloudLayer = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            cloudLayer.GetComponent<CapsuleCollider>().enabled = false; // Disable the cloud layer's collider
-            cloudLayer.transform.position = new Vector3(arena.transform.position.x, arena.transform.position.y - 5f, arena.transform.position.z);
+            Destroy(cloudLayer.GetComponent<CapsuleCollider>()); // Remove the cloud layer's collider
+            cloudLayer.transform.position = new Vector3(arena.transform.position.x, arena.transform.position.y, arena.transform.position.z);
             cloudLayer.transform.localScale = new Vector3(
                                             collider.radius * 2 * arena.transform.localScale.x,
                                             1f,
@@ -510,8 +510,8 @@ public class MapGenerator : MonoBehaviour
     {
         foreach (Path path in paths)
         {
-            GameObject launchPadA = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            GameObject launchPadB = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            GameObject launchPadA = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            GameObject launchPadB = GameObject.CreatePrimitive(PrimitiveType.Sphere);
 
             launchPadA.AddComponent<WindLaunchPad>();
             launchPadB.AddComponent<WindLaunchPad>();
@@ -519,8 +519,8 @@ public class MapGenerator : MonoBehaviour
             launchPadA.transform.position = path.spline[0].Position;
             launchPadB.transform.position = path.spline[path.spline.Count-1].Position;
 
-            launchPadA.transform.localScale = new Vector3(10, 10, 10);
-            launchPadB.transform.localScale = new Vector3(10, 10, 10);
+            launchPadA.transform.localScale = new Vector3(5, 5, 5);
+            launchPadB.transform.localScale = new Vector3(5, 5, 5);
 
             launchPadA.transform.parent = path.gameObjectRef.transform;
             launchPadB.transform.parent = path.gameObjectRef.transform;

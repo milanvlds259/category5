@@ -8,6 +8,7 @@ using Category5.Core;
 using Category5.Audio;
 using Category5.UI;
 using Category5.Player.WindRiding;
+using Unity.InferenceEngine;
 
 namespace Category5.Player
 {
@@ -72,9 +73,6 @@ namespace Category5.Player
         [SerializeField] private Vector3 groundCheckOffset = new Vector3(0, 0.1f, 0);
         [SerializeField] private LayerMask groundLayers = 1; // Default layer
 
-        [Header("Cloud Check")]
-        [SerializeField] private LayerMask cloudLayer = 8; // CloudSurface layer
-
         [Header("Dodge Settings")]
         [SerializeField] private float dodgeDuration = 0.5f;
         [SerializeField] private float dodgeDistance = 8f;
@@ -89,7 +87,8 @@ namespace Category5.Player
         private Vector3 _externalVelocity;
         private bool _isGrounded;
         private bool _isClouded; // Surfing on clouds (wait I'm clouded)
-        private bool _isGliding;
+        private LayerMask cloudLayer = 1 << 8; // CloudSurface layer
+        private bool _isGliding = false;
         private bool _isOffline = false;
         
         // cached reference to player combat for charge state
@@ -494,7 +493,6 @@ namespace Category5.Player
 
         private void Update()
         {
-            Debug.Log(_velocity);
             if (!IsOwner && !_isOffline) return;
             
             // dead players cannot do anything
@@ -639,10 +637,10 @@ namespace Category5.Player
 
         private void HandleGravity()
         {
-            if (Physics.CheckSphere(transform.position + groundCheckOffset, groundCheckRadius, cloudLayer, QueryTriggerInteraction.Collide))
-            {
-                if (_isGliding)
-                    _isClouded = true;
+            if (Physics.CheckSphere(transform.position + groundCheckOffset, groundCheckRadius, cloudLayer, QueryTriggerInteraction.Collide)
+                && _isGliding)
+            {   
+                _isClouded = true;
             }
             else
             {
@@ -652,8 +650,7 @@ namespace Category5.Player
             // custom ground check is more reliable than CharacterController.isGrounded
             bool wasGrounded = _isGrounded;
             
-            if (Physics.CheckSphere(transform.position + groundCheckOffset, groundCheckRadius, groundLayers, QueryTriggerInteraction.Ignore)
-                    && !_isClouded)
+            if (Physics.CheckSphere(transform.position + groundCheckOffset, groundCheckRadius, groundLayers, QueryTriggerInteraction.Ignore))
             {
                 _isGrounded = true;
                 _isGliding = false;
