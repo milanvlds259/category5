@@ -114,6 +114,8 @@ namespace Category5.Boss
         [SerializeField] protected BossAttackType defaultAttackType = BossAttackType.Slam;
 
         protected NetworkVariable<BossState> currentState = new NetworkVariable<BossState>(BossState.Idle);
+        // public read-only access for bossvisuals (and other external systems) to subscribe to state changes
+        public NetworkVariable<BossState> CurrentBossState => currentState;
         protected float stateTimer;
         
         // current attack type for vfx hooks
@@ -126,6 +128,7 @@ namespace Category5.Boss
         // flag to prevent multiple death triggers
         private bool _isDead = false;
         private bool _isHidden = false;
+        protected BossVisuals _bossVisuals;
 
         public override void OnNetworkSpawn()
         {
@@ -169,6 +172,10 @@ namespace Category5.Boss
 
             // initialize minimap trackable for radar display (boss icon is larger and orange)
             InitializeMinimapTrackable();
+
+            // cache and initialize the visuals component for animation/hit flash (runs on all clients)
+            _bossVisuals = GetComponent<BossVisuals>();
+            _bossVisuals?.Initialize(this);
         }
 
         // copies stats from bossData SO into runtime fields — subclasses can override to pull extra data
@@ -645,6 +652,8 @@ namespace Category5.Boss
             // sync boss health bar visibility with boss visibility
             if (hidden)
                 Category5.UI.UIManager.Instance?.HideBossHealthBar();
+            else
+                _bossVisuals?.PlaySpawnAnimation();
         }
         
         // called by PowerUpManager to reset boss for new round with scaled hp
@@ -769,6 +778,7 @@ namespace Category5.Boss
         private void NotifyBossDeathClientRpc(Vector3 position)
         {
             BossEvents.InvokeDeath(position);
+            _bossVisuals?.TriggerDeathAnimation();
         }
         
         [ClientRpc]
@@ -781,6 +791,7 @@ namespace Category5.Boss
         private void NotifyBossHurtClientRpc(Vector3 position, int damage)
         {
             BossEvents.InvokeHurt(position, damage);
+            _bossVisuals?.TriggerHurtAnimation();
         }
 
         protected virtual void OnDrawGizmosSelected()

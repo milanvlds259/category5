@@ -8,13 +8,6 @@ namespace Category5.Boss
 {
     public class TestBoss : BossBase
     {
-        [Header("visuals")]
-        [SerializeField] private Renderer meshRenderer;
-        [SerializeField] private Color idleColor = Color.gray;
-        [SerializeField] private Color telegraphColor = Color.yellow;
-        [SerializeField] private Color attackColor = Color.red;
-        [SerializeField] private Color cooldownColor = Color.blue;
-
         // attacks come from bossData.availableAttacks — no separate list needed here
         private IReadOnlyList<BossAttackData> Attacks => bossData != null ? bossData.availableAttacks : null;
 
@@ -59,16 +52,10 @@ namespace Category5.Boss
         public static event System.Action<BossAttackData> OnAttackEnd;
         public static event System.Action<BossAttackData, Vector3, GameObject> OnAttackHitTarget;
 
-        private void Awake()
-        {
-            if (meshRenderer == null) meshRenderer = GetComponent<Renderer>();
-        }
-
         public override void OnNetworkSpawn()
         {
             base.OnNetworkSpawn();
-            currentState.OnValueChanged += OnStateChanged;
-            
+
             // sync current attack index to clients
             if (!IsServer && _currentAttackIndex >= 0 && Attacks != null && _currentAttackIndex < Attacks.Count)
             {
@@ -79,20 +66,7 @@ namespace Category5.Boss
         public override void OnNetworkDespawn()
         {
             base.OnNetworkDespawn();
-            currentState.OnValueChanged -= OnStateChanged;
             CleanupTelegraph();
-        }
-
-        // copies bossData fields into runtime fields and picks up testboss-specific visuals
-        protected override void InitializeFromData()
-        {
-            base.InitializeFromData();
-
-            if (bossData == null) return;
-
-            // apply boss color to mesh if one is set
-            if (bossData.bossColor != Color.white && meshRenderer != null)
-                meshRenderer.material.color = bossData.bossColor;
         }
 
         // returns the index of an attack in bossData.availableAttacks
@@ -127,7 +101,10 @@ namespace Category5.Boss
                 _currentAttack = Attacks[0];
                 _currentAttackIndex = 0;
             }
-            
+
+            // tell bossvisuals which attack index to use so the animator can pick the right clip
+            _bossVisuals?.SetAttackIndex(_currentAttackIndex);
+
             // Debug.Log($"TestBoss: Selected attack '{_currentAttack.attackName}'");
             
             // override telegraph duration based on attack
@@ -571,36 +548,6 @@ namespace Category5.Boss
                     // fire event for artists
                     OnAttackHitTarget?.Invoke(_currentAttack, hit.transform.position, hit.gameObject);
                 }
-            }
-        }
-
-        // =====================================
-        // visual state
-        // =====================================
-        
-        private void OnStateChanged(BossState oldState, BossState newState)
-        {
-            UpdateVisuals(newState);
-        }
-
-        private void UpdateVisuals(BossState state)
-        {
-            if (meshRenderer == null) return;
-
-            switch (state)
-            {
-                case BossState.Idle:
-                    meshRenderer.material.color = idleColor;
-                    break;
-                case BossState.Telegraph:
-                    meshRenderer.material.color = telegraphColor;
-                    break;
-                case BossState.Attack:
-                    meshRenderer.material.color = attackColor;
-                    break;
-                case BossState.Cooldown:
-                    meshRenderer.material.color = cooldownColor;
-                    break;
             }
         }
 
