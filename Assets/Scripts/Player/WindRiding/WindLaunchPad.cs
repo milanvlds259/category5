@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Collections.Generic;
 using Category5.Player;
+using Category5.Audio;
 
 namespace Category5.Player.WindRiding
 {
@@ -23,6 +24,8 @@ namespace Category5.Player.WindRiding
         private InputSystem_Actions _inputActions;
         private bool _inputBound;
 
+        private bool notYetOut; // Set when the player ends wind ride, used to prevent immediately re-launching if they are still on the end pad
+
         private void Awake()
         {
             // make sure the collider is a trigger
@@ -32,6 +35,8 @@ namespace Category5.Player.WindRiding
                 Debug.LogWarning("WindLaunchPad: collider should be set to trigger, forcing it now");
                 col.isTrigger = true;
             }
+
+            WindRideEvents.OnRideEnded += OnThisRideEnded;
         }
 
         private void OnEnable()
@@ -64,6 +69,20 @@ namespace Category5.Player.WindRiding
             if (!player.IsOwner && !IsOffline(player)) return;
 
             _playersOnPad.Add(player);
+
+            WindRiderController rider = player.GetComponent<WindRiderController>();
+            if (!notYetOut) // Rider isn't already riding this tunnel
+            {
+                // Auto launch
+                rider.StartRiding(targetTunnel, launchForward, launchUpwardForce);
+
+                // Add player to the tunnel's rider list
+                targetTunnel.riders.Add(player);
+
+                // remove from pad tracking since they are now airborne
+                _playersOnPad.Remove(player);
+            }
+            
         }
 
         private void OnTriggerExit(Collider other)
@@ -72,6 +91,20 @@ namespace Category5.Player.WindRiding
             if (player == null) return;
 
             _playersOnPad.Remove(player);
+
+            if (notYetOut)
+            {
+                targetTunnel.riders.Remove(player);
+            }
+            notYetOut = false;
+        }
+
+        private void OnThisRideEnded(PlayerController player, Vector3 position, Vector3 exitVelocity)
+        {
+            if (targetTunnel.riders.Contains(player))
+            {
+                notYetOut = true;
+            }
         }
 
         private void OnJumpPerformed(InputAction.CallbackContext ctx)
