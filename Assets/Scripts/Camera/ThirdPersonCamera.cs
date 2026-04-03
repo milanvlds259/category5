@@ -44,6 +44,12 @@ namespace Category5
         [Header("Boss Intro")]
         [Tooltip("smooth time for the camera yaw to reach the boss — lower = snappier, higher = more cinematic drift")]
         [SerializeField] private float introRotateSmoothTime = 0.5f;
+        [Tooltip("transform placed in the scene where the camera will move during the boss intro — leave unassigned to skip position override")]
+        [SerializeField] private Transform cinematicCameraPoint;
+        [Tooltip("how long the camera takes to blend from orbit position to the cinematic point")]
+        [SerializeField] private float cinemaBlendInDuration = 0.8f;
+        [Tooltip("how long the camera takes to blend back to the player before the intro ends")]
+        [SerializeField] private float cinemaBlendOutDuration = 0.8f;
 
         private float _rotationX;
         private float _rotationY;
@@ -75,6 +81,12 @@ namespace Category5
 
         // active intro rotate coroutine
         private Coroutine _introRotateCoroutine;
+
+        // cinematic position state — blend between orbit and a fixed cinematic point during the boss intro
+        private float _cinematicBlend = 0f;
+        private Vector3 _cinematicBossPosition;
+        private bool _hasCinematicTarget = false;
+        private Coroutine _cinematicMoveCoroutine;
 
         private void Awake()
         {
@@ -314,6 +326,21 @@ namespace Category5
             // apply screen shake offset
             desiredPosition += _shakeOffset;
 
+            // blend toward cinematic point if active
+            if (_hasCinematicTarget && cinematicCameraPoint != null && _cinematicBlend > 0f)
+            {
+                // lerp position toward the fixed cinematic point
+                desiredPosition = Vector3.Lerp(desiredPosition, cinematicCameraPoint.position, _cinematicBlend);
+
+                // also blend rotation to look directly at the boss from wherever the camera ends up
+                Vector3 lookDir = _cinematicBossPosition - desiredPosition;
+                if (lookDir.sqrMagnitude > 0.001f)
+                {
+                    Quaternion cinemaRot = Quaternion.LookRotation(lookDir);
+                    rotation = Quaternion.Slerp(rotation, cinemaRot, _cinematicBlend);
+                }
+            }
+
             transform.rotation = rotation;
             transform.position = desiredPosition;
         }
@@ -330,6 +357,51 @@ namespace Category5
                 StopCoroutine(_introRotateCoroutine);
 
             _introRotateCoroutine = StartCoroutine(RotateToBossCoroutine(bossPosition));
+
+            // start cinematic position move only if a cinematic point has been assigned
+            if (cinematicCameraPoint != null)
+            {
+                if (_cinematicMoveCoroutine != null)
+                    StopCoroutine(_cinematicMoveCoroutine);
+
+                _cinematicBossPosition = bossPosition;
+                _hasCinematicTarget = true;
+                float introDuration = data != null ? data.introDuration : 4f;
+                _cinematicMoveCoroutine = StartCoroutine(CinematicMoveCoroutine(introDuration));
+            }
+        }
+
+        // moves the camera to the cinematic point then eases it back before the intro ends
+        // blend-out starts early enough to finish exactly when introDuration expires
+        private IEnumerator CinematicMoveCoroutine(float introDuration)
+        {
+            // blend in: orbit -> cinematic point
+            float t = 0f;
+            while (t < cinemaBlendInDuration)
+            {
+                t += Time.deltaTime;
+                _cinematicBlend = Mathf.Clamp01(t / cinemaBlendInDuration);
+                yield return null;
+            }
+            _cinematicBlend = 1f;
+
+            // hold: sit at cinematic point until it's time to return
+            float holdDuration = introDuration - cinemaBlendInDuration - cinemaBlendOutDuration;
+            if (holdDuration > 0f)
+                yield return new WaitForSeconds(holdDuration);
+
+            // blend out: cinematic point -> back to orbit
+            t = 0f;
+            while (t < cinemaBlendOutDuration)
+            {
+                t += Time.deltaTime;
+                _cinematicBlend = 1f - Mathf.Clamp01(t / cinemaBlendOutDuration);
+                yield return null;
+            }
+
+            _cinematicBlend = 0f;
+            _hasCinematicTarget = false;
+            _cinematicMoveCoroutine = null;
         }
 
         // smoothly rotates camera toward the boss using SmoothDampAngle
