@@ -67,6 +67,14 @@ namespace Category5.Boss
         public AudioClip deathSound;
         public AudioClip hurtSound;
 
+        [Header("intro")]
+        [Tooltip("short punchy descriptor shown below the name e.g. HARBINGER OF STORMS")]
+        public string introSubtitle = "";
+        [Tooltip("optional portrait sprite shown as a semi-transparent background during the intro — leave null to hide")]
+        public Sprite introPortrait;
+        [Tooltip("total intro duration in seconds — also determines how long the boss stays dormant before attacking")]
+        public float introDuration = 4f;
+
         [Header("editor")]
         public Color gizmoColor = Color.magenta;
 

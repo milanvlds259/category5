@@ -128,6 +128,9 @@ namespace Category5.Boss
         // flag to prevent multiple death triggers
         private bool _isDead = false;
         private bool _isHidden = false;
+
+        // server-side countdown that keeps the boss frozen while the intro card plays
+        private float _introDormancyTimer = 0f;
         protected BossVisuals _bossVisuals;
 
         public override void OnNetworkSpawn()
@@ -146,6 +149,10 @@ namespace Category5.Boss
                 // cache initial spawn position for killbox recovery
                 _initialSpawnPosition = transform.position;
                 _initialSpawnRotation = transform.rotation;
+
+                // freeze boss ai and trigger the intro card on all clients
+                _introDormancyTimer = bossData != null ? bossData.introDuration : 0f;
+                TriggerBossIntroClientRpc();
             }
             
             // configure rigidbody: kinematic so we control movement manually
@@ -248,6 +255,13 @@ namespace Category5.Boss
 
         private void HandleStateMachine()
         {
+            // boss stays frozen while the intro card is playing
+            if (_introDormancyTimer > 0f)
+            {
+                _introDormancyTimer -= Time.deltaTime;
+                return;
+            }
+
             stateTimer -= Time.deltaTime;
 
             if (stateTimer <= 0)
@@ -605,6 +619,13 @@ namespace Category5.Boss
         }
 
         [ClientRpc]
+        private void TriggerBossIntroClientRpc()
+        {
+            // bossData is a serialized field on the prefab — already present on all clients, no network data needed
+            Category5.Audio.BossEvents.InvokeIntro(bossData);
+        }
+
+        [ClientRpc]
         private void HideBossClientRpc()
         {
             // hide boss without deactivating the network object
@@ -690,6 +711,10 @@ namespace Category5.Boss
             // show boss again and notify clients about the reset
             ShowBossClientRpc();
             ResetBossClientRpc(newMaxHealth);
+
+            // freeze boss ai and trigger the intro card on all clients
+            _introDormancyTimer = bossData != null ? bossData.introDuration : 0f;
+            TriggerBossIntroClientRpc();
             
             // fire audio event for boss spawn on all clients (use spawn position)
             NotifyBossSpawnClientRpc(spawnPosition);

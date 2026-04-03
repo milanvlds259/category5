@@ -512,8 +512,8 @@ namespace Category5.Player
                 return;
             }
             
-            // check if input should be blocked (pause menu or power-up selection)
-            bool inputBlocked = Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection();
+            // check if input should be blocked (pause menu, power-up selection, or boss intro)
+            bool inputBlocked = Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying;
 
             // ensure we have a camera reference
             if (_cameraTransform == null)
@@ -726,7 +726,7 @@ namespace Category5.Player
         {
             // don't accept input if dead or blocked
             if (IsDead.Value) return;
-            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection()) return;
+            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying) return;
             if (IsWindRiding) return;
             
             // instead of jumping immediately we buffer the input
@@ -740,7 +740,7 @@ namespace Category5.Player
         {
             // don't accept input if dead or blocked
             if (IsDead.Value) return;
-            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection()) return;
+            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying) return;
             if (IsWindRiding) return;
             
             // block dodge while charging ranged attack
@@ -826,7 +826,7 @@ namespace Category5.Player
         {
             // dont accept input if dead or blocked
             if (IsDead.Value) return;
-            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection()) return;
+            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying) return;
             if (IsWindRiding) return;
             
             _isSprinting = !_isSprinting;

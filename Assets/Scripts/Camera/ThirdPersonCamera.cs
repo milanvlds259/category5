@@ -110,8 +110,8 @@ namespace Category5
                 UpdateSpectateTargets();
             }
             
-            // don't process camera input if game is paused, in power-up selection, or game over
-            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || IsGameOver())
+            // don't process camera input if game is paused, in power-up selection, game over, or boss intro
+            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || IsGameOver() || Category5.UI.BossIntroUI.IntroIsPlaying)
             {
                 // still update camera position to follow target, but don't read input
                 HandleCameraPosition();
