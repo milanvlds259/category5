@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.Splines;
 using Unity.Mathematics;
+using System.Collections.Generic;
 
 namespace Category5.Player.WindRiding
 {
@@ -18,6 +19,8 @@ namespace Category5.Player.WindRiding
         [SerializeField] private int gizmoCircleSegments = 16;
         [SerializeField] private Color gizmoPathColor = new Color(0.3f, 0.8f, 1f, 0.8f);
         [SerializeField] private Color gizmoRadiusColor = new Color(0.3f, 0.8f, 1f, 0.15f);
+
+        public List<PlayerController> riders = new List<PlayerController>();
 
         private SplineContainer _splineContainer;
         private float _cachedLength = -1f;

@@ -46,6 +46,7 @@ public class MapGenerator : MonoBehaviour
     // Keep track of all path points to make sure they're not too close together
     private List<BezierKnot> pathMidpoints = new List<BezierKnot>();
 
+    [SerializeField] Material cloudMaterial;
 
     // Mesh to generate along paths
     [SerializeField] Mesh pathMesh;
@@ -263,6 +264,22 @@ public class MapGenerator : MonoBehaviour
             collider.height = 100f; // Set the height
             collider.center = new Vector3(0, 10, 0); // Center the collider on the arena
             collider.isTrigger = true; // Set the collider to be a trigger so players can fall through
+
+            // Add cloud layer
+            GameObject cloudLayer = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            Destroy(cloudLayer.GetComponent<CapsuleCollider>()); // Remove the cloud layer's collider
+            cloudLayer.transform.position = new Vector3(arena.transform.position.x, arena.transform.position.y, arena.transform.position.z);
+            cloudLayer.transform.localScale = new Vector3(
+                                            collider.radius * 2 * arena.transform.localScale.x,
+                                            1f,
+                                            collider.radius * 2 * arena.transform.localScale.x
+                                            );
+            cloudLayer.transform.parent = arena.transform;
+            cloudLayer.GetComponent<MeshRenderer>().material = cloudMaterial; // Set the cloud material
+            MeshCollider cloudCollider = cloudLayer.AddComponent<MeshCollider>();
+            cloudCollider.convex = true; // Set convex to true so it can be a trigger
+            cloudCollider.isTrigger = true; // Add a mesh collider and set it to be a trigger so players can fall through
+            cloudLayer.layer = 8;
             
             // Set the arena's name and make it a child of the parent param
             if (!string.IsNullOrEmpty(numberforname))
@@ -352,9 +369,9 @@ public class MapGenerator : MonoBehaviour
         // These will be the start and end points of the path
         Vector3 pointOnA = arenaA.arenaBounds.ClosestPoint(arenaB.position);
         Vector3 pointOnB = arenaB.arenaBounds.ClosestPoint(pointOnA);
-        // Make sure the points are at the level of the arena
-        pointOnA = new Vector3(pointOnA.x, arenaA.position.y, pointOnA.z);
-        pointOnB = new Vector3(pointOnB.x, arenaB.position.y, pointOnB.z);
+        // Make sure the points are at the level of the arena (plus a little to be above cloud level)
+        pointOnA = new Vector3(pointOnA.x, arenaA.position.y + + 5f, pointOnA.z);
+        pointOnB = new Vector3(pointOnB.x, arenaB.position.y + 5f, pointOnB.z);
 
         BezierKnot Aknot = new BezierKnot(pointOnA);
         BezierKnot Bknot = new BezierKnot(pointOnB);
@@ -492,8 +509,8 @@ public class MapGenerator : MonoBehaviour
     {
         foreach (Path path in paths)
         {
-            GameObject launchPadA = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            GameObject launchPadB = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            GameObject launchPadA = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            GameObject launchPadB = GameObject.CreatePrimitive(PrimitiveType.Sphere);
 
             launchPadA.AddComponent<WindLaunchPad>();
             launchPadB.AddComponent<WindLaunchPad>();
@@ -501,8 +518,8 @@ public class MapGenerator : MonoBehaviour
             launchPadA.transform.position = path.spline[0].Position;
             launchPadB.transform.position = path.spline[path.spline.Count-1].Position;
 
-            launchPadA.transform.localScale = new Vector3(10, 10, 10);
-            launchPadB.transform.localScale = new Vector3(10, 10, 10);
+            launchPadA.transform.localScale = new Vector3(5, 5, 5);
+            launchPadB.transform.localScale = new Vector3(5, 5, 5);
 
             launchPadA.transform.parent = path.gameObjectRef.transform;
             launchPadB.transform.parent = path.gameObjectRef.transform;
