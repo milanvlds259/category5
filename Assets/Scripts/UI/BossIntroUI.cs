@@ -9,7 +9,7 @@ using Category5.Core;
 namespace Category5.UI
 {
     // drives the boss intro title card
-    // all visibility is controlled via canvas groups — no setactive — so the artist can swap in dotween animations
+    // all visibility is controlled via canvas groups
     public class BossIntroUI : MonoBehaviour
     {
         // checked by PlayerController and ThirdPersonCamera to block all player input during the intro
@@ -23,8 +23,8 @@ namespace Category5.UI
         [Tooltip("canvas group on the root of this panel — controls overall visibility and blocks raycasts")]
         [SerializeField] private CanvasGroup rootCanvasGroup;
 
-        [Tooltip("full-panel image used as a semi-transparent background portrait")]
-        [SerializeField] private Image backgroundPortraitImage;
+        [Tooltip("full-panel image used as a semi-transparent background portrait (boss model will still render in front of image)")]
+        [SerializeField] private Image backgroundImage;
 
         [Tooltip("canvas group on the portrait image — used only for its fade-in alpha")]
         [SerializeField] private CanvasGroup portraitCanvasGroup;
@@ -55,9 +55,7 @@ namespace Category5.UI
         [Tooltip("x distance in canvas pixels the subtitle slides in from — positive = from the right")]
         [SerializeField] private float subtitleSlideOffsetX = 700f;
 
-        // =====================================
         // timing
-        // =====================================
 
         [Header("timing")]
         [SerializeField] private float slideInDuration = 0.35f;
@@ -72,9 +70,7 @@ namespace Category5.UI
         [Tooltip("total duration for the full white flash — half flash-in, half flash-out")]
         [SerializeField] private float flashDuration = 0.15f;
 
-        // =====================================
         // impact shake
-        // =====================================
 
         [Header("impact shake")]
         [SerializeField] private float introShakeIntensity = 0.35f;
@@ -84,12 +80,18 @@ namespace Category5.UI
         // active coroutine ref so we can cancel and restart if needed
         private Coroutine _activeCoroutine;
 
-        // =====================================
+        // rest positions read from the editor
+        private Vector2 _nameGroupRestPosition;
+        private Vector2 _subtitleGroupRestPosition;
+
         // lifecycle
-        // =====================================
 
         private void Awake()
         {
+            // cache the positions set in the editor -> these are the targets the elements slide TO
+            if (nameGroup != null) _nameGroupRestPosition = nameGroup.anchoredPosition;
+            if (subtitleGroup != null) _subtitleGroupRestPosition = subtitleGroup.anchoredPosition;
+
             // hide panel at startup — alpha 0 + block raycasts off
             SetPanelVisible(false);
         }
@@ -104,7 +106,7 @@ namespace Category5.UI
             BossEvents.OnBossIntro -= OnBossIntroReceived;
         }
 
-        private void OnBossIntroReceived(BossData data)
+        private void OnBossIntroReceived(BossData data, Vector3 bossPosition)
         {
             if (_activeCoroutine != null)
                 StopCoroutine(_activeCoroutine);
@@ -113,7 +115,7 @@ namespace Category5.UI
         }
 
         // =====================================
-        // animation coroutine
+        // animation coroutine (SUMMER THIS IS FOR YOU)
         // =====================================
 
         private IEnumerator ShowIntro(BossData data)
@@ -123,14 +125,15 @@ namespace Category5.UI
             if (subtitleText != null) subtitleText.text = data.introSubtitle;
 
             bool hasPortrait = data.introPortrait != null;
-            if (backgroundPortraitImage != null)
-                backgroundPortraitImage.sprite = data.introPortrait;
+            if (backgroundImage != null)
+                backgroundImage.sprite = data.introPortrait;
 
             // reset all positions and alphas before showing anything
+            // start positions add the slide offset on top of the editor rest position
             if (nameGroup != null)
-                nameGroup.anchoredPosition = new Vector2(nameSlideOffsetX, nameSlideOffsetY);
+                nameGroup.anchoredPosition = _nameGroupRestPosition + new Vector2(nameSlideOffsetX, nameSlideOffsetY);
             if (subtitleGroup != null)
-                subtitleGroup.anchoredPosition = new Vector2(subtitleSlideOffsetX, 0f);
+                subtitleGroup.anchoredPosition = _subtitleGroupRestPosition + new Vector2(subtitleSlideOffsetX, 0f);
             if (portraitCanvasGroup != null)
                 portraitCanvasGroup.alpha = 0f;
             if (flashOverlayGroup != null)
@@ -150,9 +153,10 @@ namespace Category5.UI
                 if (nameGroup != null)
                 {
                     float nameProg = Mathf.Clamp01(t * maxDuration / slideInDuration);
-                    nameGroup.anchoredPosition = new Vector2(
-                        Mathf.Lerp(nameSlideOffsetX, 0f, nameProg),
-                        Mathf.Lerp(nameSlideOffsetY, 0f, nameProg)
+                    nameGroup.anchoredPosition = Vector2.Lerp(
+                        _nameGroupRestPosition + new Vector2(nameSlideOffsetX, nameSlideOffsetY),
+                        _nameGroupRestPosition,
+                        nameProg
                     );
                 }
 
@@ -162,7 +166,7 @@ namespace Category5.UI
                 yield return null;
             }
 
-            // name has landed — fire impact shake and flash
+            // name has landed > fire impact shake and flash
             HitFeedbackManager.Instance?.TriggerScreenShake(introShakeIntensity, introShakeDuration, introShakeFrequency);
             if (flashOverlayGroup != null)
                 StartCoroutine(FlashCoroutine());
@@ -176,9 +180,10 @@ namespace Category5.UI
                 while (t < 1f)
                 {
                     t += Time.deltaTime / slideInDuration;
-                    subtitleGroup.anchoredPosition = new Vector2(
-                        Mathf.Lerp(subtitleSlideOffsetX, 0f, Mathf.Clamp01(t)),
-                        0f
+                    subtitleGroup.anchoredPosition = Vector2.Lerp(
+                        _subtitleGroupRestPosition + new Vector2(subtitleSlideOffsetX, 0f),
+                        _subtitleGroupRestPosition,
+                        Mathf.Clamp01(t)
                     );
                     yield return null;
                 }
@@ -229,11 +234,9 @@ namespace Category5.UI
             flashOverlayGroup.alpha = 0f;
         }
 
-        // =====================================
-        // visibility helper
-        // =====================================
 
-        // uses canvas group only — no setactive — so dotween can animate this freely
+        // visibility helper
+        // uses canvas group only so dotween can animate this freely
         private void SetPanelVisible(bool visible)
         {
             if (rootCanvasGroup == null) return;

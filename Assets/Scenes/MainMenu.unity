@@ -725,7 +725,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &69123414
 RectTransform:
   m_ObjectHideFlags: 0
@@ -8312,6 +8312,7 @@ MonoBehaviour:
   mainMenuPanelSlideDuration: 0.2
   mainMenuPanelSlideDistance: 60
   mainMenuRect: {fileID: 338597895}
+  titleLogoRect: {fileID: 0}
   mainMenuStartPos: {x: -296.94, y: -199.0983}
 --- !u!4 &1644692366
 Transform:

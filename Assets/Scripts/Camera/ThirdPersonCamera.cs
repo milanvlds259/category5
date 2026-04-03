@@ -3,6 +3,9 @@ using UnityEngine.InputSystem;
 using Unity.Netcode;
 using Category5.Player;
 using Category5.Player.WindRiding;
+using Category5.Audio;
+using Category5.Boss;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace Category5
@@ -38,6 +41,10 @@ namespace Category5
         [SerializeField] private float ridingDistanceBonus = 2f; // extra camera distance during riding
         [SerializeField] private float ridingTransitionSpeed = 4f; // how fast camera blends into riding mode
 
+        [Header("Boss Intro")]
+        [Tooltip("smooth time for the camera yaw to reach the boss — lower = snappier, higher = more cinematic drift")]
+        [SerializeField] private float introRotateSmoothTime = 0.5f;
+
         private float _rotationX;
         private float _rotationY;
         private InputSystem_Actions _inputActions;
@@ -66,6 +73,9 @@ namespace Category5
         private float _ridingYawOffset; // player orbit offset from tangent
         private float _ridingDistanceLerp; // 0-1 blend for bonus distance
 
+        // active intro rotate coroutine
+        private Coroutine _introRotateCoroutine;
+
         private void Awake()
         {
             _inputActions = new InputSystem_Actions();
@@ -80,12 +90,14 @@ namespace Category5
         {
             _inputActions.Player.Enable();
             _inputActions.Player.Jump.performed += OnCycleSpectateTarget;
+            BossEvents.OnBossIntro += OnBossIntroStarted;
         }
 
         private void OnDisable()
         {
             _inputActions.Player.Jump.performed -= OnCycleSpectateTarget;
             _inputActions.Player.Disable();
+            BossEvents.OnBossIntro -= OnBossIntroStarted;
         }
 
         private void LateUpdate()
@@ -306,6 +318,59 @@ namespace Category5
             transform.position = desiredPosition;
         }
         
+        // =====================================
+        // boss intro camera rotation
+        // =====================================
+
+        private void OnBossIntroStarted(BossData data, Vector3 bossPosition)
+        {
+            if (target == null) return;
+
+            if (_introRotateCoroutine != null)
+                StopCoroutine(_introRotateCoroutine);
+
+            _introRotateCoroutine = StartCoroutine(RotateToBossCoroutine(bossPosition));
+        }
+
+        // smoothly rotates camera toward the boss using SmoothDampAngle
+        // captures the target yaw+pitch once at start so it doesn't chase a moving value
+        // runs until converged - not gated on IntroIsPlaying to avoid the race where the flag isn't set yet
+        private IEnumerator RotateToBossCoroutine(Vector3 bossPosition)
+        {
+            if (target == null) yield break;
+
+            // direction from the camera pivot (what the camera orbits around) toward the boss
+            Vector3 pivot = target.position + offset;
+            Vector3 dirToBoss = bossPosition - pivot;
+
+            if (dirToBoss.sqrMagnitude < 0.001f) yield break;
+
+            // derive both yaw and pitch from a full look rotation toward the boss
+            Quaternion lookRot = Quaternion.LookRotation(dirToBoss);
+            float targetYaw = lookRot.eulerAngles.y;
+
+            // eulerAngles returns 0-360, convert pitch to -180..180 so it matches _rotationY's range
+            float rawPitch = lookRot.eulerAngles.x;
+            if (rawPitch > 180f) rawPitch -= 360f;
+            float targetPitch = Mathf.Clamp(rawPitch, minVerticalAngle, maxVerticalAngle);
+
+            float yawVelocity = 0f;
+            float pitchVelocity = 0f;
+
+            // run until both angles have converged
+            while (Mathf.Abs(Mathf.DeltaAngle(_rotationX, targetYaw)) > 0.1f ||
+                   Mathf.Abs(_rotationY - targetPitch) > 0.1f)
+            {
+                _rotationX = Mathf.SmoothDampAngle(_rotationX, targetYaw, ref yawVelocity, introRotateSmoothTime);
+                _rotationY = Mathf.SmoothDamp(_rotationY, targetPitch, ref pitchVelocity, introRotateSmoothTime);
+                yield return null;
+            }
+
+            _rotationX = targetYaw;
+            _rotationY = targetPitch;
+            _introRotateCoroutine = null;
+        }
+
         // =====================================
         // screen shake system
         // =====================================
