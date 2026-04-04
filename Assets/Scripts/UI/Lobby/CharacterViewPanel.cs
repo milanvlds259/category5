@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using Category5.Player;
+using DG.Tweening;
 
 namespace Category5.UI
 {
@@ -15,28 +16,35 @@ namespace Category5.UI
         [SerializeField] private TextMeshProUGUI classNameText;
         [SerializeField] private TextMeshProUGUI classDescriptionText;
         [SerializeField] private Sprite defaultClassSprite; // fallback if no icon
-        
+
         [Header("ability Q")]
         [SerializeField] private Image ability1Icon;
         [SerializeField] private TextMeshProUGUI ability1NameText;
         [SerializeField] private TextMeshProUGUI ability1DescriptionText;
-        
+
         [Header("ability E")]
         [SerializeField] private Image ability2Icon;
         [SerializeField] private TextMeshProUGUI ability2NameText;
         [SerializeField] private TextMeshProUGUI ability2DescriptionText;
-        
+
         [Header("ability R")]
         [SerializeField] private Image ability3Icon;
         [SerializeField] private TextMeshProUGUI ability3NameText;
         [SerializeField] private TextMeshProUGUI ability3DescriptionText;
-        
+
         [Header("optional close button")]
         [SerializeField] private Button closeButton;
-        
+
         [Header("default sprites")]
         [SerializeField] private Sprite defaultAbilityIcon;
-        
+
+        [Header("UI Animations")]
+        [SerializeField] private RectTransform characterImageRect;
+        [SerializeField] private float charAnimationDuration = 0.3f;
+        [SerializeField] private float charAnimationDistance = 50f;
+
+        [SerializeField] private Vector2 charStartPos;
+
         private PlayerClass _currentClass;
         
         private void OnEnable()
@@ -56,6 +64,8 @@ namespace Category5.UI
         {
             _currentClass = playerClass;
             UpdateDisplay();
+            PrepSlideInAnim();
+            PlaySlideInAnim();
         }
         
         private void OnCloseClicked()
@@ -112,6 +122,23 @@ namespace Category5.UI
                 ability3DescriptionText,
                 "R - Unknown Ability"
             );
+        }
+
+        private void PlaySlideInAnim()
+        {
+            if (characterImageRect != null)
+            {
+                characterImageRect.DOKill();
+                characterImageRect.DOAnchorPos(new Vector2(charStartPos[0], charStartPos[1]), charAnimationDuration).SetEase(Ease.OutQuad);
+            }
+        }
+
+        private void PrepSlideInAnim()
+        {
+            if (characterImageRect != null)
+            {
+                characterImageRect.anchoredPosition = new Vector2(charStartPos[0] - charAnimationDistance, charStartPos[1]);
+            }
         }
         
         private void UpdateAbilityDisplay(
