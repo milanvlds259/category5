@@ -33,6 +33,22 @@ namespace Category5.UI
         
         private List<GameObject> _messageObjects = new List<GameObject>();
         
+        private void Awake()
+        {
+            // fix content anchors so ContentSizeFitter works correctly in builds
+            // full-stretch anchors + ContentSizeFitter cause the container height to compound with
+            // the parent size instead of being set absolutely, which only manifests in builds
+            // bottom anchor + bottom pivot means container grows upward, keeping messages at the bottom
+            if (messageContainer != null)
+            {
+                messageContainer.anchorMin = new Vector2(0f, 0f);
+                messageContainer.anchorMax = new Vector2(1f, 0f);
+                messageContainer.pivot = new Vector2(0.5f, 0f);
+                messageContainer.anchoredPosition = Vector2.zero;
+                messageContainer.sizeDelta = Vector2.zero;
+            }
+        }
+        
         private void OnEnable()
         {
             // subscribe to chat events
@@ -226,13 +242,13 @@ namespace Category5.UI
         
         private void ScrollToBottom()
         {
-            // wait for layout to update before scrolling
-            Canvas.ForceUpdateCanvases();
+            // rebuild this container's layout so the scroll position is correct immediately
+            // ForceUpdateCanvases rebuilds the whole canvas which can race in builds
+            if (messageContainer != null)
+                LayoutRebuilder.ForceRebuildLayoutImmediate(messageContainer);
             
             if (messageScrollRect != null)
-            {
                 messageScrollRect.verticalNormalizedPosition = 0f;
-            }
         }
         
         private void ClearMessages()
