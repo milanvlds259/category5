@@ -335,6 +335,9 @@ namespace Category5.Player
             // prevent attack input during power-up selection
             if (Category5.Core.GameFlowManager.Instance != null && 
                 Category5.Core.GameFlowManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection) return false;
+
+            // prevent attack input during boss intro
+            if (Category5.UI.BossIntroUI.IntroIsPlaying) return false;
             
             // prevent attack input when dead
             if (_playerController != null && _playerController.IsDead.Value) return false;
@@ -357,6 +360,9 @@ namespace Category5.Player
             {
                 return false;
             }
+
+            // prevent buffering during boss intro
+            if (Category5.UI.BossIntroUI.IntroIsPlaying) return false;
 
             if (_playerController != null && _playerController.IsDead.Value) return false;
 

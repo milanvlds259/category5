@@ -320,6 +320,11 @@ namespace Category5
                 // Debug.Log("  -> Blocked: Power-up selection phase");
                 return;
             }
+            if (Category5.UI.BossIntroUI.IntroIsPlaying)
+            {
+                // Debug.Log("  -> Blocked: Boss intro playing");
+                return;
+            }
             if (playerController.IsDead.Value)
             {
                 // Debug.Log("  -> Blocked: Player dead");

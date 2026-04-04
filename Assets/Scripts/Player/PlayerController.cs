@@ -551,6 +551,8 @@ namespace Category5.Player
             }
             else if (inputBlocked)
             {
+                // clear move input so animation blends back to idle
+                _moveInput = Vector2.zero;
                 // only apply gravity no movement input
                 HandleGravity();
             }
