@@ -775,10 +775,6 @@ MonoBehaviour:
   ability3DescriptionText: {fileID: 564440235}
   closeButton: {fileID: 0}
   defaultAbilityIcon: {fileID: 21300000, guid: f49981ed6f7d6814ba429004585db713, type: 3}
-  characterImageRect: {fileID: 100166277}
-  charAnimationDuration: 0.3
-  charAnimationDistance: 50
-  charStartPos: {x: 760, y: -570}
 --- !u!114 &69123416
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -996,9 +992,9 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 69123414}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 766, y: -541}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 766, y: 491}
   m_SizeDelta: {x: 1000.955, y: 1433.312}
   m_Pivot: {x: 1, y: 0.5}
 --- !u!114 &100166278
@@ -3200,7 +3196,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 390194782
+  GlobalObjectIdHash: 386288886
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
