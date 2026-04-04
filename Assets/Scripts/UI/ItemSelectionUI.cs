@@ -318,10 +318,14 @@ namespace Category5.UI
         // helper to get local player's inventory
         private PlayerInventory GetLocalPlayerInventory()
         {
-            var localPlayer = FindFirstObjectByType<Category5.Player.PlayerController>();
-            if (localPlayer != null && localPlayer.IsOwner)
+            // iterate all players to find the one owned by this client
+            var allPlayers = FindObjectsByType<Category5.Player.PlayerController>(FindObjectsSortMode.None);
+            foreach (var player in allPlayers)
             {
-                return localPlayer.GetComponent<PlayerInventory>();
+                if (player.IsOwner)
+                {
+                    return player.GetComponent<PlayerInventory>();
+                }
             }
             return null;
         }

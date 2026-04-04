@@ -99,6 +99,7 @@ namespace Category5.Items
                     if (existing.CurrentTier != tier)
                     {
                         existing.SetTier(tier);
+                        UpgradeBehaviourClientRpc(itemId, tier);
                         // Debug.Log($"ItemBehaviourManager: upgraded {itemId} to tier {tier}");
                     }
                 }
