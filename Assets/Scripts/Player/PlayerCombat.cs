@@ -849,7 +849,8 @@ namespace Category5.Player
             }
             
             // validate multipliers are within expected bounds (anti-cheat)
-            damageMultiplier = Mathf.Clamp(damageMultiplier, 1f, arrowData.MaxDamageMultiplier);
+            // lower bound is 0.1 (not 1) to allow burst arrows to deal reduced damage
+            damageMultiplier = Mathf.Clamp(damageMultiplier, 0.1f, arrowData.MaxDamageMultiplier);
             speedMultiplier = Mathf.Clamp(speedMultiplier, 1f, arrowData.MaxSpeedMultiplier);
             
             // get player stats for damage modifiers
