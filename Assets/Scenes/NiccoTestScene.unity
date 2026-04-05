@@ -1242,7 +1242,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!65 &190600127
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -6514,7 +6514,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &854004552
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14784,7 +14784,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1897791779
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14816,6 +14816,7 @@ MonoBehaviour:
   - {fileID: 343514837}
   - {fileID: 1403491578}
   useRandomSpawnPoints: 1
+  spawnBounds: {x: 80, y: 0, z: 40}
   enemiesPerWave: 10
   totalWaves: 1
   spawnInterval: 0.5
