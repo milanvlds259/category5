@@ -147,8 +147,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.HealBeaconProjectile
   ShowTopMostFoldoutHeaderGroup: 1
-  throwSpeed: 30
-  upwardSpeed: 2
+  arcHeightBonus: 2
   maxLifetime: 5
   groundLayers:
     serializedVersion: 2

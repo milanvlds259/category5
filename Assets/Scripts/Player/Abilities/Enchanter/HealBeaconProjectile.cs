@@ -7,19 +7,17 @@ namespace Category5
     public class HealBeaconProjectile : NetworkBehaviour
     {
         [Header("Flight Settings")]
-        [SerializeField] private float throwSpeed = 12f;
-        [SerializeField] private float upwardSpeed = 4f;
+        [SerializeField][Tooltip("horizontal speed of the throw - closer targets land faster, farther ones take proportionally longer")]
+        private float throwSpeed = 15f;
         [SerializeField] private float maxLifetime = 5f;
         [SerializeField] private LayerMask groundLayers;
 
         private ulong _ownerClientId;
         private GameObject _zonePrefab;
-        private float _maxDistance;
         private float _healPerTick;
         private float _tickInterval;
         private float _duration;
         private float _radius;
-        private Vector3 _startPosition;
         private float _spawnTime;
         private bool _hasSpawned = false;
 
@@ -36,40 +34,75 @@ namespace Category5
             if (col != null) col.isTrigger = true;
         }
 
-        public void Initialize(ulong ownerClientId, GameObject zonePrefab, Vector3 direction, float maxDistance,
+        public void Initialize(ulong ownerClientId, GameObject zonePrefab, Vector3 targetPosition,
             float healPerTick, float tickInterval, float duration, float radius)
         {
             _ownerClientId = ownerClientId;
             _zonePrefab = zonePrefab;
-            _maxDistance = maxDistance;
             _healPerTick = healPerTick;
             _tickInterval = tickInterval;
             _duration = duration;
             _radius = radius;
-            _startPosition = transform.position;
             _spawnTime = Time.time;
 
             if (_rb != null)
             {
-                Vector3 velocity = direction.normalized * throwSpeed + Vector3.up * upwardSpeed;
-                _rb.linearVelocity = velocity;
+                _rb.linearVelocity = CalculateArcVelocity(transform.position, targetPosition);
             }
+        }
+
+        // launches at a fixed horizontal speed so flight time scales with distance -> close = fast, far = slower
+        private Vector3 CalculateArcVelocity(Vector3 from, Vector3 to)
+        {
+            float g = Mathf.Abs(Physics.gravity.y);
+            Vector3 horizontal = to - from;
+            horizontal.y = 0f;
+            float d = horizontal.magnitude;
+
+            // flight time is d / speed, so shorter throws land faster
+            float totalTime = Mathf.Max(0.1f, d / throwSpeed);
+
+            // upward velocity needed to arc over and land exactly at to.y
+            float deltaY = to.y - from.y;
+            float upwardVel = (deltaY + 0.5f * g * totalTime * totalTime) / totalTime;
+
+            Vector3 horizontalVel = d > 0.01f ? horizontal.normalized * throwSpeed : Vector3.zero;
+            return horizontalVel + Vector3.up * upwardVel;
         }
 
         private void Update()
         {
-            if (!IsServer) return;
+            if (!IsServer || _hasSpawned) return;
 
             if (Time.time - _spawnTime >= maxLifetime)
             {
-                NetworkObject.Despawn(true);
+                // safety fallback in case the beacon missed the ground collider
+                TrySpawnZoneOnGround();
+                if (!_hasSpawned) NetworkObject.Despawn(true);
                 return;
             }
 
-            if (Vector3.Distance(_startPosition, transform.position) >= _maxDistance)
+            // fast-moving physics objects can tunnel through colliders without firing OnTriggerEnter
+            // while falling, do a short proximity raycast each frame as a reliable landing check
+            if (_rb != null && _rb.linearVelocity.y < 0f)
             {
-                TrySpawnZoneOnGround();
+                CheckGroundProximity();
             }
+        }
+
+        // short-range downward check while descending it catches tunneling cases OnTriggerEnter misses
+        private void CheckGroundProximity()
+        {
+            Ray downRay = new Ray(transform.position + Vector3.up * 0.1f, Vector3.down);
+            bool hasMask = groundLayers.value != 0;
+            bool hitGround = hasMask
+                ? Physics.Raycast(downRay, out RaycastHit hit, 0.6f, groundLayers)
+                : Physics.Raycast(downRay, out hit, 0.6f);
+
+            if (!hitGround) return;
+
+            transform.position = hit.point;
+            SpawnZoneAndDespawn();
         }
 
         private void TrySpawnZoneOnGround()
