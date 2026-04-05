@@ -25,6 +25,38 @@
 											</PropertyList>
 											<TransitionInfo/>
 										</MusicTransition>
+										<MusicTransition Name="Transition" ID="{D6C39F90-2787-483C-B02E-A1FDB4FD8FBC}">
+											<PropertyList>
+												<Property Name="DestinationContextType" Type="int16" Value="2"/>
+												<Property Name="ExitSourceAt" Type="int16" Value="2"/>
+												<Property Name="SourceContextType" Type="int16" Value="2"/>
+											</PropertyList>
+											<ReferenceList>
+												<Reference Name="DestinationContextObject">
+													<ObjectRef Name="Category5ThemeTest" ID="{414B5324-F8D6-4615-98A7-4D57460E219B}" WorkUnitID="{95EAF7C1-CD6D-40DE-8286-63580F246788}"/>
+												</Reference>
+												<Reference Name="SourceContextObject">
+													<ObjectRef Name="Cat5_Exploration_Sketch4" ID="{E8CFD736-5EF4-4612-93E0-BE69C5491C24}" WorkUnitID="{95EAF7C1-CD6D-40DE-8286-63580F246788}"/>
+												</Reference>
+											</ReferenceList>
+											<TransitionInfo/>
+										</MusicTransition>
+										<MusicTransition Name="Transition" ID="{7A8707DF-F94A-4CEB-B49A-6AEF00A2140E}">
+											<PropertyList>
+												<Property Name="DestinationContextType" Type="int16" Value="2"/>
+												<Property Name="ExitSourceAt" Type="int16" Value="2"/>
+												<Property Name="SourceContextType" Type="int16" Value="2"/>
+											</PropertyList>
+											<ReferenceList>
+												<Reference Name="DestinationContextObject">
+													<ObjectRef Name="Cat5_Exploration_Sketch4" ID="{E8CFD736-5EF4-4612-93E0-BE69C5491C24}" WorkUnitID="{95EAF7C1-CD6D-40DE-8286-63580F246788}"/>
+												</Reference>
+												<Reference Name="SourceContextObject">
+													<ObjectRef Name="Category5ThemeTest" ID="{414B5324-F8D6-4615-98A7-4D57460E219B}" WorkUnitID="{95EAF7C1-CD6D-40DE-8286-63580F246788}"/>
+												</Reference>
+											</ReferenceList>
+											<TransitionInfo/>
+										</MusicTransition>
 									</ChildrenList>
 									<TransitionInfo/>
 								</MusicTransition>
@@ -181,10 +213,6 @@
 							</StateGroupInfo>
 						</StateGroupList>
 						<CustomStateList>
-							<CustomState>
-								<StateRef Name="None" ID="{F9A7E2B1-C860-4423-97AB-25AA872F0015}"/>
-								<CustomState Name="" ID="{2137F4CB-1892-4414-B991-D5B927CD6906}" ShortID="233120909"/>
-							</CustomState>
 							<CustomState>
 								<StateRef Name="Exploration" ID="{3BE0BFB7-59E1-445C-B827-F7A1359DA998}"/>
 								<CustomState Name="" ID="{F9C81F7D-388F-4FF3-A8B1-4E3598144AD1}" ShortID="306038760"/>

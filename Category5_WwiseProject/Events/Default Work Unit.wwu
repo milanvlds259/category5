@@ -5,10 +5,55 @@
 			<ChildrenList>
 				<Event Name="Play_Music_Switch" ID="{F44FE549-301C-4F65-8690-67F5F8176222}">
 					<ChildrenList>
+						<Action Name="" ID="{1A1FF24A-61B4-4C11-82F0-514878F57EDE}" ShortID="80332152">
+							<PropertyList>
+								<Property Name="ActionType" Type="int16" Value="3"/>
+							</PropertyList>
+							<ReferenceList/>
+						</Action>
 						<Action Name="" ID="{054A5DF0-7860-46D0-A4A2-971A49FA108B}" ShortID="432093090">
 							<ReferenceList>
 								<Reference Name="Target">
 									<ObjectRef Name="Music Switch" ID="{267CE563-AFC0-4A07-B005-2EE6CE359947}" WorkUnitID="{95EAF7C1-CD6D-40DE-8286-63580F246788}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Play_Category5ThemeTest" ID="{F43D082E-310F-4E1F-B0CF-FA1F4B74C110}">
+					<ChildrenList>
+						<Action Name="" ID="{44CE76CE-0529-428A-852C-BD643708A215}" ShortID="154411462">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="Category5ThemeTest" ID="{414B5324-F8D6-4615-98A7-4D57460E219B}" WorkUnitID="{95EAF7C1-CD6D-40DE-8286-63580F246788}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Set_State_Exploration" ID="{74809A26-B78F-4575-ABCC-D79B68A95780}">
+					<ChildrenList>
+						<Action Name="" ID="{A0D34397-23FC-415D-8044-5DD50D25CB74}" ShortID="294569667">
+							<PropertyList>
+								<Property Name="ActionType" Type="int16" Value="22"/>
+							</PropertyList>
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="Exploration" ID="{3BE0BFB7-59E1-445C-B827-F7A1359DA998}" WorkUnitID="{BDA9BCEC-56BE-431F-8BC0-8E4305BAF9CE}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Set_State_Title" ID="{DF37285D-AB2A-4EF0-84D7-30D7AA243779}">
+					<ChildrenList>
+						<Action Name="" ID="{8E936947-3AF5-44D4-A1E2-FDFB6E22F8AB}" ShortID="503973230">
+							<PropertyList>
+								<Property Name="ActionType" Type="int16" Value="22"/>
+							</PropertyList>
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="Title" ID="{B4133D09-DC09-468A-892B-0807D3C7190E}" WorkUnitID="{BDA9BCEC-56BE-431F-8BC0-8E4305BAF9CE}"/>
 								</Reference>
 							</ReferenceList>
 						</Action>
