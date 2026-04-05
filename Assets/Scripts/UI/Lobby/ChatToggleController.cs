@@ -11,6 +11,7 @@ namespace Category5.UI
         [Header("panels")]
         [SerializeField] private GameObject chatIndicatorPanel; // icon + enter key hint, shown when chat is closed
         [SerializeField] private LobbyChatUI lobbyChatUI;       // the full chat panel
+        [SerializeField] private GameObject notificationBubble; // shown when a message arrives while chat is closed
 
         // owns a private input actions instance so no inspector wiring is needed
         private InputSystem_Actions _inputActions;
@@ -21,11 +22,13 @@ namespace Category5.UI
         private void OnEnable()
         {
             LobbyChatUI.OnCloseRequested += CloseChat;
+            LobbyChatManager.OnChatMessageReceived += OnMessageReceived;
         }
 
         private void OnDisable()
         {
             LobbyChatUI.OnCloseRequested -= CloseChat;
+            LobbyChatManager.OnChatMessageReceived -= OnMessageReceived;
         }
 
         // call this when entering the lobby
@@ -59,6 +62,7 @@ namespace Category5.UI
 
             // start in indicator state with chat action ready
             SetChatOpen(false);
+            SetNotificationBubble(false);
             _inputActions.Lobby.Enable();
             Debug.Log($"ChatToggleController: Lobby action map enabled, Chat action enabled: {_inputActions.Lobby.Chat.enabled}");
         }
@@ -72,6 +76,7 @@ namespace Category5.UI
             }
 
             SetChatOpen(false);
+            SetNotificationBubble(false);
 
             // cleanup the chat backend and unregister message handlers
             if (LobbyChatManager.Instance != null)
@@ -100,6 +105,9 @@ namespace Category5.UI
         {
             // flag to swallow the TMP onSubmit that fires on this same enter keypress
             _justOpened = true;
+
+            // clear the notification - player is reading the chat now
+            SetNotificationBubble(false);
 
             // disable the action while chat is open so Enter doesn't double-fire
             _inputActions.Lobby.Disable();
@@ -140,6 +148,19 @@ namespace Category5.UI
 
             if (lobbyChatUI != null)
                 lobbyChatUI.gameObject.SetActive(open);
+        }
+
+        private void SetNotificationBubble(bool visible)
+        {
+            if (notificationBubble != null)
+                notificationBubble.SetActive(visible);
+        }
+
+        private void OnMessageReceived(ChatMessage msg)
+        {
+            // only show bubble if the chat panel is currently closed
+            if (!_isOpen)
+                SetNotificationBubble(true);
         }
     }
 }
