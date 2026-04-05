@@ -457,7 +457,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.ModelData
   avatar: {fileID: 9000000, guid: d49c65de9fce66146b5d0e164b1f9d2d, type: 3}
-  overrideController: {fileID: 0}
+  overrideController: {fileID: 9100000, guid: 6c2b454ffe1960b42be0d9a99f975136, type: 2}
   weaponMountR: {fileID: 5555415116683024972}
   weaponMountL: {fileID: 3233563161930135190}
   projectileSpawnPoint: {fileID: 728420862764207278}

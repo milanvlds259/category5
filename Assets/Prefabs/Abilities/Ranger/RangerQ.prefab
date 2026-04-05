@@ -50,4 +50,4 @@ MonoBehaviour:
   chargeSpeedMultiplier: 0.4
   burstArrowCount: 5
   burstInterval: 0.05
-  burstDamageMultiplier: 0.3
+  burstDamageMultiplier: 0.6

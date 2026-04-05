@@ -109,6 +109,7 @@ namespace Category5.Player
         private static readonly int _animSpeedXHash = Animator.StringToHash("SpeedX");
         private static readonly int _animSpeedYHash = Animator.StringToHash("SpeedY");
         private static readonly int _animIsWindRidingHash = Animator.StringToHash("IsWindRiding");
+        private static readonly int _animIsChargingHash = Animator.StringToHash("IsCharging");
 
         // animator parameter cache to avoid per frame warnings when a parameter is missing
         private RuntimeAnimatorController _cachedAnimatorController;
@@ -124,6 +125,7 @@ namespace Category5.Player
         private bool _hasAnimSpeedX;
         private bool _hasAnimSpeedY;
         private bool _hasAnimIsWindRiding;
+        private bool _hasAnimIsCharging;
         
         [Header("Debug")]
         [SerializeField] private bool invertMovement = false;
@@ -1294,6 +1296,16 @@ namespace Category5.Player
             {
                 anim.SetBool(_animIsWindRidingHash, IsWindRiding);
             }
+
+            if (_hasAnimIsCharging)
+            {
+                // stay true while a shot is pending (HasPendingRangedRelease) so the NGO-deferred
+                // Attack trigger always finds IsCharging=true and correctly takes Aiming BT -> AimRecoil
+                // instead of the Aiming BT -> Idle/Run BT branch
+                bool isAiming = _playerCombat != null &&
+                    (_playerCombat.IsCharging || _playerCombat.HasPendingRangedRelease);
+                anim.SetBool(_animIsChargingHash, isAiming);
+            }
         }
 
         // caches which animator params exist on the currently assigned controller
@@ -1320,6 +1332,7 @@ namespace Category5.Player
             _hasAnimSpeedX = false;
             _hasAnimSpeedY = false;
             _hasAnimIsWindRiding = false;
+            _hasAnimIsCharging = false;
 
             if (controller == null)
             {
@@ -1342,6 +1355,7 @@ namespace Category5.Player
                 if (parameter.nameHash == _animSpeedXHash) _hasAnimSpeedX = true;
                 if (parameter.nameHash == _animSpeedYHash) _hasAnimSpeedY = true;
                 if (parameter.nameHash == _animIsWindRidingHash) _hasAnimIsWindRiding = true;
+                if (parameter.nameHash == _animIsChargingHash) _hasAnimIsCharging = true;
             }
 
             LogMissingAnimatorParamsOnce();

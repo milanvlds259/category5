@@ -111,6 +111,9 @@ namespace Category5.Player
         // public accessors for combat class and charging state
         public CombatClass CurrentCombatClass => combatClass;
         public bool IsCharging => _isCharging;
+        // true while an arrow animation is playing but hasn't fired yet (between attack input and AttackImpact event)
+        // used by playercontroller to keep IsCharging=true in the animator until the recoil clip is done
+        public bool HasPendingRangedRelease => _hasPendingRangedRelease;
         public float ChargePercent => _isCharging && arrowData != null 
             ? Mathf.Clamp01((Time.time - _chargeStartTime) / (arrowData.MaxChargeTime * _rangerQChargeSpeedMult)) 
             : 0f;
@@ -403,10 +406,10 @@ namespace Category5.Player
         {
             float chargePercent = ChargePercent;
             _isCharging = false;
-            
+
             OnChargeReleased?.Invoke(chargePercent, transform.position);
             // Debug.Log($"Released arrow with {chargePercent:P0} charge!");
-            
+
             PerformChargedRangedAttack(chargePercent);
         }
         
