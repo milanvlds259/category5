@@ -74,6 +74,11 @@ namespace Category5.UI
 
         private bool animFirstLoop = true; // know if we should play animation of main menu panel on game launch
 
+        [SerializeField] private AK.Wwise.Event playEvent; // Rylan added - Remove at the first sign of bugs
+        [SerializeField] private AK.Wwise.State musicState; // Rylan added - Remove at the first sign of bugs
+        [SerializeField] private AK.Wwise.State titleState;
+
+
         private void Awake()
         {
             // hide the lobby immediately so it never flashes on title/main menu
@@ -171,6 +176,10 @@ namespace Category5.UI
 
             // show title screen initially
             ShowTitleScreen();
+
+            //RYLAN CODE
+            //Play title screen music
+            playEvent.Post(gameObject);
         }
 
         // ensures PlayerNameManager singleton exists
@@ -744,12 +753,19 @@ namespace Category5.UI
 
             SetButtonsInteractable(isRelayReady);
             UpdateStatus(isRelayReady ? "Ready to connect" : "Connecting to services...");
+
+            //RYLAN CODE
+            musicState.SetValue();
         }
 
         // placeholder for settings button
         public void OnSettingsButtonClicked()
         {
             // todo: implement settings panel
+            
+            //RYLAN CODE
+            titleState.SetValue(); // Rylan added - Remove at the first sign of bugs
+
         }
 
         // placeholder for quit button

@@ -1,0 +1,18 @@
+Event	ID	Name			Wwise Object Path	Notes
+	1228139402	Play_Music_Switch			\Default Work Unit\Play_Music_Switch	
+	2029328970	Play_Category5ThemeTest			\Default Work Unit\Play_Category5ThemeTest	
+
+Switch Group	ID	Name			Wwise Object Path	Notes
+	1715037033	Music_Switch_Group			\Default Work Unit\Music_Switch_Group	
+
+State Group	ID	Name			Wwise Object Path	Notes
+	2434766612	Music_State_Group			\Default Work Unit\Music_State_Group	
+
+State	ID	Name	State Group			Notes
+	2582085496	Exploration	Music_State_Group			
+	3705726509	Title	Music_State_Group			
+
+In Memory Audio	ID	Name	Audio source file		Wwise Object Path	Notes	Data Size
+	217981217	Category5ThemeTest	.cache\BC\{BCD99E04-E96B-4D2E-5224-FA43990CB4B6}.wem		\Containers\Default Work Unit\Music Switch\Category5ThemeTest\Category5ThemeTest		6773856
+	628073416	Cat5_Exploration_Sketch4	.cache\75\{75DA63F0-876C-022B-043D-48E87FCA39B1}.wem		\Containers\Default Work Unit\Music Switch\Cat5_Exploration_Sketch4\Cat5_Exploration_Sketch4		5101152
+
