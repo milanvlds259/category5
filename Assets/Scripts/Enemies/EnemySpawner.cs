@@ -240,7 +240,7 @@ namespace Category5.Enemies
                 Vector3 candidate = GetNextSpawnPoint();
 
                 // check occupancy
-                bool occupied = Physics.OverlapSphere(candidate, spawnOccupancyRadius).Length > 0;
+                bool occupied = Physics.OverlapSphere(candidate, spawnOccupancyRadius, LayerMask.GetMask("Enemy")).Length > 0;
                 if (!occupied)
                 {
                     spawnPoint = candidate;
