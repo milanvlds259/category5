@@ -383,7 +383,7 @@ MonoBehaviour:
   - {fileID: 2528666909874432548}
   useRandomSpawnPoints: 1
   spawnBounds: {x: 80, y: 0, z: 40}
-  enemiesPerWave: 10
+  enemiesPerWave: 2
   totalWaves: 1
   spawnInterval: 0.5
   waveCooldown: 5

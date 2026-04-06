@@ -73,6 +73,7 @@ public class MapGenerator : NetworkBehaviour
         // the arena's boundaries (The storm cloud walls)
         public CapsuleCollider arenaBounds;
 
+        public TriggerVolume trigger;
 
         public Arena(Vector3 pos, GameObject objRef, float scale)
         {
@@ -84,6 +85,7 @@ public class MapGenerator : NetworkBehaviour
             isEye = false;
 
             arenaBounds = gameObjectRef.GetComponent<CapsuleCollider>();
+            trigger = gameObjectRef.GetComponent<TriggerVolume>();
         }
     }
 
@@ -159,7 +161,7 @@ public class MapGenerator : NetworkBehaviour
                 maxIterations--;
                 if (maxIterations <= 0)
                 {
-                    //UnityEngine.Debug.LogWarning("Max iterations reached while trying to place an arena. Some arenas may overlap.");
+                    UnityEngine.Debug.LogWarning("Max iterations reached while trying to place an arena. Some arenas may overlap.");
                     break; // break out of the while loop
                 }
 
@@ -287,6 +289,12 @@ public class MapGenerator : NetworkBehaviour
             collider.center = new Vector3(0, 10, 0); // Center the collider on the arena
             collider.isTrigger = true; // Set the collider to be a trigger so players can fall through
 
+            // Add TriggerVolume script that will invoke an event when that capsule
+            // collider trigger is entered. This will automatically get the capsule trigger collider
+            TriggerVolume trigger = arena.AddComponent<TriggerVolume>();
+            trigger.targetLayers = LayerMask.GetMask("Player");
+            trigger.targetTag = "Player";
+
             // Add cloud layer
             GameObject cloudLayer = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             DestroyImmediate(cloudLayer.GetComponent<CapsuleCollider>()); // Remove the cloud layer's collider
@@ -352,6 +360,11 @@ public class MapGenerator : NetworkBehaviour
         
         EnemySpawner spawner = spawnerObj.GetComponent<EnemySpawner>();
         spawner.spawnBounds = new Vector3(arena.gameObjectRef.transform.localScale.x, 0, arena.gameObjectRef.transform.localScale.z);
+        // Here set the spawner to only start spawning using the triggervolume on this arena
+        spawner.autoStartOnSpawn = false;
+        spawner.startOnTrigger = true;
+        spawner.triggerVolume = arena.trigger;
+
         spawner.GetComponent<NetworkObject>().Spawn();
 
         spawnerObj.transform.parent = arena.gameObjectRef.transform;

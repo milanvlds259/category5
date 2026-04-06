@@ -123,7 +123,7 @@ namespace Category5.Core
 
             // start enemy waves for round 1
             float multiplier = GetEnemyMultiplier(0);
-            EnemySpawner.StartAllSpawners(multiplier);
+            // EnemySpawner.StartAllSpawners(multiplier);
             _bossEntranceTriggeredThisRound = false;
             _serverInitialized = true;
             // Debug.Log("GameFlowManager: server flow initialized");
@@ -361,7 +361,7 @@ namespace Category5.Core
 
             // start enemy waves with scaling multiplier
             float multiplier = GetEnemyMultiplier(CurrentRound.Value - 1);
-            EnemySpawner.StartAllSpawners(multiplier);
+            // EnemySpawner.StartAllSpawners(multiplier);
 
             // notify clients to hide selection ui and fire round start event via ItemManager rpc
             if (ItemManager.Instance != null)
