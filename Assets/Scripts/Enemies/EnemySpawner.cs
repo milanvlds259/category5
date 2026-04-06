@@ -3,6 +3,7 @@ using Unity.Netcode;
 using System;
 using System.Collections.Generic;
 using Category5.Core;
+using Random = UnityEngine.Random;
 
 namespace Category5.Enemies
 {
@@ -17,6 +18,7 @@ namespace Category5.Enemies
         [Header("spawn points")]
         [SerializeField] private Transform[] spawnPoints;
         [SerializeField] private bool useRandomSpawnPoints = true;
+        public Vector3 spawnBounds;
         
         [Header("wave settings")]
         [SerializeField] private int enemiesPerWave = 3;
@@ -54,6 +56,10 @@ namespace Category5.Enemies
             
             _effectiveEnemiesPerWave = enemiesPerWave;
             
+            // minSpawnBounds = transform.InverseTransformPoint(transform.position);
+            // maxSpawnBounds = transform.InverseTransformPoint(transform.position);
+
+
             if (autoStartOnSpawn)
             {
                 StartSpawning();
@@ -195,6 +201,7 @@ namespace Category5.Enemies
             }
             
             // choose a spawn point but avoid points that are currently occupied
+            /*
             Transform spawnPoint = null;
             int attempts = (spawnPoints != null) ? spawnPoints.Length : 1;
             for (int i = 0; i < attempts; i++)
@@ -224,6 +231,22 @@ namespace Category5.Enemies
             {
                 Debug.LogWarning("EnemySpawner: No spawn points available!");
                 return;
+            }*/
+
+            Vector3 spawnPoint = transform.position; // default to spawner position if no spawn points defined
+            int attempts = 100;
+            for (int i = 0; i < attempts; i++)
+            {
+                Vector3 candidate = GetNextSpawnPoint();
+
+                // check occupancy
+                bool occupied = Physics.OverlapSphere(candidate, spawnOccupancyRadius, LayerMask.GetMask("Enemy")).Length > 0;
+                if (!occupied)
+                {
+                    spawnPoint = candidate;
+                    break;
+                }
+                // if occupied, try next candidate (loop will call GetNextSpawnPoint again)
             }
             
             GameObject prefab = enemyPrefab;
@@ -239,7 +262,7 @@ namespace Category5.Enemies
             }
             
             // spawn the enemy
-            GameObject enemyObject = Instantiate(prefab, spawnPoint.position, spawnPoint.rotation);
+            GameObject enemyObject = Instantiate(prefab, spawnPoint, Quaternion.identity);
             NetworkObject networkObject = enemyObject.GetComponent<NetworkObject>();
             
             if (networkObject == null)
@@ -271,22 +294,27 @@ namespace Category5.Enemies
             StartNextWave();
         }
         
-        private Transform GetNextSpawnPoint()
+        private Vector3 GetNextSpawnPoint()
         {
+            /*
             if (spawnPoints == null || spawnPoints.Length == 0)
             {
-                return transform; // use spawner position as fallback
-            }
+                return transform.position; // use spawner position as fallback
+            }*/
             
             if (useRandomSpawnPoints)
             {
-                return spawnPoints[UnityEngine.Random.Range(0, spawnPoints.Length)];
+                return new Vector3(
+                    Random.Range(transform.position.x - spawnBounds.x/2, transform.position.x + spawnBounds.x/2),
+                    Random.Range(transform.position.y - spawnBounds.y/2, transform.position.y + spawnBounds.y/2),
+                    Random.Range(transform.position.z - spawnBounds.z/2, transform.position.z + spawnBounds.z/2));
+                //return spawnPoints[UnityEngine.Random.Range(0, spawnPoints.Length)];
             }
             else
             {
                 Transform point = spawnPoints[_nextSpawnPointIndex];
                 _nextSpawnPointIndex = (_nextSpawnPointIndex + 1) % spawnPoints.Length;
-                return point;
+                return point.position;
             }
         }
         
@@ -347,6 +375,10 @@ namespace Category5.Enemies
                     }
                 }
             }
+
+            // Draws the bounds of the spawn area (between minSpawnBounds and maxSpawnBounds)
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawWireCube(transform.position, spawnBounds);
         }
         
         private void OnDrawGizmosSelected()

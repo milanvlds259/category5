@@ -10,8 +10,13 @@ using Unity.Mathematics;
 using System.Linq;
 using System.Numerics;
 using Category5.Player.WindRiding;
+using Category5.Enemies;
+using Unity.VisualScripting;
+using UnityEngine.AI;
+using Unity.AI.Navigation;
+using Unity.Netcode;
 
-public class MapGenerator : MonoBehaviour
+public class MapGenerator : NetworkBehaviour
 {
     // CURRENT ISSUES!
     /*
@@ -50,6 +55,8 @@ public class MapGenerator : MonoBehaviour
 
     // Mesh to generate along paths
     [SerializeField] Mesh pathMesh;
+
+    [SerializeField] GameObject enemySpawnerPrefab;
 
     class Arena
     {
@@ -102,9 +109,18 @@ public class MapGenerator : MonoBehaviour
         }
     }
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    /*
     void Start()
     {
+        // Make sure there's no map existing when generating on start
+        DeleteMap();
+        StartCoroutine(GenerateMap());
+    }*/
+
+    public override void OnNetworkSpawn()
+    {
+        if (!IsServer) return;
+
         // Make sure there's no map existing when generating on start
         DeleteMap();
         GenerateMap();
@@ -133,11 +149,11 @@ public class MapGenerator : MonoBehaviour
         for (int i = 0; i < numberOfArenas; i++)
         {
             // Store a boolean for if an arena was successfully created and create an arena
-            bool arenaCreated = CreateArena(minBounds, maxBounds, i.ToString(), mapParent.transform);
+            Arena arenaCreated = CreateArena(minBounds, maxBounds, i.ToString(), mapParent.transform);
 
             int maxIterations = 100; // Prevent infinite loops
             // As long as the arena wasn't created (overlaps), try again
-            while (!arenaCreated)
+            while (arenaCreated == null)
             {
                 // (will only try this 100 times before giving up)
                 maxIterations--;
@@ -150,6 +166,8 @@ public class MapGenerator : MonoBehaviour
                 // Try creating the arena again at another random pos
                 arenaCreated = CreateArena(minBounds, maxBounds, i.ToString(), mapParent.transform);
             }
+            // Add an enemy spawner to the created arena
+            AddEnemySpawnerToArena(arenaCreated);
         }
 
         // Number of eyes cannot exceed number of arenas, and cannot be < 0
@@ -211,14 +229,18 @@ public class MapGenerator : MonoBehaviour
         // Space out all the path points so they dont overlap!
         SpaceOutPaths();
 
-        // Add the wind tunnel component and launch pads to each path
-        if (Application.isPlaying) AddWindTunnelToPaths();
+        if (Application.isPlaying) {
+            // Add the wind tunnel component and launch pads to each path
+            AddWindTunnelToPaths();
+            // Add navmesh surfaces to all arenas
+            StartCoroutine(AddNavMeshSurfaceToArenas());
+        }
     }
 
 
     // Creates an arena at the specified location, specific location version!
     // Overload below that does a random position
-    bool CreateArena(Vector3 inputPos, Transform parent, String numberforname = "", float scaleFactor=1f)
+    Arena CreateArena(Vector3 inputPos, Transform parent, String numberforname = "", float scaleFactor=1f)
     {
         // TEMPORARY! Replace basic shapes with prefabs of premade arenas and stuff
         
@@ -253,8 +275,8 @@ public class MapGenerator : MonoBehaviour
         {
             DestroyImmediate(arena); // Remove the overlapping arena
 
-            // Return false, the arena wasn't created
-            return false;
+            // Return null, the arena wasn't created
+            return null;
         }
         else
         {
@@ -267,7 +289,7 @@ public class MapGenerator : MonoBehaviour
 
             // Add cloud layer
             GameObject cloudLayer = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            Destroy(cloudLayer.GetComponent<CapsuleCollider>()); // Remove the cloud layer's collider
+            DestroyImmediate(cloudLayer.GetComponent<CapsuleCollider>()); // Remove the cloud layer's collider
             cloudLayer.transform.position = new Vector3(arena.transform.position.x, arena.transform.position.y, arena.transform.position.z);
             cloudLayer.transform.localScale = new Vector3(
                                             collider.radius * 2 * arena.transform.localScale.x,
@@ -294,31 +316,55 @@ public class MapGenerator : MonoBehaviour
 
             //arena.tag = "Arena"; // Set the tag of the arena to "Arena" for easy reference
 
-            return true; // No overlap, return true
+            return arenaData; // No overlap, return the created arena data
         }
     }
 
     // Overload of CreateArena that takes in Vector3 min and max for a random position,
     // Then calls the original version on a random position within the box created by the min and max
     // The min and max are the bounds of the area where the arena can spawn
-    bool CreateArena(Vector3 min, Vector3 max, String numberForName, Transform parent)
+    Arena CreateArena(Vector3 min, Vector3 max, String numberForName, Transform parent)
     {
         // Create the arena, and check if the arena was successfully created
         // This call doesn't pass a scalefactor, so it defaults to 1f
-        if ( CreateArena(
-            new Vector3(Random.Range(min.x, max.x), Random.Range(min.y, max.y), Random.Range(min.z, max.z)),
-            parent,
-            numberForName
-            ) )
+        Arena arenaData = CreateArena(
+                                    new Vector3(Random.Range(min.x, max.x), Random.Range(min.y, max.y), Random.Range(min.z, max.z)),
+                                    parent,
+                                    numberForName
+                                 );
+
+        if ( arenaData != null )
         {
-            // If it was return true
-            return true;
+            // If it was return the arena data
+            return arenaData;
         }
         else
         {
-            // If not return false
-            return false;
+            // If not return null
+            return null;
         }
+    }
+
+    // Adds an enemy spawner to the given arena, making it a child of the arena and setting the bounds of the enemy spawns
+    void AddEnemySpawnerToArena(Arena arena)
+    {
+        GameObject spawnerObj = Instantiate(enemySpawnerPrefab);
+        
+        EnemySpawner spawner = spawnerObj.GetComponent<EnemySpawner>();
+        spawner.spawnBounds = new Vector3(arena.gameObjectRef.transform.localScale.x, 0, arena.gameObjectRef.transform.localScale.z);
+        spawner.GetComponent<NetworkObject>().Spawn();
+
+        spawnerObj.transform.parent = arena.gameObjectRef.transform;
+        spawnerObj.transform.position = arena.position + new Vector3(0, 5f, 0); // Position it a little above the arena
+    }
+
+    private IEnumerator AddNavMeshSurfaceToArenas()
+    {
+        yield return new WaitForEndOfFrame();
+       
+        NavMeshSurface surface = mapParent.AddComponent<NavMeshSurface>();
+        surface.layerMask = LayerMask.GetMask("Default");
+        surface.BuildNavMesh();
     }
 
     // Creates a path between two given arenas
@@ -408,6 +454,8 @@ public class MapGenerator : MonoBehaviour
 
         // Make path a child of the parent
         splineContainer.gameObject.transform.parent = parent;
+        // Put path on the cloudSurface layer
+        splineContainer.gameObject.layer = 8;
 
         // Create a Path instance to hold the path's data
         Path pathData = new Path(arenaA, arenaB, splineContainer.gameObject);
