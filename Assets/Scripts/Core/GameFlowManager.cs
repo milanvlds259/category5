@@ -34,6 +34,7 @@ namespace Category5.Core
 
         [Header("references")]
         [SerializeField] private GameObject bossSpawnPoint;
+        [SerializeField] private MapGenerator mapGenerator;
 
         // network variables for syncing game state
         public NetworkVariable<GamePhase> CurrentPhase = new NetworkVariable<GamePhase>(GamePhase.Fighting);
@@ -123,7 +124,7 @@ namespace Category5.Core
 
             // start enemy waves for round 1
             float multiplier = GetEnemyMultiplier(0);
-            // EnemySpawner.StartAllSpawners(multiplier);
+            EnemySpawner.ResetAllSpawners(multiplier);
             _bossEntranceTriggeredThisRound = false;
             _serverInitialized = true;
             // Debug.Log("GameFlowManager: server flow initialized");
@@ -346,6 +347,10 @@ namespace Category5.Core
             NotifyRoundChangedClientRpc(CurrentRound.Value);
             _bossEntranceTriggeredThisRound = false;
 
+            // Delete old map, and generate a new one for the next storm
+            mapGenerator.DeleteMap();
+            mapGenerator.GenerateMap();
+
             // reset spawner tracking for new round
             _completedSpawners.Clear();
             RefreshSpawners();
@@ -361,7 +366,7 @@ namespace Category5.Core
 
             // start enemy waves with scaling multiplier
             float multiplier = GetEnemyMultiplier(CurrentRound.Value - 1);
-            // EnemySpawner.StartAllSpawners(multiplier);
+            EnemySpawner.ResetAllSpawners(multiplier);
 
             // notify clients to hide selection ui and fire round start event via ItemManager rpc
             if (ItemManager.Instance != null)
@@ -538,6 +543,7 @@ namespace Category5.Core
             // Debug.Log($"GameFlowManager: found {_allSpawners.Length} spawners in scene");
         }
 
+        // Changed since inactive spawners need to be considered too
         private bool AreAllActiveSpawnersFullyComplete()
         {
             var spawners = FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
@@ -546,7 +552,7 @@ namespace Category5.Core
             bool hasActiveSpawner = false;
             foreach (var spawner in spawners)
             {
-                if (spawner == null || !spawner.IsActive) continue;
+                if (spawner == null) continue;
                 hasActiveSpawner = true;
 
                 bool completed = spawner.CurrentWave >= spawner.TotalWaves && spawner.AliveEnemyCount == 0 && !spawner.IsSpawning;

@@ -43,6 +43,7 @@ namespace Category5.Enemies
         public bool _isActive = false;
         private bool hasStartedSpawning = false; // If the spawner has ever started spawning
         private int _effectiveEnemiesPerWave; // scaled by multiplier each round
+        public bool isCleared = false; // Is true when all enemies that would be spawned from this spawner have been defeated
         
         // events
         public static event Action<EnemySpawner> OnAllEnemiesDefeated;
@@ -155,19 +156,29 @@ namespace Category5.Enemies
             _waveTimer = 0f;
             _isActive = false;
             isSpawning = false;
+            hasStartedSpawning = false;
             
             // apply enemy scaling
             _effectiveEnemiesPerWave = Mathf.RoundToInt(enemiesPerWave * enemyMultiplier);
             if (_effectiveEnemiesPerWave < 1) _effectiveEnemiesPerWave = 1;
         }
-        
-        // static helper to reset and start all spawners in the scene
-        public static void StartAllSpawners(float enemyMultiplier = 1f)
+
+        // static helper to reset all spawners in the scene
+        public static void ResetAllSpawners(float enemyMultiplier = 1f)
         {
             var spawners = FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
             foreach (var spawner in spawners)
             {
                 spawner.ResetSpawner(enemyMultiplier);
+            }
+        }
+        
+        // static helper to start all spawners in the scene
+        public static void StartAllSpawners()
+        {
+            var spawners = FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
+            foreach (var spawner in spawners)
+            {
                 spawner.StartSpawning();
             }
             // Debug.Log($"EnemySpawner: started {spawners.Length} spawners with {enemyMultiplier}x enemy multiplier");
@@ -351,7 +362,7 @@ namespace Category5.Enemies
                 {
                     GameFlowManager.Instance.NotifySpawnerCompleted(this);
                 }
-
+                isCleared = true;
                 OnAllEnemiesDefeated?.Invoke(this);
             }
         }

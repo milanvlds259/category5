@@ -56,7 +56,9 @@ public class MapGenerator : NetworkBehaviour
     // Mesh to generate along paths
     [SerializeField] Mesh pathMesh;
 
+    // Spawner stuff
     [SerializeField] GameObject enemySpawnerPrefab;
+    private List<GameObject> spawners = new List<GameObject>();
 
     class Arena
     {
@@ -134,8 +136,15 @@ public class MapGenerator : NetworkBehaviour
         if (mapParent != null) {
             DestroyImmediate(mapParent);
         }
+
+        foreach (GameObject spawner in spawners)
+        {
+            DestroyImmediate(spawner);
+        }
+        spawners.Clear();
         arenas.Clear();
         paths.Clear();
+
     }
 
     // Randomly generates a map
@@ -369,6 +378,9 @@ public class MapGenerator : NetworkBehaviour
 
         spawnerObj.transform.parent = arena.gameObjectRef.transform;
         spawnerObj.transform.position = arena.position + new Vector3(0, 5f, 0); // Position it a little above the arena
+
+        // Add the spawner to the spawners list
+        spawners.Add(spawnerObj);
     }
 
     private IEnumerator AddNavMeshSurfaceToArenas()
