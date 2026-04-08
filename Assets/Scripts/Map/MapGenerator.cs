@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections;
 using Debug = UnityEngine.Debug;
 using Vector3 = UnityEngine.Vector3;
+using Vector2 = UnityEngine.Vector2;
 using UnityEngine;
 using Random = UnityEngine.Random;
 using UnityEngine.Splines;
@@ -11,8 +12,6 @@ using System.Linq;
 using System.Numerics;
 using Category5.Player.WindRiding;
 using Category5.Enemies;
-using Unity.VisualScripting;
-using UnityEngine.AI;
 using Unity.AI.Navigation;
 using Unity.Netcode;
 
@@ -53,8 +52,10 @@ public class MapGenerator : NetworkBehaviour
 
     [SerializeField] Material cloudMaterial;
 
-    // Mesh to generate along paths
-    [SerializeField] Mesh pathMesh;
+    // Material for walls on storm eyes and wind tunnels
+    [SerializeField] Material cloudWallMaterial;
+    [SerializeField] GameObject cloudwallPrefab;
+    [SerializeField] GameObject cloudSpherePrefab;
 
     // Spawner stuff
     [SerializeField] GameObject enemySpawnerPrefab;
@@ -144,7 +145,6 @@ public class MapGenerator : NetworkBehaviour
         spawners.Clear();
         arenas.Clear();
         paths.Clear();
-
     }
 
     // Randomly generates a map
@@ -154,7 +154,7 @@ public class MapGenerator : NetworkBehaviour
 
 
         // The main boss arena will always be created in the center of the map
-        CreateArena(Vector3.zero, mapParent.transform, "boss", 2f);
+        Arena bossArena = CreateArena(Vector3.zero, mapParent.transform, "boss", 2f);
 
         // Create arenas at random positions between the input Vector3s for storm eyes
         for (int i = 0; i < numberOfArenas; i++)
@@ -184,11 +184,18 @@ public class MapGenerator : NetworkBehaviour
         // Number of eyes cannot exceed number of arenas, and cannot be < 0
         numberOfEyes = Math.Clamp(numberOfEyes, 0, arenas.Count);
         // Assign arenas to be the storm's eyes (points where players can drop in)
-        for (int i = 0; i < numberOfEyes; i++)
+        // 0 is always boss arena, go to number of eyes + 1
+        for (int i = 0; i <= numberOfEyes; i++)
         {
             arenas[i].isEye = true;
         }
-        
+        // After setting eyes, add cloud boundaries to close off arenas
+        foreach (Arena arena in arenas)
+        {
+            // Add the cloud boundaries on all arenas
+            // eyes get cylinders (cloudwall) and other get spheres
+            AddCloudBoundaryToArena(arena);
+        }
 
         // Create paths between arenas
         int pathCount = 0;
@@ -234,17 +241,22 @@ public class MapGenerator : NetworkBehaviour
         foreach (Path path in paths)
         {
             AddPathMidpoints(path.gameObjectRef.GetComponent<SplineContainer>());
+            // IMPORTANT: force refresh
+            path.gameObjectRef.GetComponent<SplineContainer>().Spline.Closed = true;
+            path.gameObjectRef.GetComponent<SplineContainer>().Spline.Closed = false;
         }
         
         
         // Space out all the path points so they dont overlap!
-        SpaceOutPaths();
+        // SpaceOutPaths();
 
         if (Application.isPlaying) {
-            // Add the wind tunnel component and launch pads to each path
-            AddWindTunnelToPaths();
             // Add navmesh surfaces to all arenas
             StartCoroutine(AddNavMeshSurfaceToArenas());
+            // Add the wind tunnel component and launch pads to each path
+            AddWindTunnelToPaths();
+            // Add a mesh to all paths
+            StartCoroutine(CreatePathMeshes());
         }
     }
 
@@ -309,9 +321,9 @@ public class MapGenerator : NetworkBehaviour
             DestroyImmediate(cloudLayer.GetComponent<CapsuleCollider>()); // Remove the cloud layer's collider
             cloudLayer.transform.position = new Vector3(arena.transform.position.x, arena.transform.position.y, arena.transform.position.z);
             cloudLayer.transform.localScale = new Vector3(
-                                            collider.radius * 2 * arena.transform.localScale.x,
+                                            collider.radius * 2.2f * arena.transform.localScale.x,
                                             1f,
-                                            collider.radius * 2 * arena.transform.localScale.x
+                                            collider.radius * 2.2f * arena.transform.localScale.x
                                             );
             cloudLayer.transform.parent = arena.transform;
             cloudLayer.GetComponent<MeshRenderer>().material = cloudMaterial; // Set the cloud material
@@ -381,6 +393,39 @@ public class MapGenerator : NetworkBehaviour
 
         // Add the spawner to the spawners list
         spawners.Add(spawnerObj);
+    }
+
+    void AddCloudBoundaryToArena(Arena arena)
+    {
+        Debug.Log(arena.gameObjectRef.name);
+        GameObject cloudBoundary;
+        float Yscale = 0;
+        float Ypos = 0;
+
+        if (arena.isEye)
+        {
+            cloudBoundary = Instantiate(cloudwallPrefab);
+            Yscale = 100 + Mathf.Abs(Mathf.Clamp(arena.position.y, -999, 0));
+            Ypos = arena.position.y + (cloudBoundary.transform.localScale.y/2);
+        }
+        else
+        {
+            cloudBoundary = Instantiate(cloudSpherePrefab);
+            Yscale = arena.gameObjectRef.transform.localScale.x * 1.3f;
+            Ypos = arena.position.y;
+        }
+        
+        cloudBoundary.transform.localScale = new Vector3(
+            arena.gameObjectRef.transform.localScale.x * 1.3f,
+            Yscale,
+            arena.gameObjectRef.transform.localScale.z * 1.3f
+        );
+        cloudBoundary.transform.position = new Vector3(
+            arena.position.x,
+            Ypos,
+            arena.position.z
+        );
+        cloudBoundary.SetActive(true);
     }
 
     private IEnumerator AddNavMeshSurfaceToArenas()
@@ -471,11 +516,7 @@ public class MapGenerator : NetworkBehaviour
         //pathPoints.Add(beforeBknot);
         
         // Calls helper function that removes knots that are too sharp (not working?)
-        CleanUpPath(spline, splineContainer);
-        
-        
-        // Add a mesh to this path
-        if (Application.isPlaying) CreatePathMesh(splineContainer);
+        // CleanUpPath(spline, splineContainer);
 
         // Make path a child of the parent
         splineContainer.gameObject.transform.parent = parent;
@@ -641,40 +682,56 @@ public class MapGenerator : NetworkBehaviour
 
 
     // Adds the mesh and mesh collider to the input path game object
-    void CreatePathMesh(SplineContainer container)
+    private IEnumerator CreatePathMeshes()
     {
         // Temporary implementation, just used to make a visible path rn!!
-
-        SplineExtrude splineExtrude = container.gameObject.AddComponent<SplineExtrude>();
-        splineExtrude.Container = container;
-
-        var hasMeshFilter = container.gameObject.TryGetComponent<MeshFilter>(out var meshFilter);
-        if (hasMeshFilter)
+        yield return null;
+        foreach (Path path in paths)
         {
-            if (meshFilter.sharedMesh == null)
+            Debug.Log(path.gameObjectRef.name);
+            SplineContainer container = path.gameObjectRef.GetComponent<SplineContainer>();
+
+            SplineExtrude splineExtrude = container.gameObject.AddComponent<SplineExtrude>();
+            splineExtrude.Container = container;
+
+            var hasMeshFilter = container.gameObject.TryGetComponent<MeshFilter>(out var meshFilter);
+            if (hasMeshFilter)
             {
-                var extrudeMesh = new Mesh();
-                extrudeMesh.name = "Spline Extrude Mesh";
-                meshFilter.sharedMesh = extrudeMesh;
+                if (meshFilter.sharedMesh == null)
+                {
+                    Mesh extrudeMesh = new Mesh();
+                    Vector2[] uvs = extrudeMesh.uv;
+                    Debug.Log(" HYWRASH " + uvs);
+                    foreach (Vector2 uv in uvs)
+                    {
+                        Debug.Log(uv + " " + path.gameObjectRef.name);
+                    }
+                    extrudeMesh.name = "Spline Extrude Mesh";
+                    meshFilter.sharedMesh = extrudeMesh;
+                }
+                // Set the mesh variables
+                splineExtrude.Radius = 10;
+                splineExtrude.FlipNormals = true;
+                splineExtrude.Capped = false;
+                splineExtrude.SegmentsPerUnit = 6f;
+                splineExtrude.Sides = 20;
+                splineExtrude.RebuildOnSplineChange = true;
+
+                splineExtrude.Rebuild();
+
+                var hasMeshRenderer = container.gameObject.TryGetComponent<MeshRenderer>(out var meshRenderer);
+                if (hasMeshRenderer)
+                    meshRenderer.material = new Material(cloudWallMaterial);
             }
-            // Set the mesh variables
-            splineExtrude.Radius = 10;
-            splineExtrude.FlipNormals = true;
-            splineExtrude.Capped = false;
 
-            var hasMeshRenderer = container.gameObject.TryGetComponent<MeshRenderer>(out var meshRenderer);
-            if (hasMeshRenderer)
-                meshRenderer.material = new Material(Shader.Find("Standard"));
+            // For some reason the mesh doesn't show unless you mess with the component in the editor,
+            // or if you turn it off and on here, so that's what this is for
+            // splineExtrude.enabled = false;
+            // splineExtrude.enabled = true;
+
+            // Add a mesh collider and set it to the generated mesh
+            MeshCollider meshCollider = container.gameObject.AddComponent<MeshCollider>();
         }
-
-        // For some reason the mesh doesn't show unless you mess with the component in the editor,
-        // or if you turn it off and on here, so that's what this is for
-        splineExtrude.enabled = false;
-        splineExtrude.enabled = true;
-
-        // Add a mesh collider and set it to the generated mesh
-        MeshCollider meshCollider = container.gameObject.AddComponent<MeshCollider>();
-        
     }
 
     // Repositions the entrance of the path to be farther from other entrances, so they don't overlap/get too close
