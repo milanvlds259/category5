@@ -8,6 +8,7 @@ using Category5.Core;
 using Category5.Audio;
 using Category5.UI;
 using Category5.Player.WindRiding;
+using Unity.InferenceEngine;
 
 namespace Category5.Player
 {
@@ -85,6 +86,9 @@ namespace Category5.Player
         private Vector3 _velocity;
         private Vector3 _externalVelocity;
         private bool _isGrounded;
+        private bool _isClouded; // Surfing on clouds (wait I'm clouded)
+        private LayerMask cloudLayer = 1 << 8; // CloudSurface layer
+        private bool _isGliding = false;
         private bool _isOffline = false;
         
         // cached reference to player combat for charge state
@@ -105,6 +109,7 @@ namespace Category5.Player
         private static readonly int _animSpeedXHash = Animator.StringToHash("SpeedX");
         private static readonly int _animSpeedYHash = Animator.StringToHash("SpeedY");
         private static readonly int _animIsWindRidingHash = Animator.StringToHash("IsWindRiding");
+        private static readonly int _animIsChargingHash = Animator.StringToHash("IsCharging");
 
         // animator parameter cache to avoid per frame warnings when a parameter is missing
         private RuntimeAnimatorController _cachedAnimatorController;
@@ -120,6 +125,7 @@ namespace Category5.Player
         private bool _hasAnimSpeedX;
         private bool _hasAnimSpeedY;
         private bool _hasAnimIsWindRiding;
+        private bool _hasAnimIsCharging;
         
         [Header("Debug")]
         [SerializeField] private bool invertMovement = false;
@@ -482,7 +488,7 @@ namespace Category5.Player
             {
                 _inputActions.Player.Enable();
                 _inputActions.Player.Jump.performed += OnJump;
-                _inputActions.Player.Dodge.performed += OnDodge;
+                _inputActions.Player.Dodge.started += OnDodge;
                 _inputActions.Player.Sprint.performed += OnSprint;
             }
         }
@@ -512,8 +518,8 @@ namespace Category5.Player
                 return;
             }
             
-            // check if input should be blocked (pause menu or power-up selection)
-            bool inputBlocked = Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection();
+            // check if input should be blocked (pause menu, power-up selection, or boss intro)
+            bool inputBlocked = Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying;
 
             // ensure we have a camera reference
             if (_cameraTransform == null)
@@ -547,6 +553,8 @@ namespace Category5.Player
             }
             else if (inputBlocked)
             {
+                // clear move input so animation blends back to idle
+                _moveInput = Vector2.zero;
                 // only apply gravity no movement input
                 HandleGravity();
             }
@@ -644,9 +652,29 @@ namespace Category5.Player
 
         private void HandleGravity()
         {
+            if (Physics.CheckSphere(transform.position + groundCheckOffset, groundCheckRadius, cloudLayer, QueryTriggerInteraction.Collide)
+                && _isGliding)
+            {   
+                _isClouded = true;
+            }
+            else
+            {
+                _isClouded = false;
+            }
+
             // custom ground check is more reliable than CharacterController.isGrounded
             bool wasGrounded = _isGrounded;
-            _isGrounded = Physics.CheckSphere(transform.position + groundCheckOffset, groundCheckRadius, groundLayers, QueryTriggerInteraction.Ignore);
+            
+            if (Physics.CheckSphere(transform.position + groundCheckOffset, groundCheckRadius, groundLayers, QueryTriggerInteraction.Ignore))
+            {
+                _isGrounded = true;
+                _isGliding = false;
+            }
+            else
+            {
+                _isGrounded = false;
+            }
+            
 
             // fire airborne state change event for item behaviours
             if (wasGrounded && !_isGrounded)
@@ -658,9 +686,16 @@ namespace Category5.Player
                 OnPlayerAirborneStateChanged?.Invoke(false); // landed
             }
 
-            if (_isGrounded && _velocity.y < 0)
+            if ( (_isGrounded) && _velocity.y < 0)
             {
                 _velocity.y = -2f; // small downward force to keep grounded
+            }
+            if (_isClouded && _velocity.y < 0)
+            {
+                _velocity.y = 0f;
+                // Want some bounce/give later
+                // _velocity.y = Mathf.Clamp(_velocity.y, -1f, 1f);
+                // _velocity.y += -_velocity.y * 70f * Time.deltaTime;
             }
 
             // process jump buffer
@@ -668,10 +703,11 @@ namespace Category5.Player
             {
                 _jumpBufferCounter -= Time.deltaTime;
                 
-                if (_isGrounded)
+                if (_isGrounded || _isClouded)
                 {
                     // v = sqrt(h * -2 * g)
                     _velocity.y = Mathf.Sqrt(jumpHeight * JumpHeightMultiplier * -2f * gravity);
+                    
                     _jumpBufferCounter = 0;
                 }
             }
@@ -726,7 +762,7 @@ namespace Category5.Player
         {
             // don't accept input if dead or blocked
             if (IsDead.Value) return;
-            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection()) return;
+            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying) return;
             if (IsWindRiding) return;
             
             // instead of jumping immediately we buffer the input
@@ -740,13 +776,19 @@ namespace Category5.Player
         {
             // don't accept input if dead or blocked
             if (IsDead.Value) return;
-            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection()) return;
+            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying) return;
             if (IsWindRiding) return;
             
             // block dodge while charging ranged attack
             if (_playerCombat != null && _playerCombat.IsCharging) return;
             
-            if (_isDodging || !_isGrounded) return;
+            if (_isDodging) return;
+
+            if (!_isGrounded) 
+            {
+                _isGliding = true;
+                return;
+            }
             
             // use effective cooldown from player inventory if available
             float effectiveCooldown = _playerStats != null ? _playerStats.EffectiveDodgeCooldown : dodgeCooldown;
@@ -826,7 +868,7 @@ namespace Category5.Player
         {
             // dont accept input if dead or blocked
             if (IsDead.Value) return;
-            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection()) return;
+            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying) return;
             if (IsWindRiding) return;
             
             _isSprinting = !_isSprinting;
@@ -1254,6 +1296,16 @@ namespace Category5.Player
             {
                 anim.SetBool(_animIsWindRidingHash, IsWindRiding);
             }
+
+            if (_hasAnimIsCharging)
+            {
+                // stay true while a shot is pending (HasPendingRangedRelease) so the NGO-deferred
+                // Attack trigger always finds IsCharging=true and correctly takes Aiming BT -> AimRecoil
+                // instead of the Aiming BT -> Idle/Run BT branch
+                bool isAiming = _playerCombat != null &&
+                    (_playerCombat.IsCharging || _playerCombat.HasPendingRangedRelease);
+                anim.SetBool(_animIsChargingHash, isAiming);
+            }
         }
 
         // caches which animator params exist on the currently assigned controller
@@ -1280,6 +1332,7 @@ namespace Category5.Player
             _hasAnimSpeedX = false;
             _hasAnimSpeedY = false;
             _hasAnimIsWindRiding = false;
+            _hasAnimIsCharging = false;
 
             if (controller == null)
             {
@@ -1302,6 +1355,7 @@ namespace Category5.Player
                 if (parameter.nameHash == _animSpeedXHash) _hasAnimSpeedX = true;
                 if (parameter.nameHash == _animSpeedYHash) _hasAnimSpeedY = true;
                 if (parameter.nameHash == _animIsWindRidingHash) _hasAnimIsWindRiding = true;
+                if (parameter.nameHash == _animIsChargingHash) _hasAnimIsCharging = true;
             }
 
             LogMissingAnimatorParamsOnce();

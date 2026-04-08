@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2826a164074e3934fa709e2723a9c617, type: 3}
   m_Name: TestBoss
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Boss.BossData
-  bossName: Test Boss
+  bossName: John Boss
   elementType: 0
   description: test guy
   baseHealth: 500
@@ -72,4 +72,7 @@ MonoBehaviour:
   spawnSound: {fileID: 0}
   deathSound: {fileID: 0}
   hurtSound: {fileID: 0}
+  introSubtitle: A SILLY GUY
+  introPortrait: {fileID: 0}
+  introDuration: 5
   gizmoColor: {r: 1, g: 0, b: 1, a: 1}

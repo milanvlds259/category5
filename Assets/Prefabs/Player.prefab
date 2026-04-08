@@ -346,7 +346,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 1432883955
+  GlobalObjectIdHash: 2528484781
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -489,14 +489,10 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   comboResetTime: 1
-  attack1Duration: 0.3
-  attack2Duration: 0.4
-  attack3Duration: 0.6
   arrowData: {fileID: 11400000, guid: ec4e19a6215de594291cf4b54dd2dbfb, type: 2}
   projectileSpawnPoint: {fileID: 3966561765945640776}
   rangedAttackCooldown: 0.5
   enableTargetLeading: 1
-  meleeInputBufferTime: 0.25
   minAttackAnimationSpeed: 0.85
   maxAttackAnimationSpeed: 1.75
 --- !u!114 &4296747668078663274
@@ -619,8 +615,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.PlayerClassManager
   ShowTopMostFoldoutHeaderGroup: 1
-  SelectedClass:
-    m_InternalValue: 1
+  SelectedClassId:
+    m_InternalValue: -1
 --- !u!114 &646622970475066457
 MonoBehaviour:
   m_ObjectHideFlags: 0

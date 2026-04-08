@@ -114,6 +114,8 @@ namespace Category5.Boss
         [SerializeField] protected BossAttackType defaultAttackType = BossAttackType.Slam;
 
         protected NetworkVariable<BossState> currentState = new NetworkVariable<BossState>(BossState.Idle);
+        // public read-only access for bossvisuals (and other external systems) to subscribe to state changes
+        public NetworkVariable<BossState> CurrentBossState => currentState;
         protected float stateTimer;
         
         // current attack type for vfx hooks
@@ -126,6 +128,10 @@ namespace Category5.Boss
         // flag to prevent multiple death triggers
         private bool _isDead = false;
         private bool _isHidden = false;
+
+        // server-side countdown that keeps the boss frozen while the intro card plays
+        private float _introDormancyTimer = 0f;
+        protected BossVisuals _bossVisuals;
 
         public override void OnNetworkSpawn()
         {
@@ -143,6 +149,10 @@ namespace Category5.Boss
                 // cache initial spawn position for killbox recovery
                 _initialSpawnPosition = transform.position;
                 _initialSpawnRotation = transform.rotation;
+
+                // freeze boss ai and trigger the intro card on all clients
+                _introDormancyTimer = bossData != null ? bossData.introDuration : 0f;
+                TriggerBossIntroClientRpc();
             }
             
             // configure rigidbody: kinematic so we control movement manually
@@ -169,6 +179,10 @@ namespace Category5.Boss
 
             // initialize minimap trackable for radar display (boss icon is larger and orange)
             InitializeMinimapTrackable();
+
+            // cache and initialize the visuals component for animation/hit flash (runs on all clients)
+            _bossVisuals = GetComponent<BossVisuals>();
+            _bossVisuals?.Initialize(this);
         }
 
         // copies stats from bossData SO into runtime fields — subclasses can override to pull extra data
@@ -241,6 +255,13 @@ namespace Category5.Boss
 
         private void HandleStateMachine()
         {
+            // boss stays frozen while the intro card is playing
+            if (_introDormancyTimer > 0f)
+            {
+                _introDormancyTimer -= Time.deltaTime;
+                return;
+            }
+
             stateTimer -= Time.deltaTime;
 
             if (stateTimer <= 0)
@@ -598,6 +619,14 @@ namespace Category5.Boss
         }
 
         [ClientRpc]
+        private void TriggerBossIntroClientRpc()
+        {
+            // bossData is a serialized field on the prefab — already present on all clients, no network data needed
+            // pass boss world position so the camera can rotate to face it
+            Category5.Audio.BossEvents.InvokeIntro(bossData, transform.position);
+        }
+
+        [ClientRpc]
         private void HideBossClientRpc()
         {
             // hide boss without deactivating the network object
@@ -645,6 +674,8 @@ namespace Category5.Boss
             // sync boss health bar visibility with boss visibility
             if (hidden)
                 Category5.UI.UIManager.Instance?.HideBossHealthBar();
+            else
+                _bossVisuals?.PlaySpawnAnimation();
         }
         
         // called by PowerUpManager to reset boss for new round with scaled hp
@@ -681,6 +712,10 @@ namespace Category5.Boss
             // show boss again and notify clients about the reset
             ShowBossClientRpc();
             ResetBossClientRpc(newMaxHealth);
+
+            // freeze boss ai and trigger the intro card on all clients
+            _introDormancyTimer = bossData != null ? bossData.introDuration : 0f;
+            TriggerBossIntroClientRpc();
             
             // fire audio event for boss spawn on all clients (use spawn position)
             NotifyBossSpawnClientRpc(spawnPosition);
@@ -769,6 +804,7 @@ namespace Category5.Boss
         private void NotifyBossDeathClientRpc(Vector3 position)
         {
             BossEvents.InvokeDeath(position);
+            _bossVisuals?.TriggerDeathAnimation();
         }
         
         [ClientRpc]
@@ -781,6 +817,7 @@ namespace Category5.Boss
         private void NotifyBossHurtClientRpc(Vector3 position, int damage)
         {
             BossEvents.InvokeHurt(position, damage);
+            _bossVisuals?.TriggerHurtAnimation();
         }
 
         protected virtual void OnDrawGizmosSelected()

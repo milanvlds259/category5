@@ -42,7 +42,7 @@ namespace Category5.UI
             if (nameText != null)
             {
                 nameText.text = isUpgrade
-                    ? $"{item.ItemName} (T{currentTier}→T{nextTier})"
+                    ? $"{item.ItemName} (T{nextTier})"
                     : item.ItemName;
             }
 

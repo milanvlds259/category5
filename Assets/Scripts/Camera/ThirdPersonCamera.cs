@@ -3,6 +3,9 @@ using UnityEngine.InputSystem;
 using Unity.Netcode;
 using Category5.Player;
 using Category5.Player.WindRiding;
+using Category5.Audio;
+using Category5.Boss;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace Category5
@@ -38,6 +41,16 @@ namespace Category5
         [SerializeField] private float ridingDistanceBonus = 2f; // extra camera distance during riding
         [SerializeField] private float ridingTransitionSpeed = 4f; // how fast camera blends into riding mode
 
+        [Header("Boss Intro")]
+        [Tooltip("smooth time for the camera yaw to reach the boss — lower = snappier, higher = more cinematic drift")]
+        [SerializeField] private float introRotateSmoothTime = 0.5f;
+        [Tooltip("transform placed in the scene where the camera will move during the boss intro — leave unassigned to skip position override")]
+        [SerializeField] private Transform cinematicCameraPoint;
+        [Tooltip("how long the camera takes to blend from orbit position to the cinematic point")]
+        [SerializeField] private float cinemaBlendInDuration = 0.8f;
+        [Tooltip("how long the camera takes to blend back to the player before the intro ends")]
+        [SerializeField] private float cinemaBlendOutDuration = 0.8f;
+
         private float _rotationX;
         private float _rotationY;
         private InputSystem_Actions _inputActions;
@@ -66,6 +79,15 @@ namespace Category5
         private float _ridingYawOffset; // player orbit offset from tangent
         private float _ridingDistanceLerp; // 0-1 blend for bonus distance
 
+        // active intro rotate coroutine
+        private Coroutine _introRotateCoroutine;
+
+        // cinematic position state — blend between orbit and a fixed cinematic point during the boss intro
+        private float _cinematicBlend = 0f;
+        private Vector3 _cinematicBossPosition;
+        private bool _hasCinematicTarget = false;
+        private Coroutine _cinematicMoveCoroutine;
+
         private void Awake()
         {
             _inputActions = new InputSystem_Actions();
@@ -80,12 +102,14 @@ namespace Category5
         {
             _inputActions.Player.Enable();
             _inputActions.Player.Jump.performed += OnCycleSpectateTarget;
+            BossEvents.OnBossIntro += OnBossIntroStarted;
         }
 
         private void OnDisable()
         {
             _inputActions.Player.Jump.performed -= OnCycleSpectateTarget;
             _inputActions.Player.Disable();
+            BossEvents.OnBossIntro -= OnBossIntroStarted;
         }
 
         private void LateUpdate()
@@ -110,8 +134,8 @@ namespace Category5
                 UpdateSpectateTargets();
             }
             
-            // don't process camera input if game is paused, in power-up selection, or game over
-            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || IsGameOver())
+            // don't process camera input if game is paused, in power-up selection, game over, or boss intro
+            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || IsGameOver() || Category5.UI.BossIntroUI.IntroIsPlaying)
             {
                 // still update camera position to follow target, but don't read input
                 HandleCameraPosition();
@@ -302,10 +326,123 @@ namespace Category5
             // apply screen shake offset
             desiredPosition += _shakeOffset;
 
+            // blend toward cinematic point if active
+            if (_hasCinematicTarget && cinematicCameraPoint != null && _cinematicBlend > 0f)
+            {
+                // lerp position toward the fixed cinematic point
+                desiredPosition = Vector3.Lerp(desiredPosition, cinematicCameraPoint.position, _cinematicBlend);
+
+                // also blend rotation to look directly at the boss from wherever the camera ends up
+                Vector3 lookDir = _cinematicBossPosition - desiredPosition;
+                if (lookDir.sqrMagnitude > 0.001f)
+                {
+                    Quaternion cinemaRot = Quaternion.LookRotation(lookDir);
+                    rotation = Quaternion.Slerp(rotation, cinemaRot, _cinematicBlend);
+                }
+            }
+
             transform.rotation = rotation;
             transform.position = desiredPosition;
         }
         
+        // =====================================
+        // boss intro camera rotation
+        // =====================================
+
+        private void OnBossIntroStarted(BossData data, Vector3 bossPosition)
+        {
+            if (target == null) return;
+
+            if (_introRotateCoroutine != null)
+                StopCoroutine(_introRotateCoroutine);
+
+            _introRotateCoroutine = StartCoroutine(RotateToBossCoroutine(bossPosition));
+
+            // start cinematic position move only if a cinematic point has been assigned
+            if (cinematicCameraPoint != null)
+            {
+                if (_cinematicMoveCoroutine != null)
+                    StopCoroutine(_cinematicMoveCoroutine);
+
+                _cinematicBossPosition = bossPosition;
+                _hasCinematicTarget = true;
+                float introDuration = data != null ? data.introDuration : 4f;
+                _cinematicMoveCoroutine = StartCoroutine(CinematicMoveCoroutine(introDuration));
+            }
+        }
+
+        // moves the camera to the cinematic point then eases it back before the intro ends
+        // blend-out starts early enough to finish exactly when introDuration expires
+        private IEnumerator CinematicMoveCoroutine(float introDuration)
+        {
+            // blend in: orbit -> cinematic point
+            float t = 0f;
+            while (t < cinemaBlendInDuration)
+            {
+                t += Time.deltaTime;
+                _cinematicBlend = Mathf.Clamp01(t / cinemaBlendInDuration);
+                yield return null;
+            }
+            _cinematicBlend = 1f;
+
+            // hold: sit at cinematic point until it's time to return
+            float holdDuration = introDuration - cinemaBlendInDuration - cinemaBlendOutDuration;
+            if (holdDuration > 0f)
+                yield return new WaitForSeconds(holdDuration);
+
+            // blend out: cinematic point -> back to orbit
+            t = 0f;
+            while (t < cinemaBlendOutDuration)
+            {
+                t += Time.deltaTime;
+                _cinematicBlend = 1f - Mathf.Clamp01(t / cinemaBlendOutDuration);
+                yield return null;
+            }
+
+            _cinematicBlend = 0f;
+            _hasCinematicTarget = false;
+            _cinematicMoveCoroutine = null;
+        }
+
+        // smoothly rotates camera toward the boss using SmoothDampAngle
+        // captures the target yaw+pitch once at start so it doesn't chase a moving value
+        // runs until converged - not gated on IntroIsPlaying to avoid the race where the flag isn't set yet
+        private IEnumerator RotateToBossCoroutine(Vector3 bossPosition)
+        {
+            if (target == null) yield break;
+
+            // direction from the camera pivot (what the camera orbits around) toward the boss
+            Vector3 pivot = target.position + offset;
+            Vector3 dirToBoss = bossPosition - pivot;
+
+            if (dirToBoss.sqrMagnitude < 0.001f) yield break;
+
+            // derive both yaw and pitch from a full look rotation toward the boss
+            Quaternion lookRot = Quaternion.LookRotation(dirToBoss);
+            float targetYaw = lookRot.eulerAngles.y;
+
+            // eulerAngles returns 0-360, convert pitch to -180..180 so it matches _rotationY's range
+            float rawPitch = lookRot.eulerAngles.x;
+            if (rawPitch > 180f) rawPitch -= 360f;
+            float targetPitch = Mathf.Clamp(rawPitch, minVerticalAngle, maxVerticalAngle);
+
+            float yawVelocity = 0f;
+            float pitchVelocity = 0f;
+
+            // run until both angles have converged
+            while (Mathf.Abs(Mathf.DeltaAngle(_rotationX, targetYaw)) > 0.1f ||
+                   Mathf.Abs(_rotationY - targetPitch) > 0.1f)
+            {
+                _rotationX = Mathf.SmoothDampAngle(_rotationX, targetYaw, ref yawVelocity, introRotateSmoothTime);
+                _rotationY = Mathf.SmoothDamp(_rotationY, targetPitch, ref pitchVelocity, introRotateSmoothTime);
+                yield return null;
+            }
+
+            _rotationX = targetYaw;
+            _rotationY = targetPitch;
+            _introRotateCoroutine = null;
+        }
+
         // =====================================
         // screen shake system
         // =====================================

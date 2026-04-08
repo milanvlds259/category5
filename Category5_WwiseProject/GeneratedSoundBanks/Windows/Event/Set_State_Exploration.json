@@ -1,0 +1,64 @@
+{
+ "SoundBanksInfo": {
+  "Platform": "Windows",
+  "BasePlatform": "Windows",
+  "SchemaVersion": "16",
+  "SoundBankVersion": "172",
+  "SoundBanks": [
+   {
+    "Id": "210209267",
+    "Type": "Event",
+    "GUID": "{74809A26-B78F-4575-ABCC-D79B68A95780}",
+    "Language": "SFX",
+    "Hash": "{B6B9E088-7423-7D12-2817-8ADBA1E688F9}",
+    "ObjectPath": "Set_State_Exploration",
+    "ShortName": "Set_State_Exploration",
+    "Path": "Event/Set_State_Exploration.bnk",
+    "Events": [
+     {
+      "Id": "210209267",
+      "Name": "Set_State_Exploration",
+      "ObjectPath": "\\Events\\Default Work Unit\\Set_State_Exploration",
+      "GUID": "{74809A26-B78F-4575-ABCC-D79B68A95780}",
+      "MaxAttenuation": "0",
+      "DurationType": "OneShot",
+      "DurationMin": "0",
+      "DurationMax": "0",
+      "ActionSetState": [
+       {
+        "GroupId": "2434766612",
+        "Id": "2582085496",
+        "Name": "Exploration",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Exploration",
+        "GUID": "{3BE0BFB7-59E1-445C-B827-F7A1359DA998}"
+       }
+      ]
+     }
+    ],
+    "StateGroups": [
+     {
+      "Id": "2434766612",
+      "Name": "Music_State_Group",
+      "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group",
+      "GUID": "{1BB4D99D-9E92-42A4-9EA9-6A25910CFDA0}",
+      "States": [
+       {
+        "Id": "2582085496",
+        "Name": "Exploration",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Exploration",
+        "GUID": "{3BE0BFB7-59E1-445C-B827-F7A1359DA998}"
+       },
+       {
+        "Id": "3705726509",
+        "Name": "Title",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Title",
+        "GUID": "{B4133D09-DC09-468A-892B-0807D3C7190E}"
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "FileHash": "{ECBBDE5F-9C84-825E-9ED0-6226DF3042F8}"
+ }
+}
