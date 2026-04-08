@@ -20,41 +20,34 @@
 									<ChildrenList>
 										<MusicTransition Name="Transition" ID="{9054C750-8A1F-4B8F-AB9D-2D3D6AAC1011}">
 											<PropertyList>
+												<Property Name="EnableDestinationFadeIn" Type="bool" Value="True"/>
 												<Property Name="EnableSourceFadeOut" Type="bool" Value="True"/>
-												<Property Name="ExitSourceAt" Type="int16" Value="3"/>
+												<Property Name="ExitSourceAt" Type="int16" Value="0"/>
 											</PropertyList>
-											<TransitionInfo/>
+											<TransitionInfo>
+												<SourceFadeOut>
+													<MusicFade Name="Source Fade-out" ID="{07A35753-2DEB-43E9-94AF-63C9C5B12AB6}">
+														<PropertyList>
+															<Property Name="FadeTime" Type="Real64" Value="1"/>
+															<Property Name="FadeType" Type="int16" Value="1"/>
+														</PropertyList>
+													</MusicFade>
+												</SourceFadeOut>
+												<DestinationFadeIn>
+													<MusicFade Name="Destination Fade-in" ID="{0CB657BD-EE4A-4FC8-B0D8-CA0D39D2EE13}">
+														<PropertyList>
+															<Property Name="FadeOffset" Type="Real64" Value="-1"/>
+															<Property Name="FadeTime" Type="Real64" Value="1"/>
+														</PropertyList>
+													</MusicFade>
+												</DestinationFadeIn>
+											</TransitionInfo>
 										</MusicTransition>
-										<MusicTransition Name="Transition" ID="{D6C39F90-2787-483C-B02E-A1FDB4FD8FBC}">
+										<MusicTransition Name="Transition" ID="{6FA24F15-CDD1-4B44-82B8-A53584ACDD3F}">
 											<PropertyList>
-												<Property Name="DestinationContextType" Type="int16" Value="2"/>
-												<Property Name="ExitSourceAt" Type="int16" Value="2"/>
-												<Property Name="SourceContextType" Type="int16" Value="2"/>
+												<Property Name="SourceContextType" Type="int16" Value="1"/>
 											</PropertyList>
-											<ReferenceList>
-												<Reference Name="DestinationContextObject">
-													<ObjectRef Name="Category5ThemeTest" ID="{414B5324-F8D6-4615-98A7-4D57460E219B}" WorkUnitID="{95EAF7C1-CD6D-40DE-8286-63580F246788}"/>
-												</Reference>
-												<Reference Name="SourceContextObject">
-													<ObjectRef Name="Cat5_Exploration_Sketch4" ID="{E8CFD736-5EF4-4612-93E0-BE69C5491C24}" WorkUnitID="{95EAF7C1-CD6D-40DE-8286-63580F246788}"/>
-												</Reference>
-											</ReferenceList>
-											<TransitionInfo/>
-										</MusicTransition>
-										<MusicTransition Name="Transition" ID="{7A8707DF-F94A-4CEB-B49A-6AEF00A2140E}">
-											<PropertyList>
-												<Property Name="DestinationContextType" Type="int16" Value="2"/>
-												<Property Name="ExitSourceAt" Type="int16" Value="2"/>
-												<Property Name="SourceContextType" Type="int16" Value="2"/>
-											</PropertyList>
-											<ReferenceList>
-												<Reference Name="DestinationContextObject">
-													<ObjectRef Name="Cat5_Exploration_Sketch4" ID="{E8CFD736-5EF4-4612-93E0-BE69C5491C24}" WorkUnitID="{95EAF7C1-CD6D-40DE-8286-63580F246788}"/>
-												</Reference>
-												<Reference Name="SourceContextObject">
-													<ObjectRef Name="Category5ThemeTest" ID="{414B5324-F8D6-4615-98A7-4D57460E219B}" WorkUnitID="{95EAF7C1-CD6D-40DE-8286-63580F246788}"/>
-												</Reference>
-											</ReferenceList>
+											<ReferenceList/>
 											<TransitionInfo/>
 										</MusicTransition>
 									</ChildrenList>
@@ -214,12 +207,28 @@
 						</StateGroupList>
 						<CustomStateList>
 							<CustomState>
+								<StateRef Name="Lose" ID="{1A2E5C6D-B6BA-435E-9CCB-BBB6B54EAA0E}"/>
+								<CustomState Name="" ID="{4347CEE2-9828-49E7-9515-418113891372}" ShortID="146101704"/>
+							</CustomState>
+							<CustomState>
+								<StateRef Name="Win" ID="{3F3909B5-8854-4372-AFA7-479BDBA2720E}"/>
+								<CustomState Name="" ID="{37E474A0-242E-400F-BFDF-A9012C41422B}" ShortID="490120442"/>
+							</CustomState>
+							<CustomState>
 								<StateRef Name="Exploration" ID="{3BE0BFB7-59E1-445C-B827-F7A1359DA998}"/>
 								<CustomState Name="" ID="{F9C81F7D-388F-4FF3-A8B1-4E3598144AD1}" ShortID="306038760"/>
 							</CustomState>
 							<CustomState>
 								<StateRef Name="Title" ID="{B4133D09-DC09-468A-892B-0807D3C7190E}"/>
 								<CustomState Name="" ID="{2CB4BFC9-3D69-4457-82B9-7B4CC55AF3C9}" ShortID="1006976567"/>
+							</CustomState>
+							<CustomState>
+								<StateRef Name="Combat" ID="{2385623C-0EC5-4EB3-815D-A245E746B557}"/>
+								<CustomState Name="" ID="{C08BEEEF-3820-49E3-A81D-EB656A5E44CB}" ShortID="541417103"/>
+							</CustomState>
+							<CustomState>
+								<StateRef Name="None" ID="{6A4C60EB-620C-4F34-9AA3-59EFA77BB652}"/>
+								<CustomState Name="" ID="{40ACEC8A-2AF8-48C1-967A-CDAF64CBAE0E}" ShortID="910334161"/>
 							</CustomState>
 						</CustomStateList>
 					</StateInfo>
