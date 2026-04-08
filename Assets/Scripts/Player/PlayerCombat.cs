@@ -36,9 +36,6 @@ namespace Category5.Player
 
         [Header("Melee Combo Settings")]
         [SerializeField] private float comboResetTime = 1f;
-        [SerializeField] private float attack1Duration = 0.3f;
-        [SerializeField] private float attack2Duration = 0.4f;
-        [SerializeField] private float attack3Duration = 0.6f;
         
         [Header("Ranged Combat Settings")]
         [Tooltip("projectile data defining arrow properties")]
@@ -88,21 +85,28 @@ namespace Category5.Player
 
         // animator params for basic attack animation
         private static readonly int _animAttackTriggerHash = Animator.StringToHash("Attack");
+        private static readonly int _animAttack2TriggerHash = Animator.StringToHash("Attack2");
+        private static readonly int _animAttack3TriggerHash = Animator.StringToHash("Attack3");
         private static readonly int _animAttackAnimSpeedHash = Animator.StringToHash("AttackAnimSpeed");
         private static readonly int _animIsAirborneAttackHash = Animator.StringToHash("IsAirborneAttack");
         private RuntimeAnimatorController _cachedAnimatorController;
         private bool _animParamsCached;
         private bool _hasAnimAttackTrigger;
+        private bool _hasAnimAttack2Trigger;
+        private bool _hasAnimAttack3Trigger;
         private bool _hasAnimAttackAnimSpeed;
         private bool _hasAnimIsAirborneAttack;
 
-        // buffered melee chain input
-        private bool _hasBufferedMeleeAttackInput;
-        private float _bufferedMeleeInputExpireTime;
-        private bool _meleeChainWindowOpen;
+        // animator state hashes for melee attack detection (layer 0 state names)
+        private static readonly int _stateAttack1Hash = Animator.StringToHash("Attack1");
+        private static readonly int _stateAttack2Hash = Animator.StringToHash("Attack2");
+        private static readonly int _stateAttack3Hash = Animator.StringToHash("Attack3");
+        private static readonly int _stateAttackHash = Animator.StringToHash("Attack"); // fallback for single-attack-state controllers
 
-        [Header("Attack Buffer")]
-        [SerializeField] private float meleeInputBufferTime = 0.25f;
+        // combo state tracking — driven by animator state polling, not animation events
+        private bool _meleeComboQueued;      // player pressed attack while animating, fires on attack state exit
+        private bool _meleeChainWindowOpen;  // true after attack impact, until the attack state exits
+        private bool _wasInMeleeAttackState; // last frame's attack state, used to detect the exit transition
 
         [Header("Attack Animation Speed")]
         [SerializeField] private float minAttackAnimationSpeed = 0.85f;
@@ -144,18 +148,32 @@ namespace Category5.Player
             heavyAttackCoefficient = heavy;
             // Debug.Log($"PlayerCombat: melee coefficients set to light={light:F2}, heavy={heavy:F2}");
         }
+
+        // set combo reset timing from class data
+        public void SetComboResetTime(float resetTime)
+        {
+            comboResetTime = resetTime;
+        }
         
         // clears all in-flight attack state — safe to call from death, respawn, disable, or any hard interrupt
         public void ResetCombatState()
         {
             bool wasCharging = _isCharging;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (_isAttacking || _isCharging || _meleeComboQueued || _meleeChainWindowOpen || _hasPendingMeleeHit || _hasPendingRangedRelease)
+            {
+                Debug.Log($"[COMBAT] reset combat state — isAttacking={_isAttacking} isCharging={_isCharging} queued={_meleeComboQueued} chainOpen={_meleeChainWindowOpen} pendingMelee={_hasPendingMeleeHit} pendingRanged={_hasPendingRangedRelease} comboCounter={_comboCounter}");
+            }
+#endif
+
             _isAttacking = false;
             _isCharging = false;
             _hasPendingMeleeHit = false;
             _hasPendingRangedRelease = false;
-            _hasBufferedMeleeAttackInput = false;
+            _meleeComboQueued = false;
             _meleeChainWindowOpen = false;
+            _wasInMeleeAttackState = false;
             _meleeAttackGeneration++; // invalidates any in-flight timeout coroutine
 
             // clear airborne attack flag so it doesn't linger on the animator
@@ -270,12 +288,21 @@ namespace Category5.Player
         {
             if (!IsOwner) return;
 
-            // reset combo if too much time has passed
+            // reset combo if too much time has passed since last attack
             float attackSpeedMult = _playerStats != null ? _playerStats.GetEffectiveAttackSpeedMultiplier() : 1f;
             float effectiveComboReset = comboResetTime / Mathf.Max(0.01f, attackSpeedMult);
-            if (Time.time > _lastAttackTime + effectiveComboReset && _comboCounter > 0)
+            if (!_isAttacking && Time.time > _lastAttackTime + effectiveComboReset && _comboCounter > 0)
             {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.Log($"[COMBO] combo reset by timeout — comboCounter={_comboCounter} lastAttackTime={_lastAttackTime:F3} now={Time.time:F3} resetWindow={effectiveComboReset:F3} attacking={_isAttacking}");
+#endif
                 _comboCounter = 0;
+            }
+
+            // poll the animator to detect when a melee attack state ends and fire any queued combo input
+            if (combatClass == CombatClass.Melee && _isAttacking)
+            {
+                UpdateMeleeComboState();
             }
             
             // update charge progress event for ui/vfx
@@ -313,6 +340,10 @@ namespace Category5.Player
         {
             // ranged uses started/canceled for charging, so skip performed
             if (combatClass == CombatClass.Ranged) return;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.Log($"[COMBO] attack input performed — canAttack={CanAttack()} isAttacking={_isAttacking} chainOpen={_meleeChainWindowOpen} queued={_meleeComboQueued} comboCounter={_comboCounter}");
+#endif
             
             if (CanAttack())
             {
@@ -321,11 +352,16 @@ namespace Category5.Player
                 return;
             }
 
-            // if cooldown is still running while animation is in chain window, buffer input
-            if (CanBufferMeleeAttackInput())
+            // queue next combo hit while in an attack animation
+            // UpdateMeleeComboState() in Update picks it up as soon as the current attack state ends
+            if (_isAttacking && !Category5.UI.PauseMenu.GameIsPaused &&
+                (_playerController == null || !_playerController.IsDead.Value))
             {
-                _hasBufferedMeleeAttackInput = true;
-                _bufferedMeleeInputExpireTime = Time.time + meleeInputBufferTime;
+                _meleeComboQueued = true;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.Log($"[COMBO] input buffered — comboCounter={_comboCounter} chainOpen={_meleeChainWindowOpen} isAttacking={_isAttacking}");
+#endif
             }
         }
         
@@ -348,27 +384,6 @@ namespace Category5.Player
             // prevent attack input during wind riding
             if (_playerController != null && _playerController.IsWindRiding) return false;
             
-            return true;
-        }
-
-        // strict checks for whether input buffering is allowed
-        private bool CanBufferMeleeAttackInput()
-        {
-            if (combatClass != CombatClass.Melee) return false;
-            if (!_meleeChainWindowOpen) return false;
-            if (Category5.UI.PauseMenu.GameIsPaused) return false;
-
-            if (Category5.Core.GameFlowManager.Instance != null &&
-                Category5.Core.GameFlowManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection)
-            {
-                return false;
-            }
-
-            // prevent buffering during boss intro
-            if (Category5.UI.BossIntroUI.IntroIsPlaying) return false;
-
-            if (_playerController != null && _playerController.IsDead.Value) return false;
-
             return true;
         }
 
@@ -434,29 +449,30 @@ namespace Category5.Player
             _isAttacking = true;
             _lastAttackTime = Time.time;
             _comboCounter++;
-            _meleeChainWindowOpen = false;
+            _meleeComboQueued = false; // clear any stale queue so each new attack starts fresh
             
             // fire audio event for attack swing
             PlayerEvents.InvokeAttackSwing(transform.position);
 
-            // determine damage coefficient and duration based on combo step
-            float coefficient = lightAttackCoefficient;
-            float duration = attack1Duration;
+            // capture combo step before potential reset (needed for animation trigger selection)
+            int comboStep = _comboCounter;
 
-            if (_comboCounter == 2) duration = attack2Duration;
+            // determine damage coefficient based on combo step
+            float coefficient = lightAttackCoefficient;
+
             if (_comboCounter >= 3)
             {
                 coefficient = heavyAttackCoefficient;
-                duration = attack3Duration;
-                // Reset combo after 3rd hit
+                // reset combo after 3rd hit
                 _comboCounter = 0; 
             }
 
-            float attackSpeedMultiplier = _playerStats != null ? _playerStats.GetEffectiveAttackSpeedMultiplier() : 1f;
-            duration /= Mathf.Max(0.01f, attackSpeedMultiplier);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.Log($"[COMBO] perform melee attack — comboStep={comboStep} comboCounterAfterReset={_comboCounter} coef={coefficient:F2} chainOpen={_meleeChainWindowOpen} queued={_meleeComboQueued} gen={_meleeAttackGeneration}");
+#endif
 
-            // play a single basic attack animation for this attack
-            PlayBasicAttackAnimation(duration);
+            // play attack animation for the correct combo step
+            PlayBasicAttackAnimation(comboStep);
 
             // visuals (Placeholder)
             // Debug.Log($"Player Melee Attack! Combo: {_comboCounter-1} | Damage: {damage}");
@@ -464,9 +480,9 @@ namespace Category5.Player
             _hasPendingMeleeHit = true;
             _pendingMeleeCoefficient = coefficient;
 
-            // start a safety timeout in case animator events never fire (like interrupted by death, ability, dodge)
+            // safety timeout — only fires if animator events and state polling both fail (death interrupts, etc.)
             int generation = _meleeAttackGeneration;
-            StartCoroutine(MeleeAttackTimeout(duration + 0.5f, generation));
+            StartCoroutine(MeleeAttackTimeout(5f, generation));
         }
         
         // performs a charged ranged attack with the given charge percentage
@@ -485,8 +501,7 @@ namespace Category5.Player
             float attackSpeedMultiplier = _playerStats != null ? _playerStats.GetEffectiveAttackSpeedMultiplier() : 1f;
             float effectiveCooldown = (rangedAttackCooldown * _rangerQAttackSpeedMult) / Mathf.Max(0.01f, attackSpeedMultiplier);
 
-            // play a single basic attack animation for this shot
-            PlayBasicAttackAnimation(effectiveCooldown);
+            PlayBasicAttackAnimation();
 
             _hasPendingRangedRelease = true;
             _pendingRangedChargePercent = chargePercent;
@@ -519,6 +534,10 @@ namespace Category5.Player
             {
                 RequestMeleeAttackServerRpc(_pendingMeleeCoefficient, transform.position, transform.forward);
                 _hasPendingMeleeHit = false;
+                _meleeChainWindowOpen = true;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.Log($"[COMBO] attack impact — melee hit sent, chain window open, comboCounter={_comboCounter}");
+#endif
                 return;
             }
 
@@ -526,6 +545,9 @@ namespace Category5.Player
             {
                 ExecuteRangedAttack(_pendingRangedChargePercent);
                 _hasPendingRangedRelease = false;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.Log($"[COMBO] attack impact — ranged release executed, charge={_pendingRangedChargePercent:P0}");
+#endif
                 return;
             }
         }
@@ -549,6 +571,8 @@ namespace Category5.Player
             _cachedAnimatorController = controller;
             _animParamsCached = true;
             _hasAnimAttackTrigger = false;
+            _hasAnimAttack2Trigger = false;
+            _hasAnimAttack3Trigger = false;
             _hasAnimAttackAnimSpeed = false;
             _hasAnimIsAirborneAttack = false;
 
@@ -567,6 +591,16 @@ namespace Category5.Player
                     _hasAnimAttackTrigger = true;
                 }
 
+                if (parameter.nameHash == _animAttack2TriggerHash)
+                {
+                    _hasAnimAttack2Trigger = true;
+                }
+
+                if (parameter.nameHash == _animAttack3TriggerHash)
+                {
+                    _hasAnimAttack3Trigger = true;
+                }
+
                 if (parameter.nameHash == _animAttackAnimSpeedHash)
                 {
                     _hasAnimAttackAnimSpeed = true;
@@ -577,10 +611,14 @@ namespace Category5.Player
                     _hasAnimIsAirborneAttack = true;
                 }
             }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.Log($"[COMBO] animator param cache built — Attack={_hasAnimAttackTrigger} Attack2={_hasAnimAttack2Trigger} Attack3={_hasAnimAttack3Trigger} AttackAnimSpeed={_hasAnimAttackAnimSpeed} Airborne={_hasAnimIsAirborneAttack}");
+#endif
         }
 
-        // plays one basic attack animation per attack input
-        private void PlayBasicAttackAnimation(float attackDuration)
+        // plays one basic attack animation per attack input — fires step-specific trigger if available
+        private void PlayBasicAttackAnimation(int comboStep = 0)
         {
             var anim = GetModelAnimator();
             if (anim == null)
@@ -614,7 +652,30 @@ namespace Category5.Player
                     anim.SetBool(_animIsAirborneAttackHash, _playerController != null && !_playerController.IsGrounded);
                 }
 
-                _ownerNetworkAnimator.SetTrigger(_animAttackTriggerHash);
+                // fire step-specific trigger if available, else fall back to generic Attack
+                // step-specific triggers let the controller route directly to the right attack state
+                // regardless of which state the animator is currently in
+                if (comboStep >= 3 && _hasAnimAttack3Trigger)
+                {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    Debug.Log($"[COMBO] firing Attack3 trigger — step={comboStep}");
+#endif
+                    _ownerNetworkAnimator.SetTrigger(_animAttack3TriggerHash);
+                }
+                else if (comboStep >= 2 && _hasAnimAttack2Trigger)
+                {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    Debug.Log($"[COMBO] firing Attack2 trigger — step={comboStep}");
+#endif
+                    _ownerNetworkAnimator.SetTrigger(_animAttack2TriggerHash);
+                }
+                else
+                {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    Debug.Log($"[COMBO] firing Attack trigger — step={comboStep} hasAttack2={_hasAnimAttack2Trigger} hasAttack3={_hasAnimAttack3Trigger}");
+#endif
+                    _ownerNetworkAnimator.SetTrigger(_animAttackTriggerHash);
+                }
                 return;
             }
 
@@ -628,49 +689,69 @@ namespace Category5.Player
             return Mathf.Clamp(attackSpeedMultiplier, minAttackAnimationSpeed, maxAttackAnimationSpeed);
         }
 
-        // animation event hook opens a chain window for buffered attack input
-        public void OnAttackChainWindowOpenAnimationEvent()
+        // no longer used for flow control — combo timing is now driven by animator state polling
+        // kept as empty stubs so any existing animation events on clips don't throw missing method errors
+        public void OnAttackChainWindowOpenAnimationEvent() { }
+        public void OnAttackChainWindowCloseAnimationEvent() { }
+
+        // returns true if the animator's layer 0 is currently in (or transitioning into) a melee attack state
+        private bool IsInMeleeAttackState(Animator anim)
         {
-            if (!IsOwner) return;
-            _meleeChainWindowOpen = true;
+            var state = anim.GetCurrentAnimatorStateInfo(0);
+            if (state.shortNameHash == _stateAttack1Hash ||
+                state.shortNameHash == _stateAttack2Hash ||
+                state.shortNameHash == _stateAttack3Hash ||
+                state.shortNameHash == _stateAttackHash) return true;
+
+            // also check the incoming state during a transition so detection is seamless
+            if (anim.IsInTransition(0))
+            {
+                var next = anim.GetNextAnimatorStateInfo(0);
+                return next.shortNameHash == _stateAttack1Hash ||
+                       next.shortNameHash == _stateAttack2Hash ||
+                       next.shortNameHash == _stateAttack3Hash ||
+                       next.shortNameHash == _stateAttackHash;
+            }
+
+            return false;
         }
 
-        // animation event hook closes the chain window
-        public void OnAttackChainWindowCloseAnimationEvent()
+        // called from Update while _isAttacking is true
+        // detects the frame we leave an attack state and immediately fires any queued combo input
+        private void UpdateMeleeComboState()
         {
-            if (!IsOwner) return;
-            _meleeChainWindowOpen = false;
+            var anim = GetModelAnimator();
+            if (anim == null) return;
 
-            // attack recovery is animation-driven for melee so buffered followups only start once
-            // the current attack clip reaches its close event
-            _isAttacking = false;
+            bool isInAttackNow = IsInMeleeAttackState(anim);
 
-            // clear airborne flag once the attack animation finishes
-            if (_hasAnimIsAirborneAttack)
-            {
-                var anim = GetModelAnimator();
-                if (anim != null) anim.SetBool(_animIsAirborneAttackHash, false);
-            }
-
-            if (_hasPendingMeleeHit)
+            // just exited an attack state this frame
+            if (_wasInMeleeAttackState && !isInAttackNow)
             {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-                Debug.LogWarning("PlayerCombat: Melee attack finished without receiving AttackImpact. clearing pending hit without dealing damage.");
+                var currentState = anim.GetCurrentAnimatorStateInfo(0);
+                Debug.Log($"[COMBO] attack state exited — queued={_meleeComboQueued} chainOpen={_meleeChainWindowOpen} comboCounter={_comboCounter} newState={currentState.shortNameHash}");
 #endif
-                _hasPendingMeleeHit = false;
-            }
-
-            if (_hasBufferedMeleeAttackInput)
-            {
-                if (Time.time <= _bufferedMeleeInputExpireTime && CanAttack())
+                _isAttacking = false;
+                _meleeChainWindowOpen = false;
+                if (_meleeComboQueued && CanAttack())
                 {
-                    _hasBufferedMeleeAttackInput = false;
+                    _meleeComboQueued = false;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    Debug.Log($"[COMBO] firing queued combo — next step will be {_comboCounter + 1}");
+#endif
                     PerformMeleeAttack();
-                    return;
                 }
-
-                _hasBufferedMeleeAttackInput = false;
+                else
+                {
+                    _meleeComboQueued = false;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    Debug.Log($"[COMBO] combo finished or missed queue — comboCounter={_comboCounter}");
+#endif
+                }
             }
+
+            _wasInMeleeAttackState = isInAttackNow;
         }
         
         // fires a single arrow with the given charge

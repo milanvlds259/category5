@@ -125,6 +125,7 @@ namespace Category5.Player
             if (playerCombat != null)
             {
                 playerCombat.SetMeleeCoefficients(classData.lightAttackCoefficient, classData.heavyAttackCoefficient);
+                playerCombat.SetComboResetTime(classData.meleeComboResetTime);
             }
 
             // all instances need the correct combat class for stat-dependent gameplay,
