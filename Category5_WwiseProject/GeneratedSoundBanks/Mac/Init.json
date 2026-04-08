@@ -1,0 +1,80 @@
+{
+ "SoundBanksInfo": {
+  "Platform": "Mac",
+  "BasePlatform": "Mac",
+  "SchemaVersion": "16",
+  "SoundBankVersion": "172",
+  "SoundBanks": [
+   {
+    "Id": "1355168291",
+    "Type": "User",
+    "GUID": "{701ECBBD-9C7B-4030-8CDB-749EE5D1C7B9}",
+    "Language": "SFX",
+    "Hash": "{3D004273-D325-0C15-2C09-38E28DDDCAE3}",
+    "ObjectPath": "Init",
+    "ShortName": "Init",
+    "Path": "Init.bnk",
+    "Plugins": {
+     "AudioDevices": [
+      {
+       "Id": "2317455096",
+       "Name": "No_Output",
+       "ObjectPath": "\\Devices\\Default Work Unit\\No_Output",
+       "GUID": "{72A8E6DF-7DF4-48DF-A9FA-8A58A3DB23B5}",
+       "LibName": "No Output",
+       "LibId": "11862023"
+      },
+      {
+       "Id": "3859886410",
+       "Name": "System",
+       "ObjectPath": "\\Devices\\Default Work Unit\\System",
+       "GUID": "{C85CD9F8-C995-4C04-B0F9-32F8C2CA753A}",
+       "LibName": "System",
+       "LibId": "11403271"
+      }
+     ]
+    },
+    "Busses": [
+     {
+      "Id": "2246998526",
+      "Name": "Main Audio Bus",
+      "ObjectPath": "\\Busses\\Default Work Unit\\Main Audio Bus",
+      "GUID": "{1514A4D8-1DA6-412A-A17E-75CA0C2149F3}"
+     }
+    ],
+    "StateGroups": [
+     {
+      "Id": "2434766612",
+      "Name": "Music_State_Group",
+      "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group",
+      "GUID": "{1BB4D99D-9E92-42A4-9EA9-6A25910CFDA0}",
+      "States": [
+       {
+        "Id": "2582085496",
+        "Name": "Exploration",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Exploration",
+        "GUID": "{3BE0BFB7-59E1-445C-B827-F7A1359DA998}"
+       },
+       {
+        "Id": "3705726509",
+        "Name": "Title",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Title",
+        "GUID": "{B4133D09-DC09-468A-892B-0807D3C7190E}"
+       }
+      ]
+     }
+    ],
+    "SwitchGroups": [
+     {
+      "Id": "1715037033",
+      "Name": "Music_Switch_Group",
+      "ObjectPath": "\\Switches\\Default Work Unit\\Music_Switch_Group",
+      "GUID": "{AFA3064C-8252-4282-876E-09881767E3CA}",
+      "Switches": []
+     }
+    ]
+   }
+  ],
+  "FileHash": "{B0C46DBC-E6D1-7423-632A-6C601B1A9764}"
+ }
+}

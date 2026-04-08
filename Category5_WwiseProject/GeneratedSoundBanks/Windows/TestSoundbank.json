@@ -1,0 +1,141 @@
+{
+ "SoundBanksInfo": {
+  "Platform": "Windows",
+  "BasePlatform": "Windows",
+  "SchemaVersion": "16",
+  "SoundBankVersion": "172",
+  "SoundBanks": [
+   {
+    "Id": "1831431028",
+    "Type": "User",
+    "GUID": "{D897B1D5-1C05-44B0-A897-09BD6B10CCF1}",
+    "Language": "SFX",
+    "Hash": "{958CB745-E902-5D8F-B0DD-306E7BCCD189}",
+    "ObjectPath": "\\SoundBanks\\Default Work Unit\\TestSoundbank",
+    "ShortName": "TestSoundbank",
+    "Path": "TestSoundbank.bnk",
+    "Media": [
+     {
+      "Id": "217981217",
+      "Language": "SFX",
+      "Streaming": "false",
+      "Location": "Memory",
+      "ShortName": "Category5ThemeTest.wav",
+      "CachePath": "BC/{BCD99E04-E96B-4D2E-5224-FA43990CB4B6}.wem"
+     },
+     {
+      "Id": "628073416",
+      "Language": "SFX",
+      "Streaming": "false",
+      "Location": "Memory",
+      "ShortName": "Cat5_Exploration_Sketch4.wav",
+      "CachePath": "75/{75DA63F0-876C-022B-043D-48E87FCA39B1}.wem"
+     }
+    ],
+    "Events": [
+     {
+      "Id": "2029328970",
+      "Name": "Play_Category5ThemeTest",
+      "ObjectPath": "\\Events\\Default Work Unit\\Play_Category5ThemeTest",
+      "GUID": "{F43D082E-310F-4E1F-B0CF-FA1F4B74C110}",
+      "DurationType": "OneShot",
+      "DurationMin": "38.4",
+      "DurationMax": "38.4",
+      "MediaRefs": [
+       {
+        "Id": "217981217"
+       }
+      ]
+     },
+     {
+      "Id": "1228139402",
+      "Name": "Play_Music_Switch",
+      "ObjectPath": "\\Events\\Default Work Unit\\Play_Music_Switch",
+      "GUID": "{F44FE549-301C-4F65-8690-67F5F8176222}",
+      "DurationType": "Infinite",
+      "SwitchContainers": [
+       {
+        "SwitchValue": {
+         "GroupType": "Switch",
+         "GroupId": "1715037033",
+         "Id": "0",
+         "GUID": "{AFA3064C-8252-4282-876E-09881767E3CA}"
+        },
+        "Children": [
+         {
+          "SwitchValue": {
+           "GroupType": "State",
+           "GroupId": "2434766612",
+           "Id": "2582085496",
+           "GUID": "{3BE0BFB7-59E1-445C-B827-F7A1359DA998}"
+          },
+          "MediaRefs": [
+           {
+            "Id": "628073416"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "SwitchValue": {
+         "GroupType": "Switch",
+         "GroupId": "1715037033",
+         "Id": "0",
+         "GUID": "{AFA3064C-8252-4282-876E-09881767E3CA}"
+        },
+        "Children": [
+         {
+          "SwitchValue": {
+           "GroupType": "State",
+           "GroupId": "2434766612",
+           "Id": "3705726509",
+           "GUID": "{B4133D09-DC09-468A-892B-0807D3C7190E}"
+          },
+          "MediaRefs": [
+           {
+            "Id": "217981217"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "StateGroups": [
+     {
+      "Id": "2434766612",
+      "Name": "Music_State_Group",
+      "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group",
+      "GUID": "{1BB4D99D-9E92-42A4-9EA9-6A25910CFDA0}",
+      "States": [
+       {
+        "Id": "2582085496",
+        "Name": "Exploration",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Exploration",
+        "GUID": "{3BE0BFB7-59E1-445C-B827-F7A1359DA998}"
+       },
+       {
+        "Id": "3705726509",
+        "Name": "Title",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Title",
+        "GUID": "{B4133D09-DC09-468A-892B-0807D3C7190E}"
+       }
+      ]
+     }
+    ],
+    "SwitchGroups": [
+     {
+      "Id": "1715037033",
+      "Name": "Music_Switch_Group",
+      "ObjectPath": "\\Switches\\Default Work Unit\\Music_Switch_Group",
+      "GUID": "{AFA3064C-8252-4282-876E-09881767E3CA}",
+      "Switches": []
+     }
+    ]
+   }
+  ],
+  "FileHash": "{76FBBBE3-08F4-03F4-EF1C-4AC43CE8BC67}"
+ }
+}

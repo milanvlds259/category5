@@ -1,6 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <WwiseDocument Type="WorkUnit" ID="{50449369-4049-453F-AD45-FE4134D79463}" SchemaVersion="133">
 	<SoundBanks>
-		<WorkUnit Name="Default Work Unit" ID="{50449369-4049-453F-AD45-FE4134D79463}" PersistMode="Standalone"/>
+		<WorkUnit Name="Default Work Unit" ID="{50449369-4049-453F-AD45-FE4134D79463}" PersistMode="Standalone">
+			<ChildrenList>
+				<SoundBank Name="TestSoundbank" ID="{D897B1D5-1C05-44B0-A897-09BD6B10CCF1}">
+					<ObjectInclusionList>
+						<ObjectRef Name="Cat5_Exploration_Sketch4" ID="{E8CFD736-5EF4-4612-93E0-BE69C5491C24}" WorkUnitID="{95EAF7C1-CD6D-40DE-8286-63580F246788}" Origin="Manual" Filter="7"/>
+						<ObjectRef Name="Category5ThemeTest" ID="{414B5324-F8D6-4615-98A7-4D57460E219B}" WorkUnitID="{95EAF7C1-CD6D-40DE-8286-63580F246788}" Origin="Manual" Filter="7"/>
+						<ObjectRef Name="Music Switch" ID="{267CE563-AFC0-4A07-B005-2EE6CE359947}" WorkUnitID="{95EAF7C1-CD6D-40DE-8286-63580F246788}" Origin="Manual" Filter="7"/>
+						<ObjectRef Name="Play_Category5ThemeTest" ID="{F43D082E-310F-4E1F-B0CF-FA1F4B74C110}" WorkUnitID="{161DA069-A437-4DE8-AE3D-25E98CEB8BC9}" Origin="Manual" Filter="7"/>
+						<ObjectRef Name="Play_Music_Switch" ID="{F44FE549-301C-4F65-8690-67F5F8176222}" WorkUnitID="{161DA069-A437-4DE8-AE3D-25E98CEB8BC9}" Origin="Manual" Filter="7"/>
+					</ObjectInclusionList>
+					<ObjectExclusionList/>
+					<GameSyncExclusionList/>
+				</SoundBank>
+			</ChildrenList>
+		</WorkUnit>
 	</SoundBanks>
 </WwiseDocument>
