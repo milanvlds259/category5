@@ -54,6 +54,8 @@ public class MapGenerator : NetworkBehaviour
 
     // Material for walls on storm eyes and wind tunnels
     [SerializeField] Material cloudWallMaterial;
+    // Material for entrances to wind tunnels
+    [SerializeField] Material entranceMaterial;
     [SerializeField] GameObject cloudwallPrefab;
     [SerializeField] GameObject cloudSpherePrefab;
 
@@ -154,7 +156,7 @@ public class MapGenerator : NetworkBehaviour
 
 
         // The main boss arena will always be created in the center of the map
-        Arena bossArena = CreateArena(Vector3.zero, mapParent.transform, "boss", 2f);
+        Arena bossArena = CreateArena(Vector3.zero, mapParent.transform, "boss", 1.5f);
 
         // Create arenas at random positions between the input Vector3s for storm eyes
         for (int i = 0; i < numberOfArenas; i++)
@@ -319,7 +321,7 @@ public class MapGenerator : NetworkBehaviour
             // Add cloud layer
             GameObject cloudLayer = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             DestroyImmediate(cloudLayer.GetComponent<CapsuleCollider>()); // Remove the cloud layer's collider
-            cloudLayer.transform.position = new Vector3(arena.transform.position.x, arena.transform.position.y, arena.transform.position.z);
+            cloudLayer.transform.position = new Vector3(arena.transform.position.x, arena.transform.position.y - 1f, arena.transform.position.z);
             cloudLayer.transform.localScale = new Vector3(
                                             collider.radius * 2.2f * arena.transform.localScale.x,
                                             1f,
@@ -632,11 +634,22 @@ public class MapGenerator : NetworkBehaviour
             launchPadA.transform.position = path.spline[0].Position;
             launchPadB.transform.position = path.spline[path.spline.Count-1].Position;
 
-            launchPadA.transform.localScale = new Vector3(5, 5, 5);
-            launchPadB.transform.localScale = new Vector3(5, 5, 5);
+            launchPadA.transform.localScale = new Vector3(25, 25, 25);
+            launchPadB.transform.localScale = new Vector3(25, 25, 25);
+
+            launchPadA.transform.LookAt(path.arenaA.position);
+            launchPadB.transform.LookAt(path.arenaB.position);
+            launchPadA.transform.Rotate(new Vector3(0, -90, 0));
+            launchPadB.transform.Rotate(new Vector3(0, -90, 0));
 
             launchPadA.transform.parent = path.gameObjectRef.transform;
             launchPadB.transform.parent = path.gameObjectRef.transform;
+            
+
+            MeshRenderer renderer = launchPadA.GetComponent<MeshRenderer>();
+            renderer.material = entranceMaterial;
+            renderer = launchPadB.GetComponent<MeshRenderer>();
+            renderer.material = entranceMaterial;
 
             TestWindTunnelSetup tunnel = path.gameObjectRef.AddComponent<TestWindTunnelSetup>();
             tunnel.pathSpline = path.spline;
