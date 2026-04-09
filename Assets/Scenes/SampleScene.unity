@@ -9556,7 +9556,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1606858795
 RectTransform:
   m_ObjectHideFlags: 0
@@ -12011,7 +12011,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 105.120605, y: -16.29303}
+  m_AnchoredPosition: {x: 105.120605, y: -16.292969}
   m_SizeDelta: {x: 86.1203, y: 40.7067}
   m_Pivot: {x: 1, y: 1}
 --- !u!114 &2016187003
@@ -13172,6 +13172,26 @@ PrefabInstance:
     - target: {fileID: 7841733227356288675, guid: 48a028a9ad4a7b34fa3b0bca5c549eb9, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: -295
+      objectReference: {fileID: 0}
+    - target: {fileID: 8030137675412796305, guid: 48a028a9ad4a7b34fa3b0bca5c549eb9, type: 3}
+      propertyPath: m_Colors.m_NormalColor.a
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8030137675412796305, guid: 48a028a9ad4a7b34fa3b0bca5c549eb9, type: 3}
+      propertyPath: m_Colors.m_HighlightedColor.a
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8030137675412796305, guid: 48a028a9ad4a7b34fa3b0bca5c549eb9, type: 3}
+      propertyPath: m_Colors.m_HighlightedColor.b
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8030137675412796305, guid: 48a028a9ad4a7b34fa3b0bca5c549eb9, type: 3}
+      propertyPath: m_Colors.m_HighlightedColor.g
+      value: 0.3341515
+      objectReference: {fileID: 0}
+    - target: {fileID: 8030137675412796305, guid: 48a028a9ad4a7b34fa3b0bca5c549eb9, type: 3}
+      propertyPath: m_Colors.m_HighlightedColor.r
+      value: 0.754717
       objectReference: {fileID: 0}
     - target: {fileID: 8998155070972893959, guid: 48a028a9ad4a7b34fa3b0bca5c549eb9, type: 3}
       propertyPath: m_fontColor.a
