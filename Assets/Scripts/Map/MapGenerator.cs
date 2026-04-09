@@ -56,8 +56,10 @@ public class MapGenerator : NetworkBehaviour
     [SerializeField] Material cloudWallMaterial;
     // Material for entrances to wind tunnels
     [SerializeField] Material entranceMaterial;
+    [SerializeField] Material islandMaterial;
     [SerializeField] GameObject cloudwallPrefab;
     [SerializeField] GameObject cloudSpherePrefab;
+    
 
     // Spawner stuff
     [SerializeField] GameObject enemySpawnerPrefab;
@@ -305,6 +307,8 @@ public class MapGenerator : NetworkBehaviour
         }
         else
         {
+            arena.GetComponent<MeshRenderer>().material = islandMaterial;
+
             // Add a capsule collider to define the bounds of the arena
             CapsuleCollider collider = arena.AddComponent<CapsuleCollider>();
             collider.radius = arena.transform.localScale.x / (scaleFactor * 60) + 0.25f; // Set the radius

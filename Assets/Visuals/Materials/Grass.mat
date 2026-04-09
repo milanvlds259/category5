@@ -138,7 +138,7 @@ Material:
     - HardEdgeColor: {r: 0, g: 0, b: 0, a: 0}
     - SoftEdgeColor: {r: 0.051269468, g: 0.66538745, b: 0.082282715, a: 0}
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _Color: {r: 0.24989116, g: 0.836478, b: 0.31904075, a: 1}
+    - _Color: {r: 0.13514416, g: 0.4188679, b: 0.16751534, a: 1}
     - _EmissColor: {r: 1, g: 1, b: 1, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _FillColor: {r: 1, g: 1, b: 1, a: 0.3}
