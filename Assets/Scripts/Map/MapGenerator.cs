@@ -428,6 +428,7 @@ public class MapGenerator : NetworkBehaviour
             arena.position.z
         );
         cloudBoundary.SetActive(true);
+        cloudBoundary.transform.parent = mapParent.transform;
     }
 
     private IEnumerator AddNavMeshSurfaceToArenas()
