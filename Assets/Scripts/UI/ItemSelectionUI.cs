@@ -41,8 +41,8 @@ namespace Category5.UI
             // hide panel initially
             if (selectionPanel != null)
             {
-                //selectionPanel.SetActive(false);
-                HideUI(selectionPanel);
+                selectionPanel.SetActive(false);
+                //HideUI(selectionPanel);
             }
 
             // setup skip button
@@ -118,8 +118,8 @@ namespace Category5.UI
             _inventoryFull = playerInventory != null && playerInventory.IsFull;
 
             // show panel
-            //selectionPanel.SetActive(true); 
-            AnimatePanelIn(selectionPanel, selectionPanel.GetComponent<RectTransform>());
+            selectionPanel.SetActive(true); 
+            //AnimatePanelIn(selectionPanel, selectionPanel.GetComponent<RectTransform>());
 
             // unlock cursor for selection
             Cursor.lockState = CursorLockMode.None;
@@ -199,8 +199,8 @@ namespace Category5.UI
         {
             if (selectionPanel != null)
             {
-                //selectionPanel.SetActive(false);
-                AnimatePanelOut(selectionPanel, selectionPanel.GetComponent<RectTransform>());
+                selectionPanel.SetActive(false);
+                //AnimatePanelOut(selectionPanel, selectionPanel.GetComponent<RectTransform>());
             }
 
             // re-lock cursor for gameplay
@@ -319,8 +319,9 @@ namespace Category5.UI
         {
             if (selectionPanel != null)
             {
-                HideUI(selectionPanel);
-                // selectionPanel.SetActive(false);
+                //HideUI(selectionPanel);
+                
+                selectionPanel.SetActive(false);
             }
             _hasSelected = false;
         }

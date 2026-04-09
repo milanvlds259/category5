@@ -25,6 +25,13 @@ public class MapGenerator : NetworkBehaviour
         - Want to make paths only move points side to side?
     */
 
+    public NetworkVariable<int> Seed = new NetworkVariable<int>(
+        0, // default value
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server
+    );
+
+
     // Referemce to the generated map
     private GameObject mapParent;
 
@@ -126,13 +133,34 @@ public class MapGenerator : NetworkBehaviour
         StartCoroutine(GenerateMap());
     }*/
 
+    public void StartRound()
+    {
+        if (IsServer) {
+            GetSeed();
+            DeleteMap();
+            GenerateMap(Seed.Value);
+            AddEnemySpawnersToArenas();
+            return;
+        }
+        // Everyone waits for the seed to be ready
+        Seed.OnValueChanged += (_, newSeed) =>
+        {
+            DeleteMap();
+            GenerateMap(newSeed);
+        };
+
+        // If the seed was already set before this client joined
+        if (Seed.Value != 0)
+        {
+            DeleteMap();
+            GenerateMap(Seed.Value);
+        }
+    }
+
     public override void OnNetworkSpawn()
     {
-        if (!IsServer) return;
-
-        // Make sure there's no map existing when generating on start
-        DeleteMap();
-        GenerateMap();
+        
+        StartRound();
     }
 
     // Deletes the current map and clears the lists
@@ -150,10 +178,19 @@ public class MapGenerator : NetworkBehaviour
         arenas.Clear();
         paths.Clear();
     }
-
-    // Randomly generates a map
-    public void GenerateMap()
+    public void GetSeed()
     {
+        if (IsServer)
+        {
+            Seed.Value = Random.Range(-9999, 9999);
+        }
+    }
+    
+    // Randomly generates a map
+    public void GenerateMap(int seed)
+    {
+        Random.InitState(seed);
+
         mapParent = new GameObject("Map");
 
 
@@ -182,7 +219,7 @@ public class MapGenerator : NetworkBehaviour
                 arenaCreated = CreateArena(minBounds, maxBounds, i.ToString(), mapParent.transform);
             }
             // Add an enemy spawner to the created arena
-            AddEnemySpawnerToArena(arenaCreated);
+            // AddEnemySpawnerToArena(arenaCreated);
         }
 
         // Number of eyes cannot exceed number of arenas, and cannot be < 0
@@ -381,24 +418,31 @@ public class MapGenerator : NetworkBehaviour
     }
 
     // Adds an enemy spawner to the given arena, making it a child of the arena and setting the bounds of the enemy spawns
-    void AddEnemySpawnerToArena(Arena arena)
+    void AddEnemySpawnersToArenas()
     {
-        GameObject spawnerObj = Instantiate(enemySpawnerPrefab);
+        if (!IsServer) return;
+
+        for (int i = 1; i < arenas.Count; i++)
+        {
+            Arena arena = arenas[i];
+            GameObject spawnerObj = Instantiate(enemySpawnerPrefab);
         
-        EnemySpawner spawner = spawnerObj.GetComponent<EnemySpawner>();
-        spawner.spawnBounds = new Vector3(arena.gameObjectRef.transform.localScale.x, 0, arena.gameObjectRef.transform.localScale.z);
-        // Here set the spawner to only start spawning using the triggervolume on this arena
-        spawner.autoStartOnSpawn = false;
-        spawner.startOnTrigger = true;
-        spawner.triggerVolume = arena.trigger;
+            EnemySpawner spawner = spawnerObj.GetComponent<EnemySpawner>();
+            spawner.spawnBounds = new Vector3(arena.gameObjectRef.transform.localScale.x, 0, arena.gameObjectRef.transform.localScale.z);
+            // Here set the spawner to only start spawning using the triggervolume on this arena
+            spawner.autoStartOnSpawn = false;
+            spawner.startOnTrigger = true;
+            spawner.triggerVolume = arena.trigger;
 
-        spawner.GetComponent<NetworkObject>().Spawn();
+            spawner.GetComponent<NetworkObject>().Spawn();
 
-        spawnerObj.transform.parent = arena.gameObjectRef.transform;
-        spawnerObj.transform.position = arena.position + new Vector3(0, 5f, 0); // Position it a little above the arena
+            spawnerObj.transform.parent = arena.gameObjectRef.transform;
+            spawnerObj.transform.position = arena.position + new Vector3(0, 5f, 0); // Position it a little above the arena
 
-        // Add the spawner to the spawners list
-        spawners.Add(spawnerObj);
+            // Add the spawner to the spawners list
+            spawners.Add(spawnerObj);
+        }
+        
     }
 
     void AddCloudBoundaryToArena(Arena arena)

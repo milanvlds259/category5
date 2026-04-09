@@ -16,7 +16,7 @@ public class MapGeneratorEditor : Editor
         if(GUILayout.Button("Generate Map"))
         {
             mapGenerator.DeleteMap();
-            mapGenerator.GenerateMap();
+            //mapGenerator.GenerateMap();
         }
 
         if(GUILayout.Button("Delete Map"))

@@ -8,7 +8,6 @@ using Category5.Enemies;
 using Category5.Player;
 using Category5.Items;
 using Category5.Audio;
-using UnityEngine.WSA;
 
 namespace Category5.Core
 {
@@ -363,8 +362,7 @@ namespace Category5.Core
             _bossEntranceTriggeredThisRound = false;
 
             // Delete old map, and generate a new one for the next storm
-            mapGenerator.DeleteMap();
-            mapGenerator.GenerateMap();
+            mapGenerator.StartRound();
 
             // reset spawner tracking for new round
             _completedSpawners.Clear();
