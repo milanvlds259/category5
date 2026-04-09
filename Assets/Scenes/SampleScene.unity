@@ -293,6 +293,7 @@ MonoBehaviour:
   bossHealthContainer: {fileID: 1775409862}
   bossNameText: {fileID: 67008457}
   roundText: {fileID: 1541836526}
+  charPortraitImage: {fileID: 903884845}
   damageNumberPrefab: {fileID: 5865795987653267983, guid: e5ce9861f6e1b7245b7f66edd690895d, type: 3}
   damageNumberContainer: {fileID: 1470677997}
 --- !u!4 &10986185
@@ -3596,6 +3597,7 @@ MonoBehaviour:
   - 5
   bossEntranceDelay: 3
   bossSpawnPoint: {fileID: 458789688}
+  mapGenerator: {fileID: 0}
   CurrentPhase:
     m_InternalValue: 0
   CurrentRound:
@@ -12251,8 +12253,12 @@ MonoBehaviour:
   spawnInterval: 0.5
   waveCooldown: 5
   autoStartOnSpawn: 1
+  startOnTrigger: 0
+  triggerVolume: {fileID: 0}
   spawnOccupancyRadius: 0.6
   isSpawning: 0
+  _isActive: 0
+  isCleared: 0
 --- !u!4 &2027999372
 Transform:
   m_ObjectHideFlags: 0
