@@ -10,7 +10,7 @@
     "Type": "User",
     "GUID": "{701ECBBD-9C7B-4030-8CDB-749EE5D1C7B9}",
     "Language": "SFX",
-    "Hash": "{D0113DB0-27DB-F479-3EC7-0E47ECF6686F}",
+    "Hash": "{32A3EA96-3713-D376-47A0-A8A739238E40}",
     "ObjectPath": "Init",
     "ShortName": "Init",
     "Path": "Init.bnk",
@@ -50,16 +50,40 @@
       "GUID": "{1BB4D99D-9E92-42A4-9EA9-6A25910CFDA0}",
       "States": [
        {
+        "Id": "221232726",
+        "Name": "Lose",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Lose",
+        "GUID": "{1A2E5C6D-B6BA-435E-9CCB-BBB6B54EAA0E}"
+       },
+       {
+        "Id": "748895195",
+        "Name": "None",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\None",
+        "GUID": "{6A4C60EB-620C-4F34-9AA3-59EFA77BB652}"
+       },
+       {
+        "Id": "979765101",
+        "Name": "Win",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Win",
+        "GUID": "{3F3909B5-8854-4372-AFA7-479BDBA2720E}"
+       },
+       {
         "Id": "2582085496",
         "Name": "Exploration",
         "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Exploration",
         "GUID": "{3BE0BFB7-59E1-445C-B827-F7A1359DA998}"
        },
        {
-        "Id": "3705726509",
-        "Name": "Title",
-        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Title",
+        "Id": "2607556080",
+        "Name": "Menu",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Menu",
         "GUID": "{B4133D09-DC09-468A-892B-0807D3C7190E}"
+       },
+       {
+        "Id": "2764240573",
+        "Name": "Combat",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Combat",
+        "GUID": "{2385623C-0EC5-4EB3-815D-A245E746B557}"
        }
       ]
      }
@@ -75,6 +99,6 @@
     ]
    }
   ],
-  "FileHash": "{F8769B2F-D697-A555-B5DA-AA641AA021B5}"
+  "FileHash": "{9C144743-46DA-EB01-6E39-D07A2E8CD7F0}"
  }
 }

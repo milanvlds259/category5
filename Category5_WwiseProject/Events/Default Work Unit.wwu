@@ -53,7 +53,18 @@
 							</PropertyList>
 							<ReferenceList>
 								<Reference Name="Target">
-									<ObjectRef Name="Title" ID="{B4133D09-DC09-468A-892B-0807D3C7190E}" WorkUnitID="{BDA9BCEC-56BE-431F-8BC0-8E4305BAF9CE}"/>
+									<ObjectRef Name="Menu" ID="{B4133D09-DC09-468A-892B-0807D3C7190E}" WorkUnitID="{BDA9BCEC-56BE-431F-8BC0-8E4305BAF9CE}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Play_Exploration" ID="{71490729-81A1-4CBA-876D-472BFA9D1AE0}">
+					<ChildrenList>
+						<Action Name="" ID="{6BAE12F9-5E96-4234-8F16-20B41D0F1F1E}" ShortID="58421653">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="Exploration" ID="{5623211B-326D-4914-AE72-E888807D2670}" WorkUnitID="{95EAF7C1-CD6D-40DE-8286-63580F246788}"/>
 								</Reference>
 							</ReferenceList>
 						</Action>

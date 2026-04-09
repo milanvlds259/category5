@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca68f0b30229fc24fa2c12d0b1888344, type: 3}
+  m_Name: DF37285D-AB2A-4EF0-84D7-30D7AA243779
+  m_EditorClassIdentifier: AK.Wwise.Unity.API.WwiseTypes::WwiseEventReference
+  objectName: Set_State_Title
+  id: 2875859334
+  guid: DF37285D-AB2A-4EF0-84D7-30D7AA243779
+  IsInUserDefinedSoundBank: 0

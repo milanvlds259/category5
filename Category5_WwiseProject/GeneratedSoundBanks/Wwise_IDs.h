@@ -27,8 +27,12 @@ namespace AK
 
             namespace STATE
             {
+                static const AkUniqueID COMBAT = 2764240573U;
                 static const AkUniqueID EXPLORATION = 2582085496U;
-                static const AkUniqueID TITLE = 3705726509U;
+                static const AkUniqueID LOSE = 221232726U;
+                static const AkUniqueID MENU = 2607556080U;
+                static const AkUniqueID NONE = 748895195U;
+                static const AkUniqueID WIN = 979765101U;
             } // namespace STATE
         } // namespace MUSIC_STATE_GROUP
 

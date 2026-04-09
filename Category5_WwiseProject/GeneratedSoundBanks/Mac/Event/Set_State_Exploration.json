@@ -43,22 +43,46 @@
       "GUID": "{1BB4D99D-9E92-42A4-9EA9-6A25910CFDA0}",
       "States": [
        {
+        "Id": "221232726",
+        "Name": "Lose",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Lose",
+        "GUID": "{1A2E5C6D-B6BA-435E-9CCB-BBB6B54EAA0E}"
+       },
+       {
+        "Id": "748895195",
+        "Name": "None",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\None",
+        "GUID": "{6A4C60EB-620C-4F34-9AA3-59EFA77BB652}"
+       },
+       {
+        "Id": "979765101",
+        "Name": "Win",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Win",
+        "GUID": "{3F3909B5-8854-4372-AFA7-479BDBA2720E}"
+       },
+       {
         "Id": "2582085496",
         "Name": "Exploration",
         "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Exploration",
         "GUID": "{3BE0BFB7-59E1-445C-B827-F7A1359DA998}"
        },
        {
-        "Id": "3705726509",
-        "Name": "Title",
-        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Title",
+        "Id": "2607556080",
+        "Name": "Menu",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Menu",
         "GUID": "{B4133D09-DC09-468A-892B-0807D3C7190E}"
+       },
+       {
+        "Id": "2764240573",
+        "Name": "Combat",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Combat",
+        "GUID": "{2385623C-0EC5-4EB3-815D-A245E746B557}"
        }
       ]
      }
     ]
    }
   ],
-  "FileHash": "{C890C1C7-8744-1037-30FA-11F28F115CD2}"
+  "FileHash": "{EBC5A034-15D8-E226-3610-90B33449A6FE}"
  }
 }

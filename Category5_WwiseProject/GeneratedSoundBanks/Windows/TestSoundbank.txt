@@ -9,8 +9,12 @@ State Group	ID	Name			Wwise Object Path	Notes
 	2434766612	Music_State_Group			\Default Work Unit\Music_State_Group	
 
 State	ID	Name	State Group			Notes
+	221232726	Lose	Music_State_Group			
+	748895195	None	Music_State_Group			
+	979765101	Win	Music_State_Group			
 	2582085496	Exploration	Music_State_Group			
-	3705726509	Title	Music_State_Group			
+	2607556080	Menu	Music_State_Group			
+	2764240573	Combat	Music_State_Group			
 
 In Memory Audio	ID	Name	Audio source file		Wwise Object Path	Notes	Data Size
 	217981217	Category5ThemeTest	.cache\BC\{BCD99E04-E96B-4D2E-5224-FA43990CB4B6}.wem		\Containers\Default Work Unit\Music Switch\Category5ThemeTest\Category5ThemeTest		6773856
