@@ -1236,7 +1236,20 @@ namespace Category5.Player
             if (anim == null) return;
 
             EnsureAnimatorParameterCache(anim);
-            
+
+            if (_hasAnimIsWindRiding)
+            {
+                anim.SetBool(_animIsWindRidingHash, IsWindRiding);
+                if (_isGliding)
+                {
+                    anim.SetBool(_animIsWindRidingHash, true);
+                }
+                else
+                {
+                    
+                    anim.SetBool(_animIsWindRidingHash, false);
+                }
+            }
             // movement speed (0 during dodge since dodge has its own animation)
             float speed = _isDodging ? 0f : Mathf.Clamp01(_moveInput.magnitude);
             if (_hasAnimSpeed)
@@ -1288,10 +1301,7 @@ namespace Category5.Player
                 anim.SetFloat(_animSpeedYHash, directionalY, 0.1f, Time.deltaTime);
             }
 
-            if (_hasAnimIsWindRiding)
-            {
-                anim.SetBool(_animIsWindRidingHash, IsWindRiding);
-            }
+            
         }
 
         // caches which animator params exist on the currently assigned controller

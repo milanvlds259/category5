@@ -16,7 +16,7 @@ namespace Category5.Player.WindRiding
         [SerializeField] private WindRideSettings settings = new WindRideSettings();
 
         // public state
-        public bool IsWindRiding { get; private set; }
+        public bool IsWindRiding { get; set; }
 
         // the tunnel we are currently riding
         public WindTunnel ActiveTunnel => _activeTunnel;
