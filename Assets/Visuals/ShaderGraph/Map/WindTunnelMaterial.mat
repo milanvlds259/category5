@@ -47,7 +47,7 @@ Material:
     - _swirl: 0
     - _swirlSpeed: 1
     m_Colors:
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 0.84705883, g: 0.62352943, b: 0.4, a: 1}
     - _Direction: {r: 2, g: 1, b: 0, a: 0}
     - _NoiseTiling: {r: 1, g: 0.5, b: 0, a: 0}
   m_BuildTextureStacks: []
