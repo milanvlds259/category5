@@ -101,6 +101,9 @@ namespace Category5.Player.WindRiding
             // tell playercontroller we are riding (it will skip its own movement)
             _playerController.SetExternalVelocity(Vector3.up * launchForce);
 
+            // Put the player on the playerintunnel layer to ignore cloud boundaries
+            gameObject.layer = LayerMask.NameToLayer("PlayerInTunnel");
+
             WindRideEvents.InvokeRideStarted(_playerController, transform.position);
         }
 
@@ -248,6 +251,9 @@ namespace Category5.Player.WindRiding
 
             // hand velocity back to playercontroller so physics picks up naturally
             _playerController.SetExternalVelocity(exitVelocity);
+
+            // Put the player on the playerintunnel layer to ignore cloud boundaries
+            gameObject.layer = LayerMask.NameToLayer("Player");
 
             WindRideEvents.InvokeRideEnded(_playerController, exitPos, exitVelocity);
         }
