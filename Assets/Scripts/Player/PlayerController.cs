@@ -1305,10 +1305,10 @@ namespace Category5.Player
                 anim.SetFloat(_animSpeedYHash, directionalY, 0.1f, Time.deltaTime);
             }
 
-            if (_hasAnimIsWindRiding)
-            {
-                anim.SetBool(_animIsWindRidingHash, IsWindRiding);
-            }
+            //if (_hasAnimIsWindRiding)
+            //{
+            //    anim.SetBool(_animIsWindRidingHash, IsWindRiding);
+            //}
 
             if (_hasAnimIsCharging)
             {
