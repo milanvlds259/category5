@@ -3602,6 +3602,36 @@ MonoBehaviour:
     m_InternalValue: 0
   CurrentRound:
     m_InternalValue: 1
+  CombatState:
+    idInternal: 0
+    valueGuidInternal: 
+    groupIdInternal: 0
+    groupGuidInternal: 
+    WwiseObjectReference: {fileID: 11400000, guid: 5481d6d4f221263439103ee40b84f2e4, type: 2}
+  ExploreState:
+    idInternal: 0
+    valueGuidInternal: 
+    groupIdInternal: 0
+    groupGuidInternal: 
+    WwiseObjectReference: {fileID: 11400000, guid: d8672870903c8b24cad5ee8352eb483f, type: 2}
+  WinState:
+    idInternal: 0
+    valueGuidInternal: 
+    groupIdInternal: 0
+    groupGuidInternal: 
+    WwiseObjectReference: {fileID: 11400000, guid: 76f6e3cadb4f0534084a89e386e3a4b6, type: 2}
+  LoseState:
+    idInternal: 0
+    valueGuidInternal: 
+    groupIdInternal: 0
+    groupGuidInternal: 
+    WwiseObjectReference: {fileID: 11400000, guid: 376164678cf2dfd44b28b5f87ff3039d, type: 2}
+  MenuState:
+    idInternal: 0
+    valueGuidInternal: 
+    groupIdInternal: 0
+    groupGuidInternal: 
+    WwiseObjectReference: {fileID: 11400000, guid: 61a672bdf092dbb4084680da5f752cf4, type: 2}
 --- !u!114 &619446975
 MonoBehaviour:
   m_ObjectHideFlags: 0

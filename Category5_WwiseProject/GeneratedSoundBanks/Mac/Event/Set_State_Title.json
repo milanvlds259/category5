@@ -10,7 +10,7 @@
     "Type": "Event",
     "GUID": "{DF37285D-AB2A-4EF0-84D7-30D7AA243779}",
     "Language": "SFX",
-    "Hash": "{20842BB6-C2D9-7853-6311-829DE8FB5916}",
+    "Hash": "{11AC1A19-FD0B-5E5B-0D05-A3C3F5ADA420}",
     "ObjectPath": "Set_State_Title",
     "ShortName": "Set_State_Title",
     "Path": "Event/Set_State_Title.bnk",
@@ -27,9 +27,9 @@
       "ActionSetState": [
        {
         "GroupId": "2434766612",
-        "Id": "3705726509",
-        "Name": "Title",
-        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Title",
+        "Id": "2607556080",
+        "Name": "Menu",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Menu",
         "GUID": "{B4133D09-DC09-468A-892B-0807D3C7190E}"
        }
       ]
@@ -43,22 +43,46 @@
       "GUID": "{1BB4D99D-9E92-42A4-9EA9-6A25910CFDA0}",
       "States": [
        {
+        "Id": "221232726",
+        "Name": "Lose",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Lose",
+        "GUID": "{1A2E5C6D-B6BA-435E-9CCB-BBB6B54EAA0E}"
+       },
+       {
+        "Id": "748895195",
+        "Name": "None",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\None",
+        "GUID": "{6A4C60EB-620C-4F34-9AA3-59EFA77BB652}"
+       },
+       {
+        "Id": "979765101",
+        "Name": "Win",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Win",
+        "GUID": "{3F3909B5-8854-4372-AFA7-479BDBA2720E}"
+       },
+       {
         "Id": "2582085496",
         "Name": "Exploration",
         "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Exploration",
         "GUID": "{3BE0BFB7-59E1-445C-B827-F7A1359DA998}"
        },
        {
-        "Id": "3705726509",
-        "Name": "Title",
-        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Title",
+        "Id": "2607556080",
+        "Name": "Menu",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Menu",
         "GUID": "{B4133D09-DC09-468A-892B-0807D3C7190E}"
+       },
+       {
+        "Id": "2764240573",
+        "Name": "Combat",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Combat",
+        "GUID": "{2385623C-0EC5-4EB3-815D-A245E746B557}"
        }
       ]
      }
     ]
    }
   ],
-  "FileHash": "{E9C55199-A009-9449-2284-AC61F82833B1}"
+  "FileHash": "{72AFB65F-C174-658E-97AD-DBB7EC38CA91}"
  }
 }

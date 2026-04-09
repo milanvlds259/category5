@@ -74,9 +74,16 @@ namespace Category5.UI
 
         private bool animFirstLoop = true; // know if we should play animation of main menu panel on game launch
 
+
+        //Wwise State variables
         [SerializeField] private AK.Wwise.Event playEvent; // Rylan added - Remove at the first sign of bugs
-        [SerializeField] private AK.Wwise.State musicState; // Rylan added - Remove at the first sign of bugs
-        [SerializeField] private AK.Wwise.State titleState;
+
+        [SerializeField] private AK.Wwise.State MenuState; // Rylan added - Remove at the first sign of bugs
+        [SerializeField] private AK.Wwise.State ExploreState;
+        [SerializeField] private AK.Wwise.State CombatState; // Rylan added - Remove at the first sign of bugs
+        [SerializeField] private AK.Wwise.State LoseState;
+        [SerializeField] private AK.Wwise.State WinState;
+
 
 
         private void Awake()
@@ -355,6 +362,8 @@ namespace Category5.UI
             {
                 Debug.LogError("NetworkMenu: SceneManager is null");
             }
+
+            ExploreState.SetValue();
         }
 
         // called when leave lobby button is clicked
@@ -674,6 +683,9 @@ namespace Category5.UI
             }
 
             SetButtonsInteractable(true);
+
+            //Rylan Code
+            MenuState.SetValue();
         }
 
         // shows the title screen and hides other panels
@@ -727,6 +739,8 @@ namespace Category5.UI
             {
                 HideUI(lobbyPanel);
             }
+
+
         }
 
         // called when play button on title screen is clicked
@@ -755,7 +769,7 @@ namespace Category5.UI
             UpdateStatus(isRelayReady ? "Ready to connect" : "Connecting to services...");
 
             //RYLAN CODE
-            musicState.SetValue();
+            MenuState.SetValue();
         }
 
         // placeholder for settings button
@@ -763,8 +777,7 @@ namespace Category5.UI
         {
             // todo: implement settings panel
             
-            //RYLAN CODE
-            titleState.SetValue(); // Rylan added - Remove at the first sign of bugs
+            
 
         }
 
