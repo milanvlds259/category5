@@ -912,9 +912,9 @@ namespace Category5.UI
                 if (readyButton != null)
                 {
                     readyButton.interactable = false;
-                    var colors = readyButton.colors;
-                    colors.normalColor = new Color(0.5f, 0.5f, 0.5f);
-                    readyButton.colors = colors;
+                    //var colors = readyButton.colors;
+                    //colors.normalColor = new Color(0.5f, 0.5f, 0.5f);
+                    //readyButton.colors = colors;
                 }
                 return;
             }
@@ -926,8 +926,8 @@ namespace Category5.UI
             if (readyButton != null)
             {
                 var colors = readyButton.colors;
-                colors.normalColor = isReady ? new Color(0.8f, 0.4f, 0.4f) : new Color(0.4f, 0.8f, 0.4f);
-                readyButton.colors = colors;
+                //colors.normalColor = isReady ? new Color(0.8f, 0.4f, 0.4f) : new Color(0.4f, 0.8f, 0.4f);
+                //readyButton.colors = colors;
             }
         }
 
