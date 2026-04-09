@@ -383,13 +383,17 @@ MonoBehaviour:
   - {fileID: 2528666909874432548}
   useRandomSpawnPoints: 1
   spawnBounds: {x: 80, y: 0, z: 40}
-  enemiesPerWave: 10
+  enemiesPerWave: 15
   totalWaves: 1
   spawnInterval: 0.5
   waveCooldown: 5
   autoStartOnSpawn: 1
+  startOnTrigger: 0
+  triggerVolume: {fileID: 0}
   spawnOccupancyRadius: 0.6
   isSpawning: 0
+  _isActive: 0
+  isCleared: 0
 --- !u!1 &6669607425106375784
 GameObject:
   m_ObjectHideFlags: 0

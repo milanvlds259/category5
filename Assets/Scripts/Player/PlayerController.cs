@@ -692,7 +692,7 @@ namespace Category5.Player
             }
             if (_isClouded && _velocity.y < 0)
             {
-                _velocity.y = 0f;
+                _velocity.y = 1f;
                 // Want some bounce/give later
                 // _velocity.y = Mathf.Clamp(_velocity.y, -1f, 1f);
                 // _velocity.y += -_velocity.y * 70f * Time.deltaTime;

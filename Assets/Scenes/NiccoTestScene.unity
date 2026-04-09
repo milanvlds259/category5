@@ -12515,6 +12515,7 @@ MonoBehaviour:
   - 5
   bossEntranceDelay: 3
   bossSpawnPoint: {fileID: 1812228069}
+  mapGenerator: {fileID: 0}
   CurrentPhase:
     m_InternalValue: 0
   CurrentRound:
@@ -15094,14 +15095,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MapGenerator
   ShowTopMostFoldoutHeaderGroup: 1
   numberOfArenas: 5
-  numberOfEyes: 0
+  numberOfEyes: 3
   minBounds: {x: -300, y: -50, z: -300}
   maxBounds: {x: 300, y: 50, z: 300}
   arenaMask:
     serializedVersion: 2
     m_Bits: 1
   cloudMaterial: {fileID: 2100000, guid: 708f43d5c5e443e44b63804f9e8b6a12, type: 2}
-  pathMesh: {fileID: 0}
+  cloudWallMaterial: {fileID: 2100000, guid: c744b33cff693a94d96d79135bb84298, type: 2}
+  entranceMaterial: {fileID: 2100000, guid: bfe793940cf6f3742b7b7f1c435763c8, type: 2}
+  cloudwallPrefab: {fileID: 3313645192529685122, guid: 3e620a9914c42ce45a3c385cf3d9a423, type: 3}
+  cloudSpherePrefab: {fileID: 3342093096742335561, guid: a6375263bcea6e24e85504dd46be2e62, type: 3}
   enemySpawnerPrefab: {fileID: 6454236440128641259, guid: 2c754b57692fedd4c86b835d9e049ee6, type: 3}
 --- !u!114 &1958033729
 MonoBehaviour:

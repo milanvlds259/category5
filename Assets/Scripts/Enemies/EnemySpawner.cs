@@ -25,7 +25,9 @@ namespace Category5.Enemies
         [SerializeField] private int totalWaves = 2;
         [SerializeField] private float spawnInterval = 0.5f;
         [SerializeField] private float waveCooldown = 5f;
-        [SerializeField] private bool autoStartOnSpawn = true;
+        public bool autoStartOnSpawn = true;
+        public bool startOnTrigger = false;
+        public TriggerVolume triggerVolume;
         [SerializeField] private float spawnOccupancyRadius = 0.6f; // avoid spawning inside other colliders
         
         [Header("runtime state")]
@@ -38,8 +40,10 @@ namespace Category5.Enemies
         private int _nextSpawnPointIndex = 0;
         private float _spawnTimer;
         private float _waveTimer;
-        private bool _isActive = false;
+        public bool _isActive = false;
+        private bool hasStartedSpawning = false; // If the spawner has ever started spawning
         private int _effectiveEnemiesPerWave; // scaled by multiplier each round
+        public bool isCleared = false; // Is true when all enemies that would be spawned from this spawner have been defeated
         
         // events
         public static event Action<EnemySpawner> OnAllEnemiesDefeated;
@@ -55,14 +59,21 @@ namespace Category5.Enemies
             if (!IsServer) return;
             
             _effectiveEnemiesPerWave = enemiesPerWave;
-            
-            // minSpawnBounds = transform.InverseTransformPoint(transform.position);
-            // maxSpawnBounds = transform.InverseTransformPoint(transform.position);
-
 
             if (autoStartOnSpawn)
             {
                 StartSpawning();
+            }
+            else if (startOnTrigger)
+            {
+                if (triggerVolume != null)
+                {
+                    triggerVolume.OnTriggerVolumeEnter += StartSpawning;
+                }
+                else
+                {
+                    Debug.LogError("No triggerVolume, spawning won't work");
+                }
             }
         }
         
@@ -102,7 +113,9 @@ namespace Category5.Enemies
         public void StartSpawning()
         {
             if (!IsServer) return;
+            if (hasStartedSpawning) return;
             
+            hasStartedSpawning = true;
             _isActive = true;
             _currentWave = 0;
             StartNextWave();
@@ -143,19 +156,29 @@ namespace Category5.Enemies
             _waveTimer = 0f;
             _isActive = false;
             isSpawning = false;
+            hasStartedSpawning = false;
             
             // apply enemy scaling
             _effectiveEnemiesPerWave = Mathf.RoundToInt(enemiesPerWave * enemyMultiplier);
             if (_effectiveEnemiesPerWave < 1) _effectiveEnemiesPerWave = 1;
         }
-        
-        // static helper to reset and start all spawners in the scene
-        public static void StartAllSpawners(float enemyMultiplier = 1f)
+
+        // static helper to reset all spawners in the scene
+        public static void ResetAllSpawners(float enemyMultiplier = 1f)
         {
             var spawners = FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
             foreach (var spawner in spawners)
             {
                 spawner.ResetSpawner(enemyMultiplier);
+            }
+        }
+        
+        // static helper to start all spawners in the scene
+        public static void StartAllSpawners()
+        {
+            var spawners = FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
+            foreach (var spawner in spawners)
+            {
                 spawner.StartSpawning();
             }
             // Debug.Log($"EnemySpawner: started {spawners.Length} spawners with {enemyMultiplier}x enemy multiplier");
@@ -240,7 +263,9 @@ namespace Category5.Enemies
                 Vector3 candidate = GetNextSpawnPoint();
 
                 // check occupancy
-                bool occupied = Physics.OverlapSphere(candidate, spawnOccupancyRadius, LayerMask.GetMask("Enemy")).Length > 0;
+                Collider[] colliders = new Collider[1];
+                Physics.OverlapSphereNonAlloc(candidate, spawnOccupancyRadius, colliders, Physics.AllLayers, QueryTriggerInteraction.Ignore);
+                bool occupied = colliders[0] != null;
                 if (!occupied)
                 {
                     spawnPoint = candidate;
@@ -337,7 +362,7 @@ namespace Category5.Enemies
                 {
                     GameFlowManager.Instance.NotifySpawnerCompleted(this);
                 }
-
+                isCleared = true;
                 OnAllEnemiesDefeated?.Invoke(this);
             }
         }
