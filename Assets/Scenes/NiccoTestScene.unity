@@ -717,6 +717,10 @@ MonoBehaviour:
   ridingMaxPitch: 40
   ridingDistanceBonus: 2
   ridingTransitionSpeed: 4
+  introRotateSmoothTime: 0.5
+  cinematicCameraPoint: {fileID: 0}
+  cinemaBlendInDuration: 0.8
+  cinemaBlendOutDuration: 0.8
 --- !u!114 &160606477
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10803,6 +10807,9 @@ MonoBehaviour:
   - {fileID: 1976593061}
   inventoryContainer: {fileID: 308584222}
   skipButton: {fileID: 312539658}
+  animationDuration: 0.5
+  animationDistance: 50
+  itemMenuStartPos: {x: 0, y: 0}
 --- !u!114 &1484696054
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10837,6 +10844,7 @@ MonoBehaviour:
   bossHealthContainer: {fileID: 1537885273}
   bossNameText: {fileID: 1215513403}
   roundText: {fileID: 1242543839}
+  charPortraitImage: {fileID: 0}
   damageNumberPrefab: {fileID: 5865795987653267983, guid: e5ce9861f6e1b7245b7f66edd690895d, type: 3}
   damageNumberContainer: {fileID: 729073551}
 --- !u!1 &1499219358
@@ -12520,6 +12528,36 @@ MonoBehaviour:
     m_InternalValue: 0
   CurrentRound:
     m_InternalValue: 1
+  CombatState:
+    idInternal: 0
+    valueGuidInternal: 
+    groupIdInternal: 0
+    groupGuidInternal: 
+    WwiseObjectReference: {fileID: 0}
+  ExploreState:
+    idInternal: 0
+    valueGuidInternal: 
+    groupIdInternal: 0
+    groupGuidInternal: 
+    WwiseObjectReference: {fileID: 0}
+  WinState:
+    idInternal: 0
+    valueGuidInternal: 
+    groupIdInternal: 0
+    groupGuidInternal: 
+    WwiseObjectReference: {fileID: 0}
+  LoseState:
+    idInternal: 0
+    valueGuidInternal: 
+    groupIdInternal: 0
+    groupGuidInternal: 
+    WwiseObjectReference: {fileID: 0}
+  MenuState:
+    idInternal: 0
+    valueGuidInternal: 
+    groupIdInternal: 0
+    groupGuidInternal: 
+    WwiseObjectReference: {fileID: 0}
 --- !u!1 &1633126784
 GameObject:
   m_ObjectHideFlags: 0

@@ -63,7 +63,7 @@ PrefabInstance:
     - target: {fileID: -7635826562936255635, guid: 6f3b8d559ac3bb6478aecb23bf74cce0, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: c744b33cff693a94d96d79135bb84298, type: 2}
+      objectReference: {fileID: 2100000, guid: 82b3ae42e7497a249ad03a273a13e174, type: 2}
     - target: {fileID: 919132149155446097, guid: 6f3b8d559ac3bb6478aecb23bf74cce0, type: 3}
       propertyPath: m_Name
       value: stormCylinder
