@@ -622,7 +622,8 @@ namespace Category5.Boss
         private void TriggerBossIntroClientRpc()
         {
             // bossData is a serialized field on the prefab — already present on all clients, no network data needed
-            Category5.Audio.BossEvents.InvokeIntro(bossData);
+            // pass boss world position so the camera can rotate to face it
+            Category5.Audio.BossEvents.InvokeIntro(bossData, transform.position);
         }
 
         [ClientRpc]

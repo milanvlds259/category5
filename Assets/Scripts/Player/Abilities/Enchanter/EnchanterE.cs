@@ -27,26 +27,46 @@ namespace Category5
         {
             if (!CanUse()) return;
 
-            Vector3 direction = playerController != null ? playerController.GetAimDirection() : transform.forward;
-            direction.y = 0f;
-            if (direction == Vector3.zero)
-            {
-                direction = transform.forward;
-            }
-            direction.Normalize();
-
-            Vector3 spawnPos = transform.position + (direction * forwardOffset) + (Vector3.up * upwardOffset);
+            Vector3 forward = playerController != null ? playerController.transform.forward : transform.forward;
+            Vector3 spawnPos = transform.position + (forward * forwardOffset) + (Vector3.up * upwardOffset);
+            Vector3 targetPoint = GetAimTargetPoint(spawnPos);
 
             abilityManager.SpawnEnchanterHealBeaconServerRpc(
                 spawnPos,
-                direction,
-                maxThrowDistance,
+                targetPoint,
                 healPerTick,
                 tickInterval,
                 baseDuration,
                 durationPerCharge,
                 healRadius
             );
+        }
+
+        // fires a screen-center ray to find where the player is actually aiming, clamped to maxThrowDistance
+        private Vector3 GetAimTargetPoint(Vector3 spawnPos)
+        {
+            if (Camera.main == null)
+            {
+                Vector3 fallbackForward = playerController != null ? playerController.transform.forward : transform.forward;
+                return spawnPos + fallbackForward * maxThrowDistance;
+            }
+
+            Ray aimRay = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+            Vector3 rawTarget;
+
+            // cast a bit further than max so we can clamp on our side
+            if (Physics.Raycast(aimRay, out RaycastHit hit, maxThrowDistance + 30f))
+                rawTarget = hit.point;
+            else
+                rawTarget = aimRay.GetPoint(maxThrowDistance);
+
+            // clamp horizontal distance from spawnPos to maxThrowDistance
+            Vector3 toTarget = rawTarget - spawnPos;
+            toTarget.y = 0f;
+            if (toTarget.magnitude > maxThrowDistance)
+                rawTarget = spawnPos + toTarget.normalized * maxThrowDistance + Vector3.up * (rawTarget.y - spawnPos.y);
+
+            return rawTarget;
         }
 
         public static void InvokeBeaconThrown(Vector3 position, Vector3 direction)

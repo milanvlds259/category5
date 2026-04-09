@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using Category5.Items;
+using DG.Tweening;
 
 namespace Category5.UI
 {
@@ -22,6 +23,11 @@ namespace Category5.UI
         [Header("replacement mode")]
         [SerializeField] private Button skipButton;
 
+        [Header("UI animations")]
+        [SerializeField] private float animationDuration = 0.5f; // UI anim controls
+        [SerializeField] private float animationDistance = 50f;
+        [SerializeField] private Vector2 itemMenuStartPos;
+
         private bool _hasSelected = false;
         private string[] _currentChoices;
         private bool _inventoryFull = false;
@@ -35,7 +41,8 @@ namespace Category5.UI
             // hide panel initially
             if (selectionPanel != null)
             {
-                selectionPanel.SetActive(false);
+                //selectionPanel.SetActive(false);
+                HideUI(selectionPanel);
             }
 
             // setup skip button
@@ -111,7 +118,8 @@ namespace Category5.UI
             _inventoryFull = playerInventory != null && playerInventory.IsFull;
 
             // show panel
-            selectionPanel.SetActive(true);
+            //selectionPanel.SetActive(true); 
+            AnimatePanelIn(selectionPanel, selectionPanel.GetComponent<RectTransform>());
 
             // unlock cursor for selection
             Cursor.lockState = CursorLockMode.None;
@@ -191,7 +199,8 @@ namespace Category5.UI
         {
             if (selectionPanel != null)
             {
-                selectionPanel.SetActive(false);
+                //selectionPanel.SetActive(false);
+                AnimatePanelOut(selectionPanel, selectionPanel.GetComponent<RectTransform>());
             }
 
             // re-lock cursor for gameplay
@@ -310,7 +319,8 @@ namespace Category5.UI
         {
             if (selectionPanel != null)
             {
-                selectionPanel.SetActive(false);
+                HideUI(selectionPanel);
+                // selectionPanel.SetActive(false);
             }
             _hasSelected = false;
         }
@@ -318,12 +328,82 @@ namespace Category5.UI
         // helper to get local player's inventory
         private PlayerInventory GetLocalPlayerInventory()
         {
-            var localPlayer = FindFirstObjectByType<Category5.Player.PlayerController>();
-            if (localPlayer != null && localPlayer.IsOwner)
+            // iterate all players to find the one owned by this client
+            var allPlayers = FindObjectsByType<Category5.Player.PlayerController>(FindObjectsSortMode.None);
+            foreach (var player in allPlayers)
             {
-                return localPlayer.GetComponent<PlayerInventory>();
+                if (player.IsOwner)
+                {
+                    return player.GetComponent<PlayerInventory>();
+                }
             }
             return null;
+        }
+
+        private void AnimatePanelIn(GameObject panel, RectTransform rect) // DOTween animation for fading in panels (used on main menu panel when coming from title screen)
+        {
+            if (panel != null)
+            {
+                CanvasGroup canvasGroup = panel.GetComponent<CanvasGroup>();
+                if (canvasGroup != null)
+                {
+                    Sequence seq = DOTween.Sequence();
+
+
+                    seq.Append(canvasGroup.DOFade(1, animationDuration));
+                    seq.Join(rect.DOAnchorPos(new Vector2(itemMenuStartPos[0], itemMenuStartPos[1]), animationDuration));
+
+                    canvasGroup.interactable = true;
+                    canvasGroup.blocksRaycasts = true;
+                }
+            }
+        }
+
+        private void AnimatePanelOut(GameObject panel, RectTransform rect) // DOTween animation for fading out panels
+        {
+            if (panel != null)
+            {
+                CanvasGroup canvasGroup = panel.GetComponent<CanvasGroup>();
+                if (canvasGroup != null)
+                {
+                    Sequence seq = DOTween.Sequence();
+
+                    seq.Append(canvasGroup.DOFade(0, animationDuration));
+                    seq.Join(rect.DOAnchorPos(new Vector2(itemMenuStartPos[0], itemMenuStartPos[1] - animationDistance), animationDuration));
+
+                    canvasGroup.interactable = false;
+                    canvasGroup.blocksRaycasts = false;
+
+                }
+            }
+        }
+
+        private void HideUI(GameObject panel) // helper to hide all UI elements in a panel 
+        {
+            if (panel != null)
+            {
+                CanvasGroup canvasGroup = panel.GetComponent<CanvasGroup>();
+                if (canvasGroup != null)
+                {
+                    canvasGroup.alpha = 0;
+                    canvasGroup.interactable = false;
+                    canvasGroup.blocksRaycasts = false;
+                }
+            }
+        }
+
+        private void ShowUI(GameObject panel) // helper to show all UI elements in a panel
+        {
+            if (panel != null)
+            {
+                CanvasGroup canvasGroup = panel.GetComponent<CanvasGroup>();
+                if (canvasGroup != null)
+                {
+                    canvasGroup.alpha = 1;
+                    canvasGroup.interactable = true;
+                    canvasGroup.blocksRaycasts = true;
+                }
+            }
         }
     }
 }

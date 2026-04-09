@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using Unity.Netcode;
 using Category5.Player;
+using Category5.Core;
 
 namespace Category5.UI
 {
@@ -21,6 +22,7 @@ namespace Category5.UI
         
         private PlayerController _player;
         private ulong _clientId;
+        private PlayerClassManager _classManager;
 
         public void Initialize(PlayerController player, ulong clientId)
         {
@@ -46,6 +48,18 @@ namespace Category5.UI
 
             // set initial death state
             UpdateDeathState(player.IsDead.Value);
+            
+            // set up the class portrait
+            _classManager = player.GetComponent<PlayerClassManager>();
+            if (_classManager != null)
+            {
+                _classManager.SelectedClassId.OnValueChanged += (oldId, newId) => UpdateCharPortrait(newId);
+                // set portrait immediately if class is already loaded
+                if (_classManager.SelectedClassId.Value != PlayerClass.NoClassId)
+                {
+                    UpdateCharPortrait(_classManager.SelectedClassId.Value);
+                }
+            }
         }
 
         private void OnHealthChanged(int oldVal, int newVal)
@@ -98,6 +112,22 @@ namespace Category5.UI
             if (_player == null || healthText == null) return;
 
             healthText.text = $"{_player.CurrentHealth.Value}/{_player.MaxHealth}";
+        }
+        
+        private void UpdateCharPortrait(int classId)
+        {
+            if (playerIconImage == null) return;
+            if (classId == PlayerClass.NoClassId) return;
+            
+            // get the player's selected class
+            var playerClass = Category5.Core.ClassRegistry.Instance.GetClass(classId);
+            if (playerClass == null) return;
+            
+            // assign the class portrait
+            if (playerClass.classPartyPortrait != null)
+            {
+                playerIconImage.sprite = playerClass.classPartyPortrait;
+            }
         }
 
         public ulong GetClientId()

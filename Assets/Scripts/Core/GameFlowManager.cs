@@ -8,6 +8,7 @@ using Category5.Enemies;
 using Category5.Player;
 using Category5.Items;
 using Category5.Audio;
+using UnityEngine.WSA;
 
 namespace Category5.Core
 {
@@ -62,6 +63,13 @@ namespace Category5.Core
 
         // fired server-side when a new round begins (before ClientRpc) — safe to subscribe from server-only code
         public static event Action<int> OnRoundStarted;
+
+        // WWise Variables
+        [SerializeField] private AK.Wwise.State CombatState;
+        [SerializeField] private AK.Wwise.State ExploreState;
+        [SerializeField] private AK.Wwise.State WinState;
+        [SerializeField] private AK.Wwise.State LoseState;
+        [SerializeField] private AK.Wwise.State MenuState;
 
         private bool IsServerAuthority => NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer;
 
@@ -197,6 +205,8 @@ namespace Category5.Core
             // Debug.Log("GameFlowManager: all enemy waves cleared, starting boss entrance sequence");
             OnAllEnemiesCleared?.Invoke();
             StartCoroutine(BossEntranceSequence());
+
+            CombatState.SetValue();
         }
 
         private IEnumerator BossEntranceSequence()
@@ -303,6 +313,8 @@ namespace Category5.Core
             {
                 Debug.LogError("GameFlowManager: ItemManager not found, cannot start item selection");
             }
+
+            
         }
 
         private void TriggerVictoryLocal()
@@ -311,6 +323,9 @@ namespace Category5.Core
             GameEvents.InvokeVictory();
 
             NotifyVictoryClientRpc(); // fire on all clients and host
+
+            //Rylan Code
+            WinState.SetValue();
         }
 
         [ClientRpc]
@@ -373,6 +388,8 @@ namespace Category5.Core
             {
                 ItemManager.Instance.NotifyRoundStartedAndHideSelection(CurrentRound.Value);
             }
+
+            ExploreState.SetValue();
         }
 
         // =====================================

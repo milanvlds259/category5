@@ -69,6 +69,10 @@ namespace Category5.Player
         
         [Tooltip("damage coefficient for heavy melee combo finisher (fraction of attack damage)")]
         public float heavyAttackCoefficient = 1.5f;
+
+        [Header("Melee Combo Settings")]
+        [Tooltip("time before the melee combo resets back to the first hit")]
+        public float meleeComboResetTime = 1f;
         
         [Header("Character Model")]
         [Tooltip("model prefab to instantiate as the player's visual representation for this class")]

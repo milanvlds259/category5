@@ -18,7 +18,8 @@ namespace Category5.Audio
         public static event Action<Vector3, int> OnBossHurt;
 
         // fired when a boss intro card begins — audio team subscribes here
-        public static event Action<BossData> OnBossIntro;
+        // also used by ThirdPersonCamera to rotate toward the boss
+        public static event Action<BossData, Vector3> OnBossIntro;
         
         // =====================================
         // invoke methods - call these from gameplay scripts
@@ -39,9 +40,9 @@ namespace Category5.Audio
             OnBossHurt?.Invoke(position, damage);
         }
 
-        public static void InvokeIntro(BossData data)
+        public static void InvokeIntro(BossData data, Vector3 position)
         {
-            OnBossIntro?.Invoke(data);
+            OnBossIntro?.Invoke(data, position);
         }
     }
 }

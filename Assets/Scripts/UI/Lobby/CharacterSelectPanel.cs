@@ -5,6 +5,7 @@ using Unity.Netcode;
 using Category5.Core;
 using Category5.Player;
 using System.Collections.Generic;
+using DG.Tweening;
 
 namespace Category5.UI
 {
@@ -106,10 +107,13 @@ namespace Category5.UI
                 bg.color = Color.clear;
                 bg.raycastTarget = true;
             }
-            
+
             // make sure character view panel starts hidden
             if (characterViewPanel != null)
-                characterViewPanel.gameObject.SetActive(false);
+            {
+                HideUI(characterViewPanel.gameObject);
+                // characterViewPanel.gameObject.SetActive(false);
+            }
             
             // sync taken states from current lobby
             RefreshCardStates();
@@ -196,14 +200,18 @@ namespace Category5.UI
             if (card.PlayerClass == null) return;
             
             characterViewPanel.ShowClass(card.PlayerClass);
-            characterViewPanel.gameObject.SetActive(true);
+            StopCurrentAnimations(characterViewPanel.gameObject);
+            ShowUI(characterViewPanel.gameObject);
+            //characterViewPanel.gameObject.SetActive(true);
         }
         
         private void OnCardHoverExit(LobbyClassCard card)
         {
             if (characterViewPanel == null) return;
             
-            characterViewPanel.gameObject.SetActive(false);
+            //characterViewPanel.gameObject.SetActive(false);
+            SoftHideUI(characterViewPanel.gameObject, 0.25f); // fade out 
+            //HideUI(characterViewPanel.gameObject);
         }
         
         private void ClearCards()
@@ -222,6 +230,63 @@ namespace Category5.UI
             if (_availableClasses == null || _selectedIndex < 0 || _selectedIndex >= _availableClasses.Length)
                 return null;
             return _availableClasses[_selectedIndex];
+        }
+
+        private void HideUI(GameObject panel) // helper to hide all UI elements in a panel 
+        {
+            if (panel != null)
+            {
+                CanvasGroup canvasGroup = panel.GetComponent<CanvasGroup>();
+                if (canvasGroup != null)
+                {
+                    canvasGroup.alpha = 0;
+                    canvasGroup.interactable = false;
+                    canvasGroup.blocksRaycasts = false;
+                }
+            }
+        }
+
+        private void ShowUI(GameObject panel) // helper to show all UI elements in a panel
+        {
+            if (panel != null)
+            {
+                CanvasGroup canvasGroup = panel.GetComponent<CanvasGroup>();
+                if (canvasGroup != null)
+                {
+                    canvasGroup.alpha = 1;
+                    canvasGroup.interactable = true;
+                    canvasGroup.blocksRaycasts = true;
+                }
+            }
+        }
+
+        private void SoftHideUI(GameObject panel, float fadeLength)
+        {
+            if (panel != null)
+            {
+                CanvasGroup canvasGroup = panel.GetComponent<CanvasGroup>();
+                if (canvasGroup != null)
+                {
+                    canvasGroup.DOKill();
+                    canvasGroup.DOFade(0, fadeLength);
+                    //RT.DOAnchorPosY(-100, fadeLength).SetRelative(); // slide out to the bottom while fading
+                    canvasGroup.interactable = false;
+                    canvasGroup.blocksRaycasts = false;
+                }
+
+            }
+        }
+
+        private void StopCurrentAnimations(GameObject panel)
+        {
+            if (panel != null)
+            {
+                CanvasGroup canvasGroup = panel.GetComponent<CanvasGroup>();
+                if (canvasGroup != null)
+                {
+                    canvasGroup.DOKill();
+                }
+            }
         }
     }
 }

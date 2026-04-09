@@ -320,6 +320,11 @@ namespace Category5
                 // Debug.Log("  -> Blocked: Power-up selection phase");
                 return;
             }
+            if (Category5.UI.BossIntroUI.IntroIsPlaying)
+            {
+                // Debug.Log("  -> Blocked: Boss intro playing");
+                return;
+            }
             if (playerController.IsDead.Value)
             {
                 // Debug.Log("  -> Blocked: Player dead");
@@ -1395,7 +1400,7 @@ namespace Category5
         }
 
         [Rpc(SendTo.Server)]
-        public void SpawnEnchanterHealBeaconServerRpc(Vector3 spawnPosition, Vector3 direction, float maxDistance,
+        public void SpawnEnchanterHealBeaconServerRpc(Vector3 spawnPosition, Vector3 targetPosition,
             float healPerTick, float tickInterval, float baseDuration, float durationPerCharge, float radius)
         {
             if (!IsServer) return;
@@ -1426,10 +1431,11 @@ namespace Category5
                 return;
             }
 
-            projectile.Initialize(OwnerClientId, healBeaconZonePrefab, direction, maxDistance, healPerTick, tickInterval, duration, radius);
+            projectile.Initialize(OwnerClientId, healBeaconZonePrefab, targetPosition, healPerTick, tickInterval, duration, radius);
 
             netObj.Spawn();
 
+            Vector3 direction = (targetPosition - spawnPosition).normalized;
             TriggerEnchanterEThrownClientRpc(spawnPosition, direction);
         }
 

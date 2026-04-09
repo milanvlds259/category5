@@ -19,6 +19,7 @@ namespace Category5.UI
         [SerializeField] private GameObject bossHealthContainer; // to hide it when no boss
         [SerializeField] private TextMeshProUGUI bossNameText;
         [SerializeField] private TextMeshProUGUI roundText;
+        [SerializeField] private Image charPortraitImage; // displays the local player's class portrait
 
         [Header("damage numbers")]
         [SerializeField] private DamageNumber damageNumberPrefab;
@@ -112,6 +113,34 @@ namespace Category5.UI
                         playerManaBar.UpdateMana(current, max);
                     };
                 }
+                
+                // subscribe to class changes to update the portrait
+                var classManager = player.GetComponent<PlayerClassManager>();
+                if (classManager != null)
+                {
+                    classManager.SelectedClassId.OnValueChanged += (oldId, newId) => UpdateCharPortrait(newId);
+                    // set portrait immediately if class is already loaded
+                    if (classManager.SelectedClassId.Value != PlayerClass.NoClassId)
+                    {
+                        UpdateCharPortrait(classManager.SelectedClassId.Value);
+                    }
+                }
+            }
+        }
+        
+        private void UpdateCharPortrait(int classId)
+        {
+            if (charPortraitImage == null) return;
+            if (classId == PlayerClass.NoClassId) return;
+            
+            // get the player's selected class
+            var playerClass = Category5.Core.ClassRegistry.Instance.GetClass(classId);
+            if (playerClass == null) return;
+            
+            // assign the class portrait
+            if (playerClass.classPartyPortrait != null)
+            {
+                charPortraitImage.sprite = playerClass.classPartyPortrait;
             }
         }
 
