@@ -399,7 +399,6 @@ public class MapGenerator : NetworkBehaviour
 
     void AddCloudBoundaryToArena(Arena arena)
     {
-        Debug.Log(arena.gameObjectRef.name);
         GameObject cloudBoundary;
         float Yscale = 0;
         float Ypos = 0;
@@ -702,7 +701,6 @@ public class MapGenerator : NetworkBehaviour
         yield return null;
         foreach (Path path in paths)
         {
-            Debug.Log(path.gameObjectRef.name);
             SplineContainer container = path.gameObjectRef.GetComponent<SplineContainer>();
 
             SplineExtrude splineExtrude = container.gameObject.AddComponent<SplineExtrude>();
@@ -714,12 +712,6 @@ public class MapGenerator : NetworkBehaviour
                 if (meshFilter.sharedMesh == null)
                 {
                     Mesh extrudeMesh = new Mesh();
-                    Vector2[] uvs = extrudeMesh.uv;
-                    Debug.Log(" HYWRASH " + uvs);
-                    foreach (Vector2 uv in uvs)
-                    {
-                        Debug.Log(uv + " " + path.gameObjectRef.name);
-                    }
                     extrudeMesh.name = "Spline Extrude Mesh";
                     meshFilter.sharedMesh = extrudeMesh;
                 }
