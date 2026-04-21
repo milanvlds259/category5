@@ -217,6 +217,8 @@ namespace Category5.Player
             ? new Vector3(_controller.velocity.x, 0f, _controller.velocity.z).magnitude
             : 0f;
 
+        public Camera mapCamera;
+
         private void Awake()
         {
             _controller = GetComponent<CharacterController>();
@@ -233,6 +235,18 @@ namespace Category5.Player
 
         private void Start()
         {
+            if (IsClient) {
+                Camera[] camObjects = FindObjectsByType<Camera>(FindObjectsSortMode.None);
+                foreach (Camera cam in camObjects)
+                {
+                    if (cam.gameObject.tag == "MapCamera")
+                    {
+                        mapCamera = cam;
+                    }
+                }
+                mapCamera.enabled = false;
+            }
+            
             // if NetworkManager is missing or not running we are in offline mode
             if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsListening)
             {
@@ -325,6 +339,9 @@ namespace Category5.Player
                     _inputActions.Player.Jump.performed -= OnJump;
                     _inputActions.Player.Dodge.started -= OnDodge;
                     _inputActions.Player.Sprint.canceled -= OnSprintCanceled;
+                    // _inputActions.Player.Dodge.performed -= OnDodge;
+                    // _inputActions.Player.Sprint.performed -= OnSprint;
+                    _inputActions.Player.Map.performed -= OnMapToggle;
                 }
                 return;
             }
@@ -512,6 +529,8 @@ namespace Category5.Player
                 _inputActions.Player.Jump.performed += OnJump;
                 _inputActions.Player.Dodge.started += OnDodge;
                 _inputActions.Player.Sprint.canceled += OnSprintCanceled;
+                // _inputActions.Player.Sprint.performed += OnSprint;
+                _inputActions.Player.Map.performed += OnMapToggle;
             }
         }
 
@@ -522,6 +541,9 @@ namespace Category5.Player
                 _inputActions.Player.Jump.performed -= OnJump;
                 _inputActions.Player.Dodge.started -= OnDodge;
                 _inputActions.Player.Sprint.canceled -= OnSprintCanceled;
+                // _inputActions.Player.Dodge.performed -= OnDodge;
+                // _inputActions.Player.Sprint.performed -= OnSprint;
+                _inputActions.Player.Map.performed -= OnMapToggle;
                 _inputActions.Player.Disable();
             }
         }
@@ -943,6 +965,12 @@ namespace Category5.Player
         {
             Debug.Log("[PlayerController] OnSprintCanceled (Shift Released)");
             CancelSprint();
+        }
+
+        private void OnMapToggle(InputAction.CallbackContext context)
+        {
+            Debug.Log("OPEN MAP");
+            if (IsClient) mapCamera.enabled = !mapCamera.enabled;
         }
         
         // method to cancel sprint (called by combat/abilities/etc)
