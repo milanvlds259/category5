@@ -47,7 +47,7 @@ public class MapGenerator : NetworkBehaviour
     public Vector3 maxBounds;
 
     // List to hold references to created arenas/eyes
-    private List<Arena> arenas = new List<Arena>();
+    private List<ArenaData> arenas = new List<ArenaData>();
     // Layer mask used in arena generation so that they don't generate overlapping
     [SerializeField] LayerMask arenaMask;
 
@@ -57,6 +57,7 @@ public class MapGenerator : NetworkBehaviour
     // Keep track of all path points to make sure they're not too close together
     private List<BezierKnot> pathMidpoints = new List<BezierKnot>();
 
+    [Header("Materials")]
     [SerializeField] Material cloudMaterial;
 
     // Material for walls on storm eyes and wind tunnels
@@ -64,15 +65,20 @@ public class MapGenerator : NetworkBehaviour
     // Material for entrances to wind tunnels
     [SerializeField] Material entranceMaterial;
     [SerializeField] Material islandMaterial;
+
+    [Header("Prefabs")]
     [SerializeField] GameObject cloudwallPrefab;
     [SerializeField] GameObject cloudSpherePrefab;
     
-
     // Spawner stuff
     [SerializeField] GameObject enemySpawnerPrefab;
     private List<GameObject> spawners = new List<GameObject>();
 
-    class Arena
+    [Header("MiniAndOverheadMap")]
+    [SerializeField] Sprite arenaMapSprite;
+    [SerializeField] Sprite pathMapSprite;
+
+    class ArenaData
     {
         public Vector3 position;
         public float scaleFactor;
@@ -89,7 +95,7 @@ public class MapGenerator : NetworkBehaviour
 
         public TriggerVolume trigger;
 
-        public Arena(Vector3 pos, GameObject objRef, float scale)
+        public ArenaData(Vector3 pos, GameObject objRef, float scale)
         {
             position = pos;
             gameObjectRef = objRef;
@@ -105,8 +111,8 @@ public class MapGenerator : NetworkBehaviour
 
     class Path
     {
-        public Arena arenaA;
-        public Arena arenaB;
+        public ArenaData arenaA;
+        public ArenaData arenaB;
         public GameObject gameObjectRef;
 
         public bool isHidden;
@@ -114,7 +120,7 @@ public class MapGenerator : NetworkBehaviour
         // The spline that makes up the physical object of this path
         public Spline spline;
 
-        public Path(Arena a, Arena b, GameObject objRef)
+        public Path(ArenaData a, ArenaData b, GameObject objRef)
         {
             arenaA = a;
             arenaB = b;
@@ -195,13 +201,13 @@ public class MapGenerator : NetworkBehaviour
 
 
         // The main boss arena will always be created in the center of the map
-        Arena bossArena = CreateArena(Vector3.zero, mapParent.transform, "boss", 1.5f);
+        ArenaData bossArena = CreateArena(Vector3.zero, mapParent.transform, "boss", 1.5f);
 
         // Create arenas at random positions between the input Vector3s for storm eyes
         for (int i = 0; i < numberOfArenas; i++)
         {
             // Store a boolean for if an arena was successfully created and create an arena
-            Arena arenaCreated = CreateArena(minBounds, maxBounds, i.ToString(), mapParent.transform);
+            ArenaData arenaCreated = CreateArena(minBounds, maxBounds, i.ToString(), mapParent.transform);
 
             int maxIterations = 100; // Prevent infinite loops
             // As long as the arena wasn't created (overlaps), try again
@@ -231,7 +237,7 @@ public class MapGenerator : NetworkBehaviour
             arenas[i].isEye = true;
         }
         // After setting eyes, add cloud boundaries to close off arenas
-        foreach (Arena arena in arenas)
+        foreach (ArenaData arena in arenas)
         {
             // Add the cloud boundaries on all arenas
             // eyes get cylinders (cloudwall) and other get spheres
@@ -243,8 +249,8 @@ public class MapGenerator : NetworkBehaviour
         // Loop through each arena here
         for (int i = 0; i < arenas.Count; i++)
         {
-            Arena closestArena = null;
-            Arena secondClosestArena = null;
+            ArenaData closestArena = null;
+            ArenaData secondClosestArena = null;
             // Loop through all arenas again here
             for (int j = 0; j < arenas.Count; j++)
             {
@@ -304,7 +310,7 @@ public class MapGenerator : NetworkBehaviour
 
     // Creates an arena at the specified location, specific location version!
     // Overload below that does a random position
-    Arena CreateArena(Vector3 inputPos, Transform parent, String numberforname = "", float scaleFactor=1f)
+    ArenaData CreateArena(Vector3 inputPos, Transform parent, String numberforname = "", float scaleFactor=1f)
     {
         // TEMPORARY! Replace basic shapes with prefabs of premade arenas and stuff
         
@@ -390,8 +396,27 @@ public class MapGenerator : NetworkBehaviour
             }
             arena.transform.parent = parent;
 
-            // Create an Arena instance to hold the arena's data
-            Arena arenaData = new Arena(arena.transform.position, arena, scaleFactor);
+            // Attach Arena script
+            Arena arenaScript = arena.AddComponent<Arena>();
+
+            // Attach Sprite Renderer for the mini and overhead maps
+            GameObject sprite = new GameObject("sprite");
+            sprite.transform.position = arena.transform.position;
+            sprite.transform.localScale = new Vector3(
+                                            collider.radius * 2.2f * arena.transform.localScale.x,
+                                            collider.radius * 2.2f * arena.transform.localScale.x,
+                                            1f
+                                            );
+            sprite.transform.rotation = UnityEngine.Quaternion.Euler(90, 0, 0);
+            int layerIndex = LayerMask.NameToLayer("Map");
+            sprite.layer = layerIndex;
+            sprite.transform.parent = arena.transform;
+
+            SpriteRenderer renderer = sprite.AddComponent<SpriteRenderer>();
+            renderer.sprite = arenaMapSprite;
+
+            // Create an ArenaData instance to hold the arena's data
+            ArenaData arenaData = new ArenaData(arena.transform.position, arena, scaleFactor);
             arenas.Add(arenaData); // Store reference to the created arena
 
             //arena.tag = "Arena"; // Set the tag of the arena to "Arena" for easy reference
@@ -403,11 +428,11 @@ public class MapGenerator : NetworkBehaviour
     // Overload of CreateArena that takes in Vector3 min and max for a random position,
     // Then calls the original version on a random position within the box created by the min and max
     // The min and max are the bounds of the area where the arena can spawn
-    Arena CreateArena(Vector3 min, Vector3 max, String numberForName, Transform parent)
+    ArenaData CreateArena(Vector3 min, Vector3 max, String numberForName, Transform parent)
     {
         // Create the arena, and check if the arena was successfully created
         // This call doesn't pass a scalefactor, so it defaults to 1f
-        Arena arenaData = CreateArena(
+        ArenaData arenaData = CreateArena(
                                     new Vector3(Random.Range(min.x, max.x), Random.Range(min.y, max.y), Random.Range(min.z, max.z)),
                                     parent,
                                     numberForName
@@ -432,7 +457,7 @@ public class MapGenerator : NetworkBehaviour
 
         for (int i = 1; i < arenas.Count; i++)
         {
-            Arena arena = arenas[i];
+            ArenaData arena = arenas[i];
             GameObject spawnerObj = Instantiate(enemySpawnerPrefab);
         
             EnemySpawner spawner = spawnerObj.GetComponent<EnemySpawner>();
@@ -449,11 +474,14 @@ public class MapGenerator : NetworkBehaviour
 
             // Add the spawner to the spawners list
             spawners.Add(spawnerObj);
+
+            Arena arenaScript = arena.gameObjectRef.GetComponent<Arena>();
+            arenaScript.enemySpawner = spawner;
         }
         
     }
 
-    void AddCloudBoundaryToArena(Arena arena)
+    void AddCloudBoundaryToArena(ArenaData arena)
     {
         GameObject cloudBoundary;
         float Yscale = 0;
@@ -496,7 +524,7 @@ public class MapGenerator : NetworkBehaviour
     }
 
     // Creates a path between two given arenas
-    void CreatePath(Arena arenaA, Arena arenaB, Transform parent, String numberforname = "")
+    void CreatePath(ArenaData arenaA, ArenaData arenaB, Transform parent, String numberforname = "")
     {
         // Checks if the path is valid
         // Path to same arena?
@@ -800,7 +828,7 @@ public class MapGenerator : NetworkBehaviour
     void RepositionEntrance(Path path, string whichEntrance = "A")
     {
         BezierKnot entranceKnot;
-        Arena arena = null;
+        ArenaData arena = null;
         int knotIndex;
         int secondaryKnotIndex; // Used for the knot that makes the path face the arena
         // The passed whichEntrance string decides if we're checking the first knot or the last
