@@ -972,6 +972,12 @@ namespace Category5.Player
             Debug.Log("OPEN MAP");
             if (IsClient) mapCamera.enabled = !mapCamera.enabled;
         }
+
+        private void OnMapToggle(InputAction.CallbackContext context)
+        {
+            Debug.Log("OPEN MAP");
+            if (IsClient) mapCamera.enabled = !mapCamera.enabled;
+        }
         
         // method to cancel sprint (called by combat/abilities/etc)
         public void CancelSprint()
