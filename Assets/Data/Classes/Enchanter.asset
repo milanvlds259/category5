@@ -30,10 +30,11 @@ MonoBehaviour:
   baseMoveSpeed: 6
   baseAttackSpeed: 0.9
   baseDodgeCooldown: 2
-  baseManaRegenRate: 2.5
+  baseManaRegenRate: 4.5
   baseArmor: 12
   baseCritChance: 0.03
   baseCritDamage: 1.5
   lightAttackCoefficient: 1
   heavyAttackCoefficient: 1.05
+  meleeComboResetTime: 1
   modelPrefab: {fileID: 4399070736569227804, guid: b01d52a8027de6b4fa987324b0bbd1b8, type: 3}

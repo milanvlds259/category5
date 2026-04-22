@@ -35,7 +35,7 @@ namespace Category5.Player
         
         [Header("Mana")]
         [SerializeField] private int baseMaxMana = 10; // fallback before class data loads
-        public NetworkVariable<int> CurrentMana = new NetworkVariable<int>(10);
+        public NetworkVariable<int> CurrentMana = new NetworkVariable<int>(0);
         
         // event fired when mana changes (for UI updates)
         public event System.Action<int, int> OnManaChanged; // current, max
@@ -245,7 +245,7 @@ namespace Category5.Player
             if (IsServer)
             {
                 CurrentHealth.Value = MaxHealth;
-                CurrentMana.Value = MaxMana;
+                CurrentMana.Value = 0; // ult meter starts empty
             }
             _lastMaxHealth = MaxHealth;
             _lastMaxMana = MaxMana;
@@ -1084,6 +1084,18 @@ namespace Category5.Player
             
             CurrentMana.Value = Mathf.Max(0, CurrentMana.Value - amount);
             
+            // notify all clients
+            NotifyManaChangedClientRpc(CurrentMana.Value, MaxMana);
+        }
+
+        // consume all mana (server rpc) — used by ult abilities that require and drain the full bar
+        [Rpc(SendTo.Server)]
+        public void RequestConsumeAllManaServerRpc()
+        {
+            if (!IsServer) return;
+
+            CurrentMana.Value = 0;
+
             // notify all clients
             NotifyManaChangedClientRpc(CurrentMana.Value, MaxMana);
         }

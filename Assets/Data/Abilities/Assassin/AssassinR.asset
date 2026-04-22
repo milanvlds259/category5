@@ -21,5 +21,6 @@ MonoBehaviour:
   damageCoefficient: 2.5
   castTime: 0
   manaCost: 0
+  consumesAllMana: 1
   vfxPrefab: {fileID: 0}
   sfxClip: {fileID: 0}
