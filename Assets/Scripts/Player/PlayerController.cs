@@ -385,6 +385,12 @@ namespace Category5.Player
                 {
                     anim.SetBool(_animIsDeadHash, isDead);
                 }
+
+                if (!isDead)
+                {
+                    anim.Rebind();
+                    anim.Update(0f);
+                }
             }
 
             // death transitions the animator out of the attack clip, so attack animation events
