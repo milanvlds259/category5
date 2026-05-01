@@ -17,12 +17,15 @@ ModelImporter:
     removeConstantScaleCurves: 0
     motionNodeName: 
     animationImportErrors: 
-    animationImportWarnings: 
+    animationImportWarnings: "\nClip 'Take 001' has import animation warnings that
+      might lower retargeting quality:\nNote: Activate translation DOF on avatar
+      to improve retargeting quality.\n\t'Michelle:Bind_Hips' is inbetween humanoid
+      transforms and has rotation animation that will be discarded.\n"
     animationRetargetingWarnings: 
     animationDoRetargetingWarnings: 0
     importAnimatedCustomProperties: 0
     importConstraints: 0
-    animationCompression: 1
+    animationCompression: 3
     animationRotationError: 0.5
     animationPositionError: 0.5
     animationScaleError: 0.5
@@ -44,13 +47,13 @@ ModelImporter:
       hasAdditiveReferencePose: 0
       loopTime: 0
       loopBlend: 0
-      loopBlendOrientation: 0
-      loopBlendPositionY: 0
-      loopBlendPositionXZ: 0
+      loopBlendOrientation: 1
+      loopBlendPositionY: 1
+      loopBlendPositionXZ: 1
       keepOriginalOrientation: 0
-      keepOriginalPositionY: 1
+      keepOriginalPositionY: 0
       keepOriginalPositionXZ: 0
-      heightFromFeet: 0
+      heightFromFeet: 1
       mirror: 0
       bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
       curves: []
@@ -71,12 +74,12 @@ ModelImporter:
       cycleOffset: 0
       loop: 0
       hasAdditiveReferencePose: 0
-      loopTime: 0
+      loopTime: 1
       loopBlend: 0
-      loopBlendOrientation: 0
-      loopBlendPositionY: 0
-      loopBlendPositionXZ: 0
-      keepOriginalOrientation: 0
+      loopBlendOrientation: 1
+      loopBlendPositionY: 1
+      loopBlendPositionXZ: 1
+      keepOriginalOrientation: 1
       keepOriginalPositionY: 1
       keepOriginalPositionXZ: 0
       heightFromFeet: 0
@@ -140,8 +143,721 @@ ModelImporter:
   importAnimation: 1
   humanDescription:
     serializedVersion: 3
-    human: []
-    skeleton: []
+    human:
+    - boneName: Michelle:Bind_Root
+      humanName: Hips
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_LeftUpLeg
+      humanName: LeftUpperLeg
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_RightUpLeg
+      humanName: RightUpperLeg
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_LeftLeg
+      humanName: LeftLowerLeg
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_RightLeg
+      humanName: RightLowerLeg
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_LeftFoot
+      humanName: LeftFoot
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_RightFoot
+      humanName: RightFoot
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_Spine
+      humanName: Spine
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_Spine1
+      humanName: Chest
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_Neck
+      humanName: Neck
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_Head
+      humanName: Head
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_LeftShoulder
+      humanName: LeftShoulder
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_RightShoulder
+      humanName: RightShoulder
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_LeftArm
+      humanName: LeftUpperArm
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_RightArm
+      humanName: RightUpperArm
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_LeftForeArm
+      humanName: LeftLowerArm
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_RightForeArm
+      humanName: RightLowerArm
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_LeftHand
+      humanName: LeftHand
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_RightHand
+      humanName: RightHand
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_LeftToeBase
+      humanName: LeftToes
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_RightToeBase
+      humanName: RightToes
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_LeftHandThumb1
+      humanName: Left Thumb Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_LeftHandThumb2
+      humanName: Left Thumb Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_LeftHandThumb3
+      humanName: Left Thumb Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_LeftHandMiddle1
+      humanName: Left Middle Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_LeftHandMiddle2
+      humanName: Left Middle Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_LeftHandMiddle3
+      humanName: Left Middle Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_LeftHandRing1
+      humanName: Left Ring Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_LeftHandRing2
+      humanName: Left Ring Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_LeftHandRing3
+      humanName: Left Ring Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_LeftHandPinky1
+      humanName: Left Little Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_LeftHandPinky2
+      humanName: Left Little Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_LeftHandPinky3
+      humanName: Left Little Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_RightHandThumb1
+      humanName: Right Thumb Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_RightHandThumb2
+      humanName: Right Thumb Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_RightHandThumb3
+      humanName: Right Thumb Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_RightHandMiddle1
+      humanName: Right Middle Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_RightHandMiddle2
+      humanName: Right Middle Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_RightHandMiddle3
+      humanName: Right Middle Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_RightHandRing1
+      humanName: Right Ring Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_RightHandRing2
+      humanName: Right Ring Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_RightHandRing3
+      humanName: Right Ring Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_RightHandPinky1
+      humanName: Right Little Proximal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_RightHandPinky2
+      humanName: Right Little Intermediate
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_RightHandPinky3
+      humanName: Right Little Distal
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    - boneName: Michelle:Bind_Spine2
+      humanName: UpperChest
+      limit:
+        min: {x: 0, y: 0, z: 0}
+        max: {x: 0, y: 0, z: 0}
+        value: {x: 0, y: 0, z: 0}
+        length: 0
+        modified: 0
+    skeleton:
+    - name: MayaJumpnSurfAnims(Clone)
+      parentName: 
+      position: {x: -0.0002732086, y: -0.0028971264, z: 0.0051500318}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Joint_GRP
+      parentName: MayaJumpnSurfAnims(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 0.058832403, y: 0.058832403, z: 0.058832403}
+    - name: Michelle:Bind_Joint_GRP
+      parentName: Michelle:Joint_GRP
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_Root
+      parentName: Michelle:Bind_Joint_GRP
+      position: {x: 0.00028004317, y: 1.055563, z: 0.00053858815}
+      rotation: {x: 6.118127e-11, y: 0.0000013934979, z: -0.000043904813, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_Hips
+      parentName: Michelle:Bind_Root
+      position: {x: -8.673617e-20, y: 5.684342e-16, z: 1.141687e-17}
+      rotation: {x: -1.2236252e-10, y: -1.7631e-41, z: 1.440843e-31, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftUpLeg
+      parentName: Michelle:Bind_Hips
+      position: {x: -0.06620178, y: -0.08816846, z: -0.0044718278}
+      rotation: {x: -0.019242931, y: -0.124221966, z: 0.9920662, w: -0.0018244678}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftLeg
+      parentName: Michelle:Bind_LeftUpLeg
+      position: {x: 0.0037225636, y: 0.361852, z: 0.0008833976}
+      rotation: {x: -0.11378073, y: -0.027773319, z: -0.0060673947, w: 0.99309915}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftFoot
+      parentName: Michelle:Bind_LeftLeg
+      position: {x: -5.085549e-10, y: 0.4626306, z: -7.346706e-10}
+      rotation: {x: 0.5202477, y: -0.013319067, z: -0.012519962, w: 0.8538198}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftToeBase
+      parentName: Michelle:Bind_LeftFoot
+      position: {x: -2.7044297e-10, y: 0.16368599, z: -0.0000000066870074}
+      rotation: {x: 0.3284259, y: 0.026533304, z: -0.00923019, w: 0.9441119}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftToe_End
+      parentName: Michelle:Bind_LeftToeBase
+      position: {x: -1.8163835e-11, y: 0.06665022, z: 4.8907482e-11}
+      rotation: {x: 0.000000010966882, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightUpLeg
+      parentName: Michelle:Bind_Hips
+      position: {x: 0.06620178, y: -0.08816849, z: -0.0044718278}
+      rotation: {x: 0.05760822, y: 0.114969, z: 0.99169695, w: -0.00076101837}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightLeg
+      parentName: Michelle:Bind_RightUpLeg
+      position: {x: -0.0037211438, y: 0.36183897, z: 0.0049615745}
+      rotation: {x: -0.12243494, y: 0.026475899, z: 0.004464957, w: 0.9921133}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightFoot
+      parentName: Michelle:Bind_RightLeg
+      position: {x: 6.815706e-10, y: 0.46253347, z: -3.5159417e-10}
+      rotation: {x: 0.636262, y: 0.020705074, z: -0.018245906, w: 0.7709793}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightToeBase
+      parentName: Michelle:Bind_RightFoot
+      position: {x: -3.030145e-12, y: 0.1686341, z: -0.0000000029002587}
+      rotation: {x: 0.317169, y: -0.02520875, z: 0.008434185, w: 0.94799644}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightToe_End
+      parentName: Michelle:Bind_RightToeBase
+      position: {x: -3.188056e-11, y: 0.06677563, z: 5.6875376e-11}
+      rotation: {x: -0.00000018608054, y: 0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_Spine
+      parentName: Michelle:Bind_Root
+      position: {x: -8.673617e-20, y: 0.056457214, z: -0.00031929315}
+      rotation: {x: 0.11691689, y: 0.0000037492973, z: 0.000043766617, w: 0.9931417}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_Spine1
+      parentName: Michelle:Bind_Spine
+      position: {x: -0, y: 0.06586783, z: -5.6211745e-12}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_Spine2
+      parentName: Michelle:Bind_Spine1
+      position: {x: -0, y: 0.07527754, z: -3.2164848e-12}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_Neck
+      parentName: Michelle:Bind_Spine2
+      position: {x: -0, y: 0.08468717, z: -0.0000000010722686}
+      rotation: {x: 0.00282771, y: -0, z: -0, w: 0.999996}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_Head
+      parentName: Michelle:Bind_Neck
+      position: {x: -0, y: 0.059989013, z: -0.011589574}
+      rotation: {x: 0.13762255, y: -0.045434963, z: 0.028036378, w: 0.98904485}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_HeadTop_End
+      parentName: Michelle:Bind_Head
+      position: {x: -0, y: 0.2174881, z: -0.0420176}
+      rotation: {x: 6.938894e-18, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftShoulder
+      parentName: Michelle:Bind_Spine2
+      position: {x: -0.03414665, y: 0.073433705, z: -0.00017398552}
+      rotation: {x: 0.57097983, y: -0.4161578, z: 0.5738933, w: 0.4140546}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftArm
+      parentName: Michelle:Bind_LeftShoulder
+      position: {x: 8.603784e-14, y: 0.07189681, z: 0.0000000010090115}
+      rotation: {x: -0.13920353, y: 0.24179558, z: -0.046461407, w: 0.9591656}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftForeArm
+      parentName: Michelle:Bind_LeftArm
+      position: {x: 3.231037e-11, y: 0.24203573, z: 1.7166471e-10}
+      rotation: {x: -0.0056587155, y: 0.00029775497, z: -0.03656972, w: 0.9993151}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftHand
+      parentName: Michelle:Bind_LeftForeArm
+      position: {x: -6.8747494e-11, y: 0.215951, z: -4.274625e-13}
+      rotation: {x: 0.0041471305, y: -0.011003345, z: 0.2783842, w: 0.96039784}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftHandThumb1
+      parentName: Michelle:Bind_LeftHand
+      position: {x: 0.021452617, y: 0.020982353, z: 0.0110668}
+      rotation: {x: 0.13606712, y: -0.04005926, z: -0.29364562, w: 0.9453324}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftHandThumb2
+      parentName: Michelle:Bind_LeftHandThumb1
+      position: {x: 0.0044221953, y: 0.025201807, z: -7.304379e-14}
+      rotation: {x: -0.00019003064, y: -0.0024069618, z: -0.09477002, w: 0.9954963}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftHandThumb3
+      parentName: Michelle:Bind_LeftHandThumb2
+      position: {x: -0.0005009757, y: 0.031055419, z: -4.539811e-10}
+      rotation: {x: -0.00012929628, y: 0.0015934394, z: -0.06460444, w: 0.9979097}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftHandThumb4
+      parentName: Michelle:Bind_LeftHandThumb3
+      position: {x: -0.003921216, y: 0.026770787, z: 6.240268e-10}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftHandIndex1
+      parentName: Michelle:Bind_LeftHand
+      position: {x: 0.025610246, y: 0.07100104, z: 0.0004859041}
+      rotation: {x: 0.09053283, y: -0.0050239307, z: -0.055279817, w: 0.9943454}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftHandIndex2
+      parentName: Michelle:Bind_LeftHandIndex1
+      position: {x: 0.0000056504696, y: 0.030000962, z: 4.2981865e-11}
+      rotation: {x: 0.2886876, y: -0.000054997425, z: -0.00018291385, w: 0.9574233}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftHandIndex3
+      parentName: Michelle:Bind_LeftHandIndex2
+      position: {x: -0.0000047409167, y: 0.027485795, z: -1.9026202e-11}
+      rotation: {x: 0.00000039736807, y: 0.00000041718425, z: 0.00006952881, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftHandIndex4
+      parentName: Michelle:Bind_LeftHandIndex3
+      position: {x: -0.00000091003477, y: 0.023343477, z: -4.3468163e-12}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftHandMiddle1
+      parentName: Michelle:Bind_LeftHand
+      position: {x: 0.008249274, y: 0.07382679, z: -0.0010472892}
+      rotation: {x: -0.0070660245, y: -0.0001592675, z: -0.055321597, w: 0.9984436}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftHandMiddle2
+      parentName: Michelle:Bind_LeftHandMiddle1
+      position: {x: 0.000018941806, y: 0.033795662, z: 5.779398e-11}
+      rotation: {x: 0.023120672, y: -0.00076722197, z: -0.0011422384, w: 0.9997318}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftHandMiddle3
+      parentName: Michelle:Bind_LeftHandMiddle2
+      position: {x: -0.000055141572, y: 0.031907894, z: 1.0537775e-10}
+      rotation: {x: 0.000000392917, y: 0.000014665451, z: 0.0015158954, w: 0.99999887}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftHandMiddle4
+      parentName: Michelle:Bind_LeftHandMiddle3
+      position: {x: 0.000036199785, y: 0.027520403, z: 2.1196342e-11}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftHandRing1
+      parentName: Michelle:Bind_LeftHand
+      position: {x: -0.008877625, y: 0.075375415, z: 0.00096350734}
+      rotation: {x: -0.0072264634, y: -0.0029833333, z: -0.054827567, w: 0.99846524}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftHandRing2
+      parentName: Michelle:Bind_LeftHandRing1
+      position: {x: 0.00004293377, y: 0.028452307, z: -3.1688513e-10}
+      rotation: {x: 0.024650285, y: -0.000098148106, z: -0.00089249277, w: 0.9996958}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftHandRing3
+      parentName: Michelle:Bind_LeftHandRing2
+      position: {x: -0.0000074501077, y: 0.026810085, z: 6.4119374e-12}
+      rotation: {x: 0.0000000736661, y: -0.000025610434, z: -0.0006367864, w: 0.9999998}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftHandRing4
+      parentName: Michelle:Bind_LeftHandRing3
+      position: {x: -0.00003548392, y: 0.022807121, z: 8.0285646e-11}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftHandPinky1
+      parentName: Michelle:Bind_LeftHand
+      position: {x: -0.0249819, y: 0.07361747, z: 0.0002872289}
+      rotation: {x: -0.007039803, y: 0.00031504506, z: -0.055706467, w: 0.9984223}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftHandPinky2
+      parentName: Michelle:Bind_LeftHandPinky1
+      position: {x: -0.0000052446476, y: 0.02480185, z: -5.0656437e-11}
+      rotation: {x: 0.026317824, y: -0.0002516088, z: -0.0002480498, w: 0.9996536}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftHandPinky3
+      parentName: Michelle:Bind_LeftHandPinky2
+      position: {x: -0.000013815116, y: 0.019510984, z: -4.026546e-11}
+      rotation: {x: 0.0000003114148, y: -0.000008735132, z: 0.00093126245, w: 0.9999996}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_LeftHandPinky4
+      parentName: Michelle:Bind_LeftHandPinky3
+      position: {x: 0.000019060173, y: 0.016595453, z: 4.0817977e-11}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightShoulder
+      parentName: Michelle:Bind_Spine2
+      position: {x: 0.03414665, y: 0.07343246, z: 0.0000466882}
+      rotation: {x: 0.5728125, y: 0.4148505, z: -0.57202154, w: 0.415423}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightArm
+      parentName: Michelle:Bind_RightShoulder
+      position: {x: 1.2103093e-11, y: 0.07189681, z: 0.0000000010089389}
+      rotation: {x: -0.14790185, y: -0.05865664, z: 0.0017150936, w: 0.9872596}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightForeArm
+      parentName: Michelle:Bind_RightArm
+      position: {x: -2.5905004e-11, y: 0.24202721, z: -5.676185e-11}
+      rotation: {x: -0.0029761337, y: -0.00016257908, z: 0.04828961, w: 0.9988289}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightHand
+      parentName: Michelle:Bind_RightForeArm
+      position: {x: 2.9722025e-10, y: 0.21595645, z: -3.1816683e-12}
+      rotation: {x: 0.006925191, y: 0.010734558, z: -0.057349306, w: 0.9982725}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightHandThumb1
+      parentName: Michelle:Bind_RightHand
+      position: {x: -0.021653892, y: 0.021352429, z: 0.011744985}
+      rotation: {x: 0.023103321, y: -0.017387796, z: 0.32837886, w: 0.9441034}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightHandThumb2
+      parentName: Michelle:Bind_RightHandThumb1
+      position: {x: -0.0043806303, y: 0.025709493, z: -8.3908785e-10}
+      rotation: {x: -0.00021471024, y: 0.0028202748, z: 0.09277321, w: 0.99568325}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightHandThumb3
+      parentName: Michelle:Bind_RightHandThumb2
+      position: {x: 0.00052068767, y: 0.030593134, z: 5.0527604e-10}
+      rotation: {x: -0.00006173374, y: -0.00075479824, z: 0.064436294, w: 0.9979216}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightHandThumb4
+      parentName: Michelle:Bind_RightHandThumb3
+      position: {x: 0.0038599425, y: 0.026252195, z: -4.3490786e-10}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightHandIndex1
+      parentName: Michelle:Bind_RightHand
+      position: {x: -0.025669824, y: 0.07104994, z: 0.00039442003}
+      rotation: {x: 0.20555751, y: 0.01426028, z: 0.055927854, w: 0.9769416}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightHandIndex2
+      parentName: Michelle:Bind_RightHandIndex1
+      position: {x: 0.000010054917, y: 0.029493302, z: -1.6901395e-11}
+      rotation: {x: 0.08893875, y: 0.00009567581, z: 0.00080677186, w: 0.99603677}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightHandIndex3
+      parentName: Michelle:Bind_RightHandIndex2
+      position: {x: 0.000055375094, y: 0.028015709, z: -9.608073e-11}
+      rotation: {x: -0.00000047357221, y: 0.000023453515, z: -0.0023566494, w: 0.99999726}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightHandIndex4
+      parentName: Michelle:Bind_RightHandIndex3
+      position: {x: -0.000065430344, y: 0.023635458, z: 2.466338e-10}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightHandMiddle1
+      parentName: Michelle:Bind_RightHand
+      position: {x: -0.008360951, y: 0.07262776, z: -0.0011012207}
+      rotation: {x: -0.007521023, y: -0.00036465417, z: 0.05587283, w: 0.9984095}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightHandMiddle2
+      parentName: Michelle:Bind_RightHandMiddle1
+      position: {x: -0.00009278475, y: 0.033110876, z: 2.0578738e-11}
+      rotation: {x: 0.030121878, y: -0.0000018870052, z: 0.0014097675, w: 0.9995453}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightHandMiddle3
+      parentName: Michelle:Bind_RightHandMiddle2
+      position: {x: 0.0000004939979, y: 0.03189107, z: 1.0237869e-10}
+      rotation: {x: 0.0000004064008, y: 0.00007060241, z: 0.0017090165, w: 0.99999857}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightHandMiddle4
+      parentName: Michelle:Bind_RightHandMiddle3
+      position: {x: 0.00009229077, y: 0.02691511, z: 2.4407427e-11}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightHandRing1
+      parentName: Michelle:Bind_RightHand
+      position: {x: 0.009853345, y: 0.07492675, z: -0.0001888804}
+      rotation: {x: -0.0075753294, y: 0.0005835575, z: 0.057001807, w: 0.9983452}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightHandRing2
+      parentName: Michelle:Bind_RightHandRing1
+      position: {x: -0.00001495633, y: 0.028155075, z: 9.423928e-11}
+      rotation: {x: 0.030960843, y: 0.000014031537, z: 0.00027828515, w: 0.9995206}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightHandRing3
+      parentName: Michelle:Bind_RightHandRing2
+      position: {x: 0.000000629551, y: 0.02735684, z: -1.1235101e-11}
+      rotation: {x: -0.00000034425958, y: 0.0000022070446, z: 0.00027912858, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightHandRing4
+      parentName: Michelle:Bind_RightHandRing3
+      position: {x: 0.000014326656, y: 0.023531796, z: 3.2169396e-11}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightHandPinky1
+      parentName: Michelle:Bind_RightHand
+      position: {x: 0.024177428, y: 0.07441803, z: 0.0009101358}
+      rotation: {x: -0.0076195095, y: 0.0013625233, z: 0.057404067, w: 0.99832106}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightHandPinky2
+      parentName: Michelle:Bind_RightHandPinky1
+      position: {x: 0.0000070261453, y: 0.024493195, z: 1.0709882e-10}
+      rotation: {x: -0.00000010182927, y: 0.000060374972, z: 0.0014846353, w: 0.9999989}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightHandPinky3
+      parentName: Michelle:Bind_RightHandPinky2
+      position: {x: 0.000064022686, y: 0.01966047, z: 2.6402915e-11}
+      rotation: {x: -0.00000021363084, y: 0.00004891919, z: -0.003829629, w: 0.99999267}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Michelle:Bind_RightHandPinky4
+      parentName: Michelle:Bind_RightHandPinky3
+      position: {x: -0.000071049304, y: 0.016121032, z: -1.5345293e-10}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
     armTwist: 0.5
     foreArmTwist: 0.5
     upperLegTwist: 0.5
@@ -156,9 +872,9 @@ ModelImporter:
     skeletonHasParents: 1
   lastHumanDescriptionAvatarSource: {instanceID: 0}
   autoGenerateAvatarMappingIfUnspecified: 1
-  animationType: 2
+  animationType: 3
   humanoidOversampling: 1
-  avatarSetup: 0
+  avatarSetup: 1
   addHumanoidExtraRootOnlyWhenUsingAvatar: 1
   importBlendShapeDeformPercent: 1
   remapMaterialsIfMaterialImportModeIsNone: 0
