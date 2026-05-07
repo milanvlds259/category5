@@ -109,6 +109,7 @@ namespace Category5.Player
         private static readonly int _animSpeedXHash = Animator.StringToHash("SpeedX");
         private static readonly int _animSpeedYHash = Animator.StringToHash("SpeedY");
         private static readonly int _animIsWindRidingHash = Animator.StringToHash("IsWindRiding");
+        private static readonly int _animWindRideActivateHash = Animator.StringToHash("WindRideActivate");
         private static readonly int _animIsChargingHash = Animator.StringToHash("IsCharging");
 
         // animator parameter cache to avoid per frame warnings when a parameter is missing
@@ -125,6 +126,8 @@ namespace Category5.Player
         private bool _hasAnimSpeedX;
         private bool _hasAnimSpeedY;
         private bool _hasAnimIsWindRiding;
+        private bool _hasAnimWindRideActivate;
+        private bool _prevIsWindRiding;
         private bool _hasAnimIsCharging;
         
         [Header("Debug")]
@@ -520,6 +523,7 @@ namespace Category5.Player
             // wind riding: WindRiderController drives all movement, skip everything else
             if (IsWindRiding)
             {
+                Debug.Log($"[WindRide] PlayerController.Update sees IsWindRiding=true, calling UpdateAnimationParameters");
                 UpdateAnimationParameters();
                 return;
             }
@@ -1261,16 +1265,21 @@ namespace Category5.Player
 
             if (_hasAnimIsWindRiding)
             {
-                anim.SetBool(_animIsWindRidingHash, IsWindRiding);
-                if (_isGliding)
+                bool windRiding = IsWindRiding || _isGliding;
+                if (windRiding && !_prevIsWindRiding)
                 {
-                    anim.SetBool(_animIsWindRidingHash, true);
+                    Debug.Log($"[WindRide] rising edge detected. _hasAnimWindRideActivate={_hasAnimWindRideActivate}, controller={anim.runtimeAnimatorController?.name}");
+                    if (_hasAnimWindRideActivate)
+                        anim.SetTrigger(_animWindRideActivateHash);
+                    else
+                        Debug.LogError("[WindRide] WindRideActivate trigger missing from animator controller — check all controllers have the parameter added");
                 }
-                else
-                {
-                    
-                    anim.SetBool(_animIsWindRidingHash, false);
-                }
+                _prevIsWindRiding = windRiding;
+                anim.SetBool(_animIsWindRidingHash, windRiding);
+            }
+            else if ((IsWindRiding || _isGliding) && !_prevIsWindRiding)
+            {
+                Debug.LogError($"[WindRide] rising edge missed — _hasAnimIsWindRiding is false. controller={anim.runtimeAnimatorController?.name}, _animParamsCached={_animParamsCached}");
             }
             // movement speed (0 during dodge since dodge has its own animation)
             float speed = _isDodging ? 0f : Mathf.Clamp01(_moveInput.magnitude);
@@ -1363,6 +1372,8 @@ namespace Category5.Player
             _hasAnimSpeedX = false;
             _hasAnimSpeedY = false;
             _hasAnimIsWindRiding = false;
+            _hasAnimWindRideActivate = false;
+            _prevIsWindRiding = false;
             _hasAnimIsCharging = false;
 
             if (controller == null)
@@ -1386,6 +1397,7 @@ namespace Category5.Player
                 if (parameter.nameHash == _animSpeedXHash) _hasAnimSpeedX = true;
                 if (parameter.nameHash == _animSpeedYHash) _hasAnimSpeedY = true;
                 if (parameter.nameHash == _animIsWindRidingHash) _hasAnimIsWindRiding = true;
+                if (parameter.nameHash == _animWindRideActivateHash) _hasAnimWindRideActivate = true;
                 if (parameter.nameHash == _animIsChargingHash) _hasAnimIsCharging = true;
             }
 

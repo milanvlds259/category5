@@ -90,6 +90,7 @@ namespace Category5.Player.WindRiding
             _activeTunnel = tunnel;
             _ridingForward = forward;
             IsWindRiding = true;
+            Debug.Log($"[WindRide] StartRiding called — IsWindRiding set to true on {gameObject.name}");
 
             // figure out where on the spline we are closest to
             _t = forward ? 0f : 1f;

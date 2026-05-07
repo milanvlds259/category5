@@ -62,6 +62,7 @@ namespace Category5.Player.WindRiding
 
         private void OnTriggerEnter(Collider other)
         {
+            Debug.Log($"[WindRide] OnTriggerEnter fired on {gameObject.name} — hit: {other.gameObject.name} (layer: {LayerMask.LayerToName(other.gameObject.layer)})");
             var player = other.GetComponentInParent<PlayerController>();
             if (player == null) return;
 
