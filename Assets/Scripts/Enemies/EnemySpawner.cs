@@ -45,6 +45,10 @@ namespace Category5.Enemies
         private int _effectiveEnemiesPerWave; // scaled by multiplier each round
         public bool isCleared = false; // Is true when all enemies that would be spawned from this spawner have been defeated
         
+        // item drop
+        [SerializeField] private GameObject itemDropPrefab;
+        private bool _isResetting = false;
+        
         // events
         public static event Action<EnemySpawner> OnAllEnemiesDefeated;
         public static event Action<EnemySpawner, int> OnWaveStarted;
@@ -134,6 +138,8 @@ namespace Category5.Enemies
         {
             if (!IsServer) return;
             
+            _isResetting = true;
+            
             // despawn any remaining alive enemies
             for (int i = _aliveEnemies.Count - 1; i >= 0; i--)
             {
@@ -161,6 +167,11 @@ namespace Category5.Enemies
             // apply enemy scaling
             _effectiveEnemiesPerWave = Mathf.RoundToInt(enemiesPerWave * enemyMultiplier);
             if (_effectiveEnemiesPerWave < 1) _effectiveEnemiesPerWave = 1;
+            
+            // reset cleared state so ItemDrop can spawn again next round
+            isCleared = false;
+            
+            _isResetting = false;
         }
 
         // static helper to reset all spawners in the scene
@@ -355,6 +366,9 @@ namespace Category5.Enemies
         
         private void CheckAllEnemiesDefeated()
         {
+            if (!IsServer) return;
+            if (isCleared) return;
+            
             if (_aliveEnemies.Count == 0 && !isSpawning && _currentWave >= totalWaves)
             {
                 // direct server callback for robust progression
@@ -362,7 +376,26 @@ namespace Category5.Enemies
                 {
                     GameFlowManager.Instance.NotifySpawnerCompleted(this);
                 }
+                
+                // spawn item drop at spawner position (server-authoritative)
+                if (!_isResetting && itemDropPrefab != null)
+                {
+                    GameObject itemDropObject = Instantiate(itemDropPrefab, transform.position, Quaternion.identity);
+                    NetworkObject networkObject = itemDropObject.GetComponent<NetworkObject>();
+                    if (networkObject == null)
+                    {
+                        Debug.LogError("EnemySpawner: ItemDrop prefab must have a NetworkObject component!", this);
+                        Destroy(itemDropObject);
+                    }
+                    else
+                    {
+                        networkObject.Spawn();
+                    }
+                }
+                
+                // mark cleared only after spawn attempt succeeds
                 isCleared = true;
+                
                 OnAllEnemiesDefeated?.Invoke(this);
             }
         }

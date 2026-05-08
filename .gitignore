@@ -107,3 +107,12 @@ InitTestScene*.unity*
 # Rider Stuff
 .idea/
 
+# local OpenCode / OCGS workflow
+AGENTS.md
+opencode.json
+.opencode/
+design/
+tests/
+utils/
+production/
+docs/
