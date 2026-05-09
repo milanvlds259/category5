@@ -3,6 +3,7 @@ using Unity.Netcode;
 using System;
 using System.Collections.Generic;
 using Category5.Core;
+using Category5.Items;
 using Random = UnityEngine.Random;
 
 namespace Category5.Enemies
@@ -48,6 +49,9 @@ namespace Category5.Enemies
         // item drop
         [SerializeField] private GameObject itemDropPrefab;
         private bool _isResetting = false;
+        
+        // per-spawner collection tracking (Story 002: TR-item-002)
+        private SpawnerCollectionTracker _collectionTracker = new SpawnerCollectionTracker();
         
         // events
         public static event Action<EnemySpawner> OnAllEnemiesDefeated;
@@ -170,6 +174,9 @@ namespace Category5.Enemies
             
             // reset cleared state so ItemDrop can spawn again next round
             isCleared = false;
+            
+            // clear per-spawner collection tracking (Story 002: TR-item-002)
+            _collectionTracker.Clear();
             
             _isResetting = false;
         }
@@ -390,6 +397,11 @@ namespace Category5.Enemies
                     else
                     {
                         networkObject.Spawn();
+                        ItemDrop itemDrop = itemDropObject.GetComponent<ItemDrop>();
+                        if (itemDrop != null)
+                        {
+                            itemDrop.SetSpawner(this);
+                        }
                     }
                 }
                 
@@ -409,6 +421,28 @@ namespace Category5.Enemies
         public int TotalWaves => totalWaves;
         public bool IsActive => _isActive;
         public bool IsSpawning => isSpawning;
+        
+        // =====================================
+        // per-spawner collection tracking (Story 002: TR-item-002)
+        // =====================================
+        
+        /// <summary>
+        /// Returns true if the given client has already collected the item from this spawner this round.
+        /// </summary>
+        public bool HasPlayerCollected(ulong clientId)
+        {
+            return _collectionTracker.HasPlayerCollected(clientId);
+        }
+
+        /// <summary>
+        /// Attempts to mark the given client as having collected the item from this spawner.
+        /// Returns true if the client was newly marked, false if already collected.
+        /// Server-authoritative callers (ItemDrop) should use this return value as an atomic gate.
+        /// </summary>
+        public bool MarkCollected(ulong clientId)
+        {
+            return _collectionTracker.TryMarkCollected(clientId);
+        }
         
         // =====================================
         // gizmos

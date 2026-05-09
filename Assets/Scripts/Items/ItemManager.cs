@@ -20,6 +20,10 @@ namespace Category5.Items
         private Dictionary<ulong, bool> _playerSelections = new Dictionary<ulong, bool>();
         private Dictionary<ulong, string[]> _playerItemChoices = new Dictionary<ulong, string[]>(); // item ids
 
+        // island selection tracking (per-player async selection, does not block round)
+        private ulong _islandSelectionClientId = ulong.MaxValue;
+        private Dictionary<ulong, string[]> _islandPlayerItemChoices = new Dictionary<ulong, string[]>();
+
         private bool IsServerAuthority => NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer;
 
         // events for ui
@@ -110,6 +114,51 @@ namespace Category5.Items
             }
         }
 
+        // called when a player collides with an ItemDrop from a cleared island spawner
+        // sends item choices to only the specified client without blocking round progression
+        public void StartItemSelectionForPlayer(ulong clientId)
+        {
+            if (!IsServerAuthority) return;
+
+            var registry = ItemRegistry.Instance;
+            if (registry == null)
+            {
+                Debug.LogError("ItemManager: ItemRegistry not found! Cannot start island item selection.");
+                return;
+            }
+
+            // get player inventory to check for duplicates
+            PlayerInventory playerInventory = null;
+            if (NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out var client))
+            {
+                playerInventory = client.PlayerObject?.GetComponent<PlayerInventory>();
+            }
+
+            // generate random choices for this player
+            var choices = registry.GetRandomItems(itemChoicesPerPlayer, playerInventory);
+            FixedString64Bytes[] choiceIds = new FixedString64Bytes[choices.Count];
+            string[] choiceIdStrings = new string[choices.Count];
+            for (int i = 0; i < choices.Count; i++)
+            {
+                choiceIds[i] = choices[i].UniqueId;
+                choiceIdStrings[i] = choices[i].UniqueId;
+            }
+            _islandPlayerItemChoices[clientId] = choiceIdStrings;
+            _islandSelectionClientId = clientId;
+
+            // check if player inventory is full
+            bool inventoryFull = playerInventory != null && playerInventory.IsFull;
+
+            // send choices to the specific client only
+            SendItemChoicesClientRpc(choiceIds, inventoryFull, new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = new ulong[] { clientId }
+                }
+            });
+        }
+
         [ClientRpc]
         private void SendItemChoicesClientRpc(FixedString64Bytes[] itemIds, bool inventoryFull, ClientRpcParams clientRpcParams = default)
         {
@@ -159,6 +208,71 @@ namespace Category5.Items
         private void SubmitItemSelectionServerRpc(string itemId, int slotToReplace, RpcParams rpcParams = default)
         {
             ulong clientId = rpcParams.Receive.SenderClientId;
+
+            // =====================================
+            // island selection path (per-player, does not block round)
+            // =====================================
+            if (_islandPlayerItemChoices.TryGetValue(clientId, out string[] islandChoices))
+            {
+                // handle skip for island selection
+                if (string.IsNullOrEmpty(itemId))
+                {
+                    // Debug.Log($"ItemManager: Client {clientId} skipped island selection");
+                    _islandPlayerItemChoices.Remove(clientId);
+                    if (_islandSelectionClientId == clientId)
+                    {
+                        _islandSelectionClientId = ulong.MaxValue;
+                    }
+                    AcknowledgeSelectionClientRpc(new ClientRpcParams
+                    {
+                        Send = new ClientRpcSendParams
+                        {
+                            TargetClientIds = new ulong[] { clientId }
+                        }
+                    });
+                    // do NOT call CheckAllPlayersSelected() — island selections do not block round progression
+                    return;
+                }
+
+                // validate island selection
+                bool validIslandSelection = false;
+                foreach (string choice in islandChoices)
+                {
+                    if (choice == itemId)
+                    {
+                        validIslandSelection = true;
+                        break;
+                    }
+                }
+
+                if (!validIslandSelection)
+                {
+                    Debug.LogWarning($"ItemManager: Client {clientId} selected invalid island item {itemId}");
+                    return;
+                }
+
+                // apply item and clean up island tracking
+                ApplyItemToPlayer(clientId, itemId, slotToReplace);
+                _islandPlayerItemChoices.Remove(clientId);
+                if (_islandSelectionClientId == clientId)
+                {
+                    _islandSelectionClientId = ulong.MaxValue;
+                }
+
+                AcknowledgeSelectionClientRpc(new ClientRpcParams
+                {
+                    Send = new ClientRpcSendParams
+                    {
+                        TargetClientIds = new ulong[] { clientId }
+                    }
+                });
+                // do NOT call CheckAllPlayersSelected() — island selections do not block round progression
+                return;
+            }
+
+            // =====================================
+            // boss selection path (all players, blocks round)
+            // =====================================
 
             // validate the selection
             if (!_playerItemChoices.TryGetValue(clientId, out string[] validChoices))
@@ -318,7 +432,18 @@ namespace Category5.Items
 
             // Debug.Log($"ItemManager: handling disconnect for player {clientId}");
 
-            // if we're in item selection, mark them as selected so we don't wait forever
+            // clean up island selection tracking for the disconnected player
+            if (_islandPlayerItemChoices.ContainsKey(clientId))
+            {
+                _islandPlayerItemChoices.Remove(clientId);
+                if (_islandSelectionClientId == clientId)
+                {
+                    _islandSelectionClientId = ulong.MaxValue;
+                }
+                // Debug.Log($"ItemManager: removed disconnected player {clientId} from island selection tracking");
+            }
+
+            // if we're in boss item selection, mark them as selected so we don't wait forever
             if (GameFlowManager.Instance != null &&
                 GameFlowManager.Instance.CurrentPhase.Value == GamePhase.PowerUpSelection)
             {
