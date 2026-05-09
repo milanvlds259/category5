@@ -5,6 +5,7 @@ using Unity.Collections;
 using Category5.Player;
 using Category5.Audio;
 using Category5.Core;
+using Category5.Enemies;
 
 namespace Category5.Items
 {
@@ -33,6 +34,9 @@ namespace Category5.Items
 
         // pending island selections queued when a player is already in boss selection UI
         private Queue<ulong> _pendingIslandSelections = new Queue<ulong>();
+
+        // island selection -> spawner mapping for disconnect handling (Story 006: TR-item-006)
+        private Dictionary<ulong, EnemySpawner> _islandSelections = new Dictionary<ulong, EnemySpawner>();
 
         private bool IsServerAuthority => NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer;
 
@@ -203,6 +207,18 @@ namespace Category5.Items
         }
 
         /// <summary>
+        /// Records which spawner triggered an island selection for the given client.
+        /// Called by ItemDrop when a player collects an island item.
+        /// Server authority required.
+        /// </summary>
+        public void RegisterIslandSelectionSpawner(ulong clientId, EnemySpawner spawner)
+        {
+            if (!IsServerAuthority) return;
+            if (spawner == null) return;
+            _islandSelections[clientId] = spawner;
+        }
+
+        /// <summary>
         /// Processes all queued island selections. Draining a fixed snapshot of the queue,
         /// re-enqueuing clients still in boss selection so they are retried later.
         /// </summary>
@@ -250,31 +266,28 @@ namespace Category5.Items
             OnShowItemSelection?.Invoke(itemIdStrings);
         }
 
-        // called by client ui when player selects an item (inventory not full)
+        /// <summary>Called by client UI when the local player selects an item from their inventory.</summary>
         public void SelectItem(string itemId)
         {
             if (!IsClient) return;
 
-            // Debug.Log($"ItemManager: Local player selected item {itemId}");
-            SubmitItemSelectionServerRpc(itemId, -1); // -1 means no replacement
+            SubmitItemSelectionServerRpc(itemId, -1);
         }
 
-        // called by client ui when player selects an item to replace (inventory full)
+        /// <summary>Called by client UI when the local player selects an item to replace an existing inventory slot.</summary>
         public void SelectItemWithReplacement(string itemId, int slotToReplace)
         {
             if (!IsClient) return;
 
-            // Debug.Log($"ItemManager: Local player selected item {itemId} to replace slot {slotToReplace}");
             SubmitItemSelectionServerRpc(itemId, slotToReplace);
         }
 
-        // called by client ui when player skips selection (inventory full and doesn't want to replace)
+        /// <summary>Called by client UI when the local player skips island item selection.</summary>
         public void SkipSelection()
         {
             if (!IsClient) return;
 
-            // Debug.Log("ItemManager: Local player skipped item selection");
-            SubmitItemSelectionServerRpc("", -1); // empty string means skip
+            SubmitItemSelectionServerRpc("", -1);
         }
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
@@ -292,13 +305,16 @@ namespace Category5.Items
                 {
                     // Debug.Log($"ItemManager: Client {clientId} skipped island selection");
                     _islandPlayerItemChoices.Remove(clientId);
-                    AcknowledgeSelectionClientRpc(new ClientRpcParams
+                    _islandSelections.Remove(clientId);
+AcknowledgeSelectionClientRpc(new ClientRpcParams
                     {
                         Send = new ClientRpcSendParams
                         {
                             TargetClientIds = new ulong[] { clientId }
                         }
                     });
+                    // island selection is per-player, no waiting for others — hide UI immediately
+                    OnHideItemSelection?.Invoke();
                     // process any queued island selections
                     ProcessQueuedIslandSelections();
                     // do NOT call CheckAllPlayersSelected() — island selections do not block round progression
@@ -325,6 +341,7 @@ namespace Category5.Items
                 // apply item and clean up island tracking
                 ApplyItemToPlayer(clientId, itemId, slotToReplace);
                 _islandPlayerItemChoices.Remove(clientId);
+                _islandSelections.Remove(clientId);
 
                 AcknowledgeSelectionClientRpc(new ClientRpcParams
                 {
@@ -333,10 +350,12 @@ namespace Category5.Items
                         TargetClientIds = new ulong[] { clientId }
                     }
                 });
-// process any queued island selections
-                    ProcessQueuedIslandSelections();
-                    // do NOT call CheckAllPlayersSelected() — island selections do not block round progression
-                    return;
+                // island selection is per-player, no waiting for others — hide UI immediately
+                OnHideItemSelection?.Invoke();
+                // process any queued island selections
+                ProcessQueuedIslandSelections();
+                // do NOT call CheckAllPlayersSelected() — island selections do not block round progression
+                return;
             }
 
             // =====================================
@@ -510,6 +529,13 @@ namespace Category5.Items
             if (!IsServerAuthority) return;
 
             // Debug.Log($"ItemManager: handling disconnect for player {clientId}");
+
+            // mark spawner as collected so reconnecting player cannot reclaim (Story 006: TR-item-006)
+            if (_islandSelections.TryGetValue(clientId, out EnemySpawner spawner))
+            {
+                spawner.MarkCollected(clientId);
+                _islandSelections.Remove(clientId);
+            }
 
             // clean up island selection tracking for the disconnected player
             if (_islandPlayerItemChoices.ContainsKey(clientId))

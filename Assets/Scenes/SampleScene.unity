@@ -7693,6 +7693,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MapGenerator
   ShowTopMostFoldoutHeaderGroup: 1
+  Seed:
+    m_InternalValue: 0
   numberOfArenas: 5
   numberOfEyes: 3
   minBounds: {x: -300, y: -50, z: -300}

@@ -528,8 +528,8 @@ namespace Category5.Player
                 return;
             }
             
-            // check if input should be blocked (pause menu, power-up selection, or boss intro)
-            bool inputBlocked = Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying;
+            // check if input should be blocked (pause menu, power-up selection, boss intro, or island item selection)
+            bool inputBlocked = Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying || Category5.UI.ItemSelectionUI.IsSelectionUIActive;
 
             // ensure we have a camera reference
             if (_cameraTransform == null)

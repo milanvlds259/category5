@@ -325,6 +325,10 @@ namespace Category5
                 // Debug.Log("  -> Blocked: Boss intro playing");
                 return;
             }
+            if (Category5.UI.ItemSelectionUI.IsSelectionUIActive)
+            {
+                return;
+            }
             if (playerController.IsDead.Value)
             {
                 // Debug.Log("  -> Blocked: Player dead");

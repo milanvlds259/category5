@@ -34,6 +34,10 @@ namespace Category5.UI
         private string _pendingItemId; // item waiting to be placed
         private bool _isSubscribed = false;
 
+        public static event System.Action<bool> OnItemSelectionUIActiveChanged;
+        private static bool _isSelectionUIActive = false;
+        public static bool IsSelectionUIActive => _isSelectionUIActive;
+
         private void Start()
         {
             TrySubscribeToEvents();
@@ -121,6 +125,10 @@ namespace Category5.UI
             selectionPanel.SetActive(true); 
             //AnimatePanelIn(selectionPanel, selectionPanel.GetComponent<RectTransform>());
 
+            // notify other systems that item selection is active — block combat input
+            _isSelectionUIActive = true;
+            OnItemSelectionUIActiveChanged?.Invoke(true);
+
             // unlock cursor for selection
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
@@ -206,6 +214,10 @@ namespace Category5.UI
             // re-lock cursor for gameplay
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
+
+            // notify other systems that item selection is no longer active — restore combat input
+            _isSelectionUIActive = false;
+            OnItemSelectionUIActiveChanged?.Invoke(false);
 
             _hasSelected = false;
             _pendingItemId = null;

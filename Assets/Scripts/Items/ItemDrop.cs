@@ -4,16 +4,23 @@ using Category5.Enemies;
 
 namespace Category5.Items
 {
-
-    // Networked prefab spawned at enemy spawner positions when all enemies are defeated.
-    // Server-authoritative: only the server processes logic.fic
-    // Collision detection and item selection are handled by neighbouring stories.
-
+    /// <summary>
+    /// Networked prefab spawned at enemy spawner positions when all enemies are defeated.
+    /// Server-authoritative: only the server processes logic.
+    /// Collision detection triggers item selection for the collecting player.
+    /// </summary>
     [RequireComponent(typeof(NetworkObject))]
     [RequireComponent(typeof(SphereCollider))]
     public class ItemDrop : NetworkBehaviour
     {
         private EnemySpawner _spawner;
+        private bool _hasDespawned;
+
+        [Header("Timeout")]
+        [Tooltip("Time in seconds before this ItemDrop despawns if not collected")]
+        [SerializeField] private float _timeoutDuration = 60f;
+
+        private float _timeoutTimer;
 
         private void Awake()
         {
@@ -30,35 +37,54 @@ namespace Category5.Items
             if (!IsServer) return;
 
             // verify network object is present (should be guaranteed by RequireComponent)
-            if (GetComponent<NetworkObject>() == null)
+            if (NetworkObject == null)
             {
                 Debug.LogError("ItemDrop: NetworkObject component is missing! Prefab must have NetworkObject.", this);
             }
         }
 
-        // sets the spawner that spawned this item drop, used for per-spawner collection tracking
+        private void Update()
+        {
+            if (!IsServer) return;
+            UpdateTimer(Time.deltaTime);
+        }
 
+        private void UpdateTimer(float deltaTime)
+        {
+            if (_hasDespawned) return;
+            _timeoutTimer += deltaTime;
+            if (_timeoutTimer >= _timeoutDuration && NetworkObject != null)
+            {
+                _hasDespawned = true;
+                NetworkObject.Despawn();
+            }
+        }
+
+        /// <summary>
+        /// Sets the spawner that spawned this item drop, used for per-spawner collection tracking.
+        /// </summary>
+        /// <param name="spawner">The EnemySpawner that owns this ItemDrop.</param>
         public void SetSpawner(EnemySpawner spawner)
         {
             _spawner = spawner;
         }
 
-        private void OnTriggerEnter(Collider other)
+    private void OnTriggerEnter(Collider other)
+    {
+        if (!IsSpawned) return;
+
+        NetworkObject playerNetObj = other.GetComponentInParent<NetworkObject>();
+        if (playerNetObj == null) return;
+
+        if (IsServer)
         {
-            if (!IsSpawned) return;
-
-            NetworkObject playerNetObj = other.GetComponent<NetworkObject>();
-            if (playerNetObj == null) return;
-
-            if (IsServer)
-            {
-                TryCollect(playerNetObj.OwnerClientId);
-            }
-            else if (IsClient)
-            {
-                RequestCollectServerRpc(playerNetObj.OwnerClientId);
-            }
+            TryCollect(playerNetObj.OwnerClientId);
         }
+        else if (IsClient)
+        {
+            RequestCollectServerRpc(playerNetObj.OwnerClientId);
+        }
+    }
 
 
         // ServerRpc called by clients to request collection of this item drop.
@@ -78,7 +104,15 @@ namespace Category5.Items
             if (_spawner.HasPlayerCollected(clientId)) return;
 
             _spawner.MarkCollected(clientId);
-            // Story 003: trigger per-player item selection UI here
+
+            if (ItemManager.Instance == null)
+            {
+                Debug.LogError("ItemDrop: ItemManager instance not found. Ensure ItemManager is in the scene.", this);
+                return;
+            }
+
+            ItemManager.Instance.RegisterIslandSelectionSpawner(clientId, _spawner);
+            ItemManager.Instance.StartItemSelectionForPlayer(clientId);
         }
     }
 }
