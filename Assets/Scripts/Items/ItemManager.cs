@@ -8,27 +8,39 @@ using Category5.Core;
 
 namespace Category5.Items
 {
-    // manages item selection flow - generating choices, sending to clients, applying to inventory
+    /// <summary>
+    /// Manages item selection flow — generating choices, sending to clients, and applying to inventory.
+    /// Supports two selection modes:
+    ///   - Boss selection: synchronous, all players select, blocks round progression.
+    ///   - Island selection: asynchronous, per-player, does NOT block round progression.
+    /// Multiple island selections can be active simultaneously. If a player collides with an ItemDrop
+    /// while already in boss selection, the island selection is queued and processed after the
+    /// boss selection (or round advancement) completes.
+    /// </summary>
     public class ItemManager : NetworkBehaviour
     {
         public static ItemManager Instance { get; private set; }
 
-        [Header("item settings")]
+        [Header("Item Settings")]
         [SerializeField] private int itemChoicesPerPlayer = 3;
 
-        // track which players have made their selection (server only)
+        // track which players have made their selection (server only) — BOSS selection only
         private Dictionary<ulong, bool> _playerSelections = new Dictionary<ulong, bool>();
         private Dictionary<ulong, string[]> _playerItemChoices = new Dictionary<ulong, string[]>(); // item ids
 
         // island selection tracking (per-player async selection, does not block round)
-        private ulong _islandSelectionClientId = ulong.MaxValue;
         private Dictionary<ulong, string[]> _islandPlayerItemChoices = new Dictionary<ulong, string[]>();
+
+        // pending island selections queued when a player is already in boss selection UI
+        private Queue<ulong> _pendingIslandSelections = new Queue<ulong>();
 
         private bool IsServerAuthority => NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer;
 
         // events for ui
         public event System.Action<string[]> OnShowItemSelection; // item ids to show
         public event System.Action OnHideItemSelection;
+        /// <summary>Fired server-side after an item is successfully applied to a player's inventory.</summary>
+        public event System.Action<ulong, string> OnItemApplied;
 
         private void Awake()
         {
@@ -42,11 +54,21 @@ namespace Category5.Items
             }
         }
 
-        // called by GameFlowManager on server to hide selection ui on all clients
+        /// <summary>
+        /// Called by GameFlowManager on server to hide selection UI on all clients.
+        /// Also processes any pending island selections that were deferred during the previous round.
+        /// </summary>
         public void NotifyRoundStartedAndHideSelection(int round)
         {
             if (!IsServerAuthority) return;
+
+            // clear any stale boss selection state from the previous round
+            _playerSelections.Clear();
+            _playerItemChoices.Clear();
+
             NotifyRoundStartedAndHideSelectionClientRpc(round);
+            // process all island selections that were queued during the previous round
+            ProcessQueuedIslandSelections();
         }
 
         [ClientRpc]
@@ -57,8 +79,15 @@ namespace Category5.Items
             OnHideItemSelection?.Invoke();
         }
 
+        /// <summary>
+        /// Starts boss item selection for all connected players. This is a synchronous selection
+        /// that blocks round progression until all players have submitted their choices.
+        /// Server authority required — clients must not call this directly.
+        /// </summary>
         public void StartItemSelection()
         {
+            if (!IsServerAuthority) return;
+
             // Debug.Log("ItemManager: starting item selection phase");
 
             // set phase via GameFlowManager
@@ -114,11 +143,26 @@ namespace Category5.Items
             }
         }
 
-        // called when a player collides with an ItemDrop from a cleared island spawner
-        // sends item choices to only the specified client without blocking round progression
+        /// <summary>
+        /// Called when a player collides with an ItemDrop from a cleared island spawner.
+        /// Sends item choices to only the specified client without blocking round progression.
+        /// If the player is already in boss selection, the island selection is queued instead.
+        /// </summary>
         public void StartItemSelectionForPlayer(ulong clientId)
         {
             if (!IsServerAuthority) return;
+
+            // prevent duplicate island selections for the same client
+            if (_islandPlayerItemChoices.ContainsKey(clientId)) return;
+
+            // if player is already in boss selection, queue the island selection
+            if (_playerItemChoices.ContainsKey(clientId))
+            {
+                // Debug.Log($"ItemManager: client {clientId} already in boss selection, queuing island selection");
+                if (!_pendingIslandSelections.Contains(clientId))
+                    _pendingIslandSelections.Enqueue(clientId);
+                return;
+            }
 
             var registry = ItemRegistry.Instance;
             if (registry == null)
@@ -144,7 +188,6 @@ namespace Category5.Items
                 choiceIdStrings[i] = choices[i].UniqueId;
             }
             _islandPlayerItemChoices[clientId] = choiceIdStrings;
-            _islandSelectionClientId = clientId;
 
             // check if player inventory is full
             bool inventoryFull = playerInventory != null && playerInventory.IsFull;
@@ -159,6 +202,36 @@ namespace Category5.Items
             });
         }
 
+        /// <summary>
+        /// Processes all queued island selections. Draining a fixed snapshot of the queue,
+        /// re-enqueuing clients still in boss selection so they are retried later.
+        /// </summary>
+        private void ProcessQueuedIslandSelections()
+        {
+            if (!IsServerAuthority) return;
+
+            // snapshot the queue size to prevent infinite loop when re-enqueueing
+            // clients that are still in boss selection
+            int count = _pendingIslandSelections.Count;
+            for (int i = 0; i < count; i++)
+            {
+                ulong nextClientId = _pendingIslandSelections.Dequeue();
+
+                // skip disconnected clients
+                if (!NetworkManager.Singleton.ConnectedClients.ContainsKey(nextClientId)) continue;
+
+                // if client is still in boss selection, re-queue them to retry later
+                if (_playerItemChoices.ContainsKey(nextClientId))
+                {
+                    _pendingIslandSelections.Enqueue(nextClientId);
+                    continue;
+                }
+
+                // Debug.Log($"ItemManager: processing queued island selection for client {nextClientId}");
+                StartItemSelectionForPlayer(nextClientId);
+            }
+        }
+
         [ClientRpc]
         private void SendItemChoicesClientRpc(FixedString64Bytes[] itemIds, bool inventoryFull, ClientRpcParams clientRpcParams = default)
         {
@@ -168,7 +241,7 @@ namespace Category5.Items
             {
                 itemIdStrings[i] = itemIds[i].ToString();
             }
-            
+
             // Debug.Log($"ItemManager: Received {itemIdStrings.Length} item choices, inventory full: {inventoryFull}");
 
             // fire audio event for item selection start
@@ -180,7 +253,7 @@ namespace Category5.Items
         // called by client ui when player selects an item (inventory not full)
         public void SelectItem(string itemId)
         {
-            if (!IsOwner && !IsClient) return;
+            if (!IsClient) return;
 
             // Debug.Log($"ItemManager: Local player selected item {itemId}");
             SubmitItemSelectionServerRpc(itemId, -1); // -1 means no replacement
@@ -189,7 +262,7 @@ namespace Category5.Items
         // called by client ui when player selects an item to replace (inventory full)
         public void SelectItemWithReplacement(string itemId, int slotToReplace)
         {
-            if (!IsOwner && !IsClient) return;
+            if (!IsClient) return;
 
             // Debug.Log($"ItemManager: Local player selected item {itemId} to replace slot {slotToReplace}");
             SubmitItemSelectionServerRpc(itemId, slotToReplace);
@@ -198,7 +271,7 @@ namespace Category5.Items
         // called by client ui when player skips selection (inventory full and doesn't want to replace)
         public void SkipSelection()
         {
-            if (!IsOwner && !IsClient) return;
+            if (!IsClient) return;
 
             // Debug.Log("ItemManager: Local player skipped item selection");
             SubmitItemSelectionServerRpc("", -1); // empty string means skip
@@ -219,10 +292,6 @@ namespace Category5.Items
                 {
                     // Debug.Log($"ItemManager: Client {clientId} skipped island selection");
                     _islandPlayerItemChoices.Remove(clientId);
-                    if (_islandSelectionClientId == clientId)
-                    {
-                        _islandSelectionClientId = ulong.MaxValue;
-                    }
                     AcknowledgeSelectionClientRpc(new ClientRpcParams
                     {
                         Send = new ClientRpcSendParams
@@ -230,6 +299,8 @@ namespace Category5.Items
                             TargetClientIds = new ulong[] { clientId }
                         }
                     });
+                    // process any queued island selections
+                    ProcessQueuedIslandSelections();
                     // do NOT call CheckAllPlayersSelected() — island selections do not block round progression
                     return;
                 }
@@ -254,10 +325,6 @@ namespace Category5.Items
                 // apply item and clean up island tracking
                 ApplyItemToPlayer(clientId, itemId, slotToReplace);
                 _islandPlayerItemChoices.Remove(clientId);
-                if (_islandSelectionClientId == clientId)
-                {
-                    _islandSelectionClientId = ulong.MaxValue;
-                }
 
                 AcknowledgeSelectionClientRpc(new ClientRpcParams
                 {
@@ -266,8 +333,10 @@ namespace Category5.Items
                         TargetClientIds = new ulong[] { clientId }
                     }
                 });
-                // do NOT call CheckAllPlayersSelected() — island selections do not block round progression
-                return;
+// process any queued island selections
+                    ProcessQueuedIslandSelections();
+                    // do NOT call CheckAllPlayersSelected() — island selections do not block round progression
+                    return;
             }
 
             // =====================================
@@ -286,6 +355,7 @@ namespace Category5.Items
             {
                 // Debug.Log($"ItemManager: Client {clientId} skipped selection");
                 _playerSelections[clientId] = true;
+                _playerItemChoices.Remove(clientId);
                 AcknowledgeSelectionClientRpc(new ClientRpcParams
                 {
                     Send = new ClientRpcSendParams
@@ -316,6 +386,7 @@ namespace Category5.Items
 
             // mark player as having selected
             _playerSelections[clientId] = true;
+            _playerItemChoices.Remove(clientId);
 
             // apply the item to the player
             ApplyItemToPlayer(clientId, itemId, slotToReplace);
@@ -360,7 +431,7 @@ namespace Category5.Items
                         int newTier = playerInventory.GetItemTier(itemId);
                         // Debug.Log($"ItemManager: Upgraded {item.ItemName} to tier {newTier} for player {clientId}, success: {success}");
                     }
-                    else if (slotToReplace >= 0)
+                    else if (slotToReplace >= 0 && slotToReplace < playerInventory.MaxSlots)
                     {
                         // replace existing item
                         success = playerInventory.ReplaceItem(slotToReplace, itemId);
@@ -383,6 +454,7 @@ namespace Category5.Items
                                 TargetClientIds = new ulong[] { clientId }
                             }
                         });
+                        OnItemApplied?.Invoke(clientId, itemId);
                     }
                 }
             }
@@ -401,6 +473,10 @@ namespace Category5.Items
             // ui can show "waiting for other players" state
         }
 
+        /// <summary>
+        /// Checks if all players have completed their boss item selection. If so, notifies
+        /// GameFlowManager to advance the round. Island selections are intentionally ignored.
+        /// </summary>
         private void CheckAllPlayersSelected()
         {
             foreach (var kvp in _playerSelections)
@@ -425,7 +501,10 @@ namespace Category5.Items
         // disconnect handling (item selection side)
         // =====================================
 
-        // called by NetworkSessionManager when a player disconnects mid-game
+        /// <summary>
+        /// Called by NetworkSessionManager when a player disconnects mid-game.
+        /// Cleans up island selection tracking, pending queue entries, and boss selection state.
+        /// </summary>
         public void HandlePlayerDisconnected(ulong clientId)
         {
             if (!IsServerAuthority) return;
@@ -436,11 +515,23 @@ namespace Category5.Items
             if (_islandPlayerItemChoices.ContainsKey(clientId))
             {
                 _islandPlayerItemChoices.Remove(clientId);
-                if (_islandSelectionClientId == clientId)
-                {
-                    _islandSelectionClientId = ulong.MaxValue;
-                }
                 // Debug.Log($"ItemManager: removed disconnected player {clientId} from island selection tracking");
+            }
+
+            // remove from pending island selections queue if present
+            // (rebuild queue without the disconnected client)
+            if (_pendingIslandSelections.Count > 0)
+            {
+                var rebuiltQueue = new Queue<ulong>();
+                while (_pendingIslandSelections.Count > 0)
+                {
+                    ulong queuedClientId = _pendingIslandSelections.Dequeue();
+                    if (queuedClientId != clientId)
+                    {
+                        rebuiltQueue.Enqueue(queuedClientId);
+                    }
+                }
+                _pendingIslandSelections = rebuiltQueue;
             }
 
             // if we're in boss item selection, mark them as selected so we don't wait forever
