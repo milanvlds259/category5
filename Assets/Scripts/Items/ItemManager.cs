@@ -76,11 +76,19 @@ namespace Category5.Items
         }
 
         [ClientRpc]
+        private void HideSelectionClientRpc()
+        {
+            OnHideItemSelection?.Invoke();
+                    HideSelectionClientRpc();
+        }
+
+        [ClientRpc]
         private void NotifyRoundStartedAndHideSelectionClientRpc(int round)
         {
             // fire audio event for round start
             GameEvents.InvokeRoundStart(round);
             OnHideItemSelection?.Invoke();
+                    HideSelectionClientRpc();
         }
 
         /// <summary>
@@ -315,6 +323,7 @@ AcknowledgeSelectionClientRpc(new ClientRpcParams
                     });
                     // island selection is per-player, no waiting for others — hide UI immediately
                     OnHideItemSelection?.Invoke();
+                    HideSelectionClientRpc();
                     // process any queued island selections
                     ProcessQueuedIslandSelections();
                     // do NOT call CheckAllPlayersSelected() — island selections do not block round progression
@@ -352,6 +361,7 @@ AcknowledgeSelectionClientRpc(new ClientRpcParams
                 });
                 // island selection is per-player, no waiting for others — hide UI immediately
                 OnHideItemSelection?.Invoke();
+                    HideSelectionClientRpc();
                 // process any queued island selections
                 ProcessQueuedIslandSelections();
                 // do NOT call CheckAllPlayersSelected() — island selections do not block round progression

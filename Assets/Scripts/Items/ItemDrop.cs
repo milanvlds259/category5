@@ -113,6 +113,12 @@ namespace Category5.Items
 
             ItemManager.Instance.RegisterIslandSelectionSpawner(clientId, _spawner);
             ItemManager.Instance.StartItemSelectionForPlayer(clientId);
+
+            // despawn the drop after successful collection
+            if (NetworkObject != null)
+            {
+                NetworkObject.Despawn();
+            }
         }
     }
 }

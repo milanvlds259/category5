@@ -212,7 +212,7 @@ or plugins — see `docs/CONTRIBUTING.md`.
   - Layers:
     - Default, TransparentFX, Ignore Raycast, Player, Water, UI, Enemy, Projectile, CloudSurface, PlayerInTunnel
 - Active game object:
-  - Name: MapGenerator
-  - Tag: Untagged
-  - Layer: Default
+  - Name: Player(Clone)
+  - Tag: Player
+  - Layer: Player
 <!-- UNITY CODE ASSIST INSTRUCTIONS END -->
