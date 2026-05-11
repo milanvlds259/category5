@@ -5,7 +5,7 @@
 			<ChildrenList>
 				<Event Name="Play_Music_Switch" ID="{F44FE549-301C-4F65-8690-67F5F8176222}">
 					<ChildrenList>
-						<Action Name="" ID="{1A1FF24A-61B4-4C11-82F0-514878F57EDE}" ShortID="80332152">
+						<Action Name="" ID="{C5857913-6654-4624-8968-DDB2814DD8C9}" ShortID="663418823">
 							<PropertyList>
 								<Property Name="ActionType" Type="int16" Value="3"/>
 							</PropertyList>

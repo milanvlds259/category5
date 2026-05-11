@@ -45,9 +45,9 @@
 										</MusicTransition>
 										<MusicTransition Name="Transition" ID="{6FA24F15-CDD1-4B44-82B8-A53584ACDD3F}">
 											<PropertyList>
+												<Property Name="PlayDestinationPreEntry" Type="bool" Value="False"/>
 												<Property Name="SourceContextType" Type="int16" Value="1"/>
 											</PropertyList>
-											<ReferenceList/>
 											<TransitionInfo/>
 										</MusicTransition>
 									</ChildrenList>
@@ -224,6 +224,11 @@
 								<MusicSegment Name="Category5ThemeTest" ID="{414B5324-F8D6-4615-98A7-4D57460E219B}" ShortID="658518582">
 									<PropertyList>
 										<Property Name="EndPosition" Type="Real64" Value="38400"/>
+										<Property Name="Volume" Type="Real64">
+											<ValueList>
+												<Value>-10</Value>
+											</ValueList>
+										</Property>
 									</PropertyList>
 									<ReferenceList>
 										<Reference Name="Conversion">
