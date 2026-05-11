@@ -10,7 +10,7 @@
     "Type": "User",
     "GUID": "{D897B1D5-1C05-44B0-A897-09BD6B10CCF1}",
     "Language": "SFX",
-    "Hash": "{65B882AB-6289-1AD3-8A13-AE857DB40630}",
+    "Hash": "{A1F6EA60-46C7-A227-6371-4881DBD6A6B2}",
     "ObjectPath": "\\SoundBanks\\Default Work Unit\\TestSoundbank",
     "ShortName": "TestSoundbank",
     "Path": "TestSoundbank.bnk",
@@ -135,75 +135,6 @@
           ]
          }
         ]
-       },
-       {
-        "SwitchValue": {
-         "GroupType": "Switch",
-         "GroupId": "1715037033",
-         "Id": "0",
-         "GUID": "{AFA3064C-8252-4282-876E-09881767E3CA}"
-        },
-        "Children": [
-         {
-          "SwitchValue": {
-           "GroupType": "State",
-           "GroupId": "2434766612",
-           "Id": "2764240573",
-           "GUID": "{2385623C-0EC5-4EB3-815D-A245E746B557}"
-          },
-          "MediaRefs": [
-           {
-            "Id": "1073268418"
-           }
-          ]
-         }
-        ]
-       },
-       {
-        "SwitchValue": {
-         "GroupType": "Switch",
-         "GroupId": "1715037033",
-         "Id": "0",
-         "GUID": "{AFA3064C-8252-4282-876E-09881767E3CA}"
-        },
-        "Children": [
-         {
-          "SwitchValue": {
-           "GroupType": "State",
-           "GroupId": "2434766612",
-           "Id": "221232726",
-           "GUID": "{1A2E5C6D-B6BA-435E-9CCB-BBB6B54EAA0E}"
-          },
-          "MediaRefs": [
-           {
-            "Id": "601115031"
-           }
-          ]
-         }
-        ]
-       },
-       {
-        "SwitchValue": {
-         "GroupType": "Switch",
-         "GroupId": "1715037033",
-         "Id": "0",
-         "GUID": "{AFA3064C-8252-4282-876E-09881767E3CA}"
-        },
-        "Children": [
-         {
-          "SwitchValue": {
-           "GroupType": "State",
-           "GroupId": "2434766612",
-           "Id": "979765101",
-           "GUID": "{3F3909B5-8854-4372-AFA7-479BDBA2720E}"
-          },
-          "MediaRefs": [
-           {
-            "Id": "124794779"
-           }
-          ]
-         }
-        ]
        }
       ]
      }
@@ -265,6 +196,6 @@
     ]
    }
   ],
-  "FileHash": "{C02E4BDA-C455-FFD5-E072-F756CE2190F4}"
+  "FileHash": "{3F76FBE1-6003-1D0D-9A05-81A7B28D617D}"
  }
 }

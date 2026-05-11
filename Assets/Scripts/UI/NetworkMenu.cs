@@ -184,9 +184,11 @@ namespace Category5.UI
             // show title screen initially
             ShowTitleScreen();
 
-            //RYLAN CODE
-            //Play title screen music
-            playEvent.Post(gameObject);
+            MenuState.SetValue(); // Rylan added - Remove at the first sign of bugs
+            AkUnitySoundEngine.ExecuteActionOnEvent("Play_Music_Switch", AkActionOnEventType.AkActionOnEventType_Stop, AkUnitySoundEngine.AK_INVALID_GAME_OBJECT
+);
+            playEvent.Post(gameObject); // Rylan added - Remove at the first sign of bugs
+
         }
 
         // ensures PlayerNameManager singleton exists
@@ -686,6 +688,7 @@ namespace Category5.UI
 
             //Rylan Code
             MenuState.SetValue();
+            AkUnitySoundEngine.StopAll();
         }
 
         // shows the title screen and hides other panels
