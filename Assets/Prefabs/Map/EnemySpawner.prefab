@@ -394,6 +394,7 @@ MonoBehaviour:
   isSpawning: 0
   _isActive: 0
   isCleared: 0
+  itemDropPrefab: {fileID: 3078507921385916218, guid: 08c1fbc8418b2d949ab3b844a861fcec, type: 3}
 --- !u!1 &6669607425106375784
 GameObject:
   m_ObjectHideFlags: 0

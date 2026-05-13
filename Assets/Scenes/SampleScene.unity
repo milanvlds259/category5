@@ -294,6 +294,7 @@ MonoBehaviour:
   bossNameText: {fileID: 67008457}
   roundText: {fileID: 1541836526}
   charPortraitImage: {fileID: 903884845}
+  inventoryHUD: {fileID: 980974199}
   damageNumberPrefab: {fileID: 5865795987653267983, guid: e5ce9861f6e1b7245b7f66edd690895d, type: 3}
   damageNumberContainer: {fileID: 1470677997}
 --- !u!4 &10986185
@@ -5328,6 +5329,83 @@ RectTransform:
   m_AnchoredPosition: {x: -450, y: 100}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &980974197
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 980974198}
+  - component: {fileID: 980974200}
+  - component: {fileID: 980974199}
+  m_Layer: 0
+  m_Name: InventoryHUD
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &980974198
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 980974197}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1442587501}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 1, y: 0.5}
+  m_AnchorMax: {x: 1, y: 0.5}
+  m_AnchoredPosition: {x: -20, y: 137.53}
+  m_SizeDelta: {x: 80, y: 500}
+  m_Pivot: {x: 1, y: 0.5}
+--- !u!114 &980974199
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 980974197}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4fd6e540ddf5f804b9f4dbb74687f2b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.UI.InventoryHUD
+  slotPrefab: {fileID: 736332685162350175, guid: a28a0a9d8667ef74ca4837080c56cb66, type: 3}
+  container: {fileID: 980974198}
+--- !u!114 &980974200
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 980974197}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59f8146938fff824cb5fd77236b75775, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.VerticalLayoutGroup
+  m_Padding:
+    m_Left: 0
+    m_Right: 0
+    m_Top: 0
+    m_Bottom: 0
+  m_ChildAlignment: 5
+  m_Spacing: 25
+  m_ChildForceExpandWidth: 0
+  m_ChildForceExpandHeight: 0
+  m_ChildControlWidth: 0
+  m_ChildControlHeight: 0
+  m_ChildScaleWidth: 0
+  m_ChildScaleHeight: 0
+  m_ReverseArrangement: 0
 --- !u!1 &1002455070
 GameObject:
   m_ObjectHideFlags: 0
@@ -5963,11 +6041,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3150038241255380370, guid: a28a0a9d8667ef74ca4837080c56cb66, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 100
+      value: 64
       objectReference: {fileID: 0}
     - target: {fileID: 3150038241255380370, guid: a28a0a9d8667ef74ca4837080c56cb66, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 100
+      value: 64
       objectReference: {fileID: 0}
     - target: {fileID: 3150038241255380370, guid: a28a0a9d8667ef74ca4837080c56cb66, type: 3}
       propertyPath: m_LocalPosition.x
@@ -6707,11 +6785,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3150038241255380370, guid: a28a0a9d8667ef74ca4837080c56cb66, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 100
+      value: 64
       objectReference: {fileID: 0}
     - target: {fileID: 3150038241255380370, guid: a28a0a9d8667ef74ca4837080c56cb66, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 100
+      value: 64
       objectReference: {fileID: 0}
     - target: {fileID: 3150038241255380370, guid: a28a0a9d8667ef74ca4837080c56cb66, type: 3}
       propertyPath: m_LocalPosition.x
@@ -6932,11 +7010,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3150038241255380370, guid: a28a0a9d8667ef74ca4837080c56cb66, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 100
+      value: 64
       objectReference: {fileID: 0}
     - target: {fileID: 3150038241255380370, guid: a28a0a9d8667ef74ca4837080c56cb66, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 100
+      value: 64
       objectReference: {fileID: 0}
     - target: {fileID: 3150038241255380370, guid: a28a0a9d8667ef74ca4837080c56cb66, type: 3}
       propertyPath: m_LocalPosition.x
@@ -7518,6 +7596,7 @@ RectTransform:
   - {fileID: 1796605023}
   - {fileID: 269614259}
   - {fileID: 2016187002}
+  - {fileID: 980974198}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -7693,6 +7772,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MapGenerator
   ShowTopMostFoldoutHeaderGroup: 1
+  Seed:
+    m_InternalValue: 0
   numberOfArenas: 5
   numberOfEyes: 3
   minBounds: {x: -300, y: -50, z: -300}
@@ -8916,11 +8997,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3150038241255380370, guid: a28a0a9d8667ef74ca4837080c56cb66, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 100
+      value: 64
       objectReference: {fileID: 0}
     - target: {fileID: 3150038241255380370, guid: a28a0a9d8667ef74ca4837080c56cb66, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 100
+      value: 64
       objectReference: {fileID: 0}
     - target: {fileID: 3150038241255380370, guid: a28a0a9d8667ef74ca4837080c56cb66, type: 3}
       propertyPath: m_LocalPosition.x
@@ -11340,7 +11421,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 105.120605, y: -16.29303}
+  m_AnchoredPosition: {x: 105.120605, y: -16.292969}
   m_SizeDelta: {x: 86.1203, y: 40.7067}
   m_Pivot: {x: 1, y: 1}
 --- !u!114 &2016187003
@@ -12616,11 +12697,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3150038241255380370, guid: a28a0a9d8667ef74ca4837080c56cb66, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 100
+      value: 64
       objectReference: {fileID: 0}
     - target: {fileID: 3150038241255380370, guid: a28a0a9d8667ef74ca4837080c56cb66, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 100
+      value: 64
       objectReference: {fileID: 0}
     - target: {fileID: 3150038241255380370, guid: a28a0a9d8667ef74ca4837080c56cb66, type: 3}
       propertyPath: m_LocalPosition.x

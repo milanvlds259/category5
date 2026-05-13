@@ -107,3 +107,20 @@ InitTestScene*.unity*
 # Rider Stuff
 .idea/
 
+# local OpenCode / OCGS workflow
+AGENTS.md
+opencode.json
+.opencode/
+design/
+tests/
+utils/
+production/
+docs/
+
+# Unity AI stuff
+/[Aa]ssets/Plans/
+Assets/Plans.meta
+Assets/Project_Overview.md
+Assets/Project_Overview.md.meta
+Assets/AI Toolkit/Temp/
+Assets/_Recovery/
