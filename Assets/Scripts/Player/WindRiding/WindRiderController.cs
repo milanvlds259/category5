@@ -238,8 +238,8 @@ namespace Category5.Player.WindRiding
             {
                 Quaternion baseRot = Quaternion.LookRotation(horizontalVelocity, Vector3.up);
 
-                // Add banking roll
-                float leanTarget = -(_swayVelocity / settings.steeringResponsiveness) * settings.maxLeanAngle;
+                // Add banking roll (increased for cloud surfing to feel more evident)
+                float leanTarget = -(_swayVelocity / settings.steeringResponsiveness) * settings.maxLeanAngle * settings.leanWeight * 1.5f;
                 leanTarget = Mathf.Clamp(leanTarget, -settings.maxLeanAngle, settings.maxLeanAngle);
                 Quaternion leanRot = Quaternion.Euler(0, 0, leanTarget);
                 
