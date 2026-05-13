@@ -519,12 +519,24 @@ namespace Category5.Player
             // dead players cannot do anything
             if (IsDead.Value) return;
             
-            // wind riding: WindRiderController drives all movement, skip everything else
+            // wind riding: WindRiderController drives all movement
             if (IsWindRiding)
             {
-                Debug.Log($"[WindRide] PlayerController.Update sees IsWindRiding=true, calling UpdateAnimationParameters");
-                UpdateAnimationParameters();
-                return;
+                if (_windRider.IsRidingTunnel)
+                {
+                    UpdateAnimationParameters();
+                    return;
+                }
+
+                // Cloud riding still needs to check if we stay on the cloud
+                HandleCloudDetection();
+                
+                // If we are still cloud riding, skip the rest
+                if (IsWindRiding)
+                {
+                    UpdateAnimationParameters();
+                    return;
+                }
             }
             
             // check if input should be blocked (pause menu, power-up selection, boss intro, or island item selection)
@@ -659,8 +671,13 @@ namespace Category5.Player
             }
         }
 
-        private void HandleGravity()
+        private void HandleCloudDetection()
         {
+            // If we are rising (e.g. from a jump), don't trigger new cloud surfing
+            // This prevents "sticking" to the cloud surface during the jump takeoff
+            bool isJumpingUp = _velocity.y > 0.1f;
+
+            bool wasClouded = _isClouded;
             if (Physics.CheckSphere(transform.position + groundCheckOffset, groundCheckRadius, cloudLayer, QueryTriggerInteraction.Collide)
                 && _isGliding)
             {   
@@ -670,6 +687,29 @@ namespace Category5.Player
             {
                 _isClouded = false;
             }
+
+            // Trigger cloud surfing mechanics in WindRiderController
+            if (!wasClouded && _isClouded && _windRider != null)
+            {
+                if (!isJumpingUp)
+                {
+                    _windRider.StartCloudRiding();
+                }
+                else
+                {
+                    // Force state back to false if we are jumping, so we don't "enter" surfing mid-jump
+                    _isClouded = false; 
+                }
+            }
+            else if (wasClouded && !_isClouded && _windRider != null)
+            {
+                _windRider.EndCloudRiding();
+            }
+        }
+
+        private void HandleGravity()
+        {
+            HandleCloudDetection();
 
             // custom ground check is more reliable than CharacterController.isGrounded
             bool wasGrounded = _isGrounded;
@@ -699,13 +739,6 @@ namespace Category5.Player
             {
                 _velocity.y = -2f; // small downward force to keep grounded
             }
-            if (_isClouded && _velocity.y < 0)
-            {
-                _velocity.y = 1f;
-                // Want some bounce/give later
-                // _velocity.y = Mathf.Clamp(_velocity.y, -1f, 1f);
-                // _velocity.y += -_velocity.y * 70f * Time.deltaTime;
-            }
 
             // process jump buffer
             if (_jumpBufferCounter > 0)
@@ -720,6 +753,9 @@ namespace Category5.Player
                     _jumpBufferCounter = 0;
                 }
             }
+
+            // skip gravity if cloud surfing (WindRiderController handles vertical position)
+            if (IsWindRiding) return;
 
             // apply gravity — scale downward pull by FallSpeedMultiplier when falling
             float gravityThisFrame = gravity;
@@ -772,7 +808,20 @@ namespace Category5.Player
             // don't accept input if dead or blocked
             if (IsDead.Value) return;
             if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying) return;
-            if (IsWindRiding) return;
+            
+            // Allow jumping while cloud riding (this will exit the cloud ride)
+            if (IsWindRiding)
+            {
+                if (_windRider != null && _windRider.IsRidingCloud)
+                {
+                    _windRider.EndCloudRiding();
+                }
+                else
+                {
+                    // Cannot jump out of a wind tunnel
+                    return;
+                }
+            }
             
             // instead of jumping immediately we buffer the input
             _jumpBufferCounter = _jumpBufferTime;

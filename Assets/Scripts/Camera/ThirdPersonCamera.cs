@@ -516,10 +516,21 @@ namespace Category5
         {
             _lookInput = _inputActions.Player.Look.ReadValue<Vector2>();
             
-            // calculate the base yaw from the tunnel tangent (where the player is facing)
-            Vector3 tangent = _windRider.ActiveTunnel.EvaluateTangent(_windRider.Progress);
-            float direction = _windRider.IsRidingForward ? 1f : -1f; // this is probable really stupid and inefficient but whatever lmao
-            Vector3 facing = tangent * direction;
+            Vector3 facing = Vector3.zero;
+
+            if (_windRider.IsRidingTunnel && _windRider.ActiveTunnel != null)
+            {
+                // calculate the base yaw from the tunnel tangent (where the player is facing)
+                Vector3 tangent = _windRider.ActiveTunnel.EvaluateTangent(_windRider.Progress);
+                float direction = _windRider.IsRidingForward ? 1f : -1f;
+                facing = tangent * direction;
+            }
+            else if (_windRider.IsRidingCloud)
+            {
+                // For cloud surfing, use the player's forward direction as the base yaw
+                facing = target.forward;
+            }
+
             if (facing.sqrMagnitude > 0.001f)
             {
                 _ridingYawBase = Mathf.Atan2(facing.x, facing.z) * Mathf.Rad2Deg;
