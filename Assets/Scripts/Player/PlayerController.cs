@@ -309,8 +309,8 @@ namespace Category5.Player
                 {
                     _inputActions.Player.Disable();
                     _inputActions.Player.Jump.performed -= OnJump;
-                    _inputActions.Player.Dodge.performed -= OnDodge;
-                    _inputActions.Player.Sprint.performed -= OnSprint;
+                    _inputActions.Player.Dodge.started -= OnDodge;
+                    _inputActions.Player.Sprint.canceled -= OnSprintCanceled;
                 }
                 return;
             }
@@ -497,7 +497,7 @@ namespace Category5.Player
                 _inputActions.Player.Enable();
                 _inputActions.Player.Jump.performed += OnJump;
                 _inputActions.Player.Dodge.started += OnDodge;
-                _inputActions.Player.Sprint.performed += OnSprint;
+                _inputActions.Player.Sprint.canceled += OnSprintCanceled;
             }
         }
 
@@ -506,8 +506,8 @@ namespace Category5.Player
             if (_inputActions != null)
             {
                 _inputActions.Player.Jump.performed -= OnJump;
-                _inputActions.Player.Dodge.performed -= OnDodge;
-                _inputActions.Player.Sprint.performed -= OnSprint;
+                _inputActions.Player.Dodge.started -= OnDodge;
+                _inputActions.Player.Sprint.canceled -= OnSprintCanceled;
                 _inputActions.Player.Disable();
             }
         }
@@ -922,24 +922,10 @@ namespace Category5.Player
             }
         }
         
-        private void OnSprint(InputAction.CallbackContext context)
+        private void OnSprintCanceled(InputAction.CallbackContext context)
         {
-            // dont accept input if dead or blocked
-            if (IsDead.Value) return;
-            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying) return;
-            if (IsWindRiding) return;
-            
-            _isSprinting = !_isSprinting;
-            
-            // fire events for ui/vfx
-            if (_isSprinting)
-            {
-                OnSprintStarted?.Invoke(transform.position);
-            }
-            else
-            {
-                OnSprintEnded?.Invoke(transform.position);
-            }
+            Debug.Log("[PlayerController] OnSprintCanceled (Shift Released)");
+            CancelSprint();
         }
         
         // method to cancel sprint (called by combat/abilities/etc)
@@ -947,6 +933,7 @@ namespace Category5.Player
         {
             if (!_isSprinting) return;
             
+            Debug.Log("[PlayerController] CancelSprint");
             _isSprinting = false;
             OnSprintEnded?.Invoke(transform.position);
         }
