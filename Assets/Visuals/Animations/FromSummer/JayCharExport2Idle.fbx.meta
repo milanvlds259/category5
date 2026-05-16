@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: b5be46eb40e3a1d428eea6717f014302
+guid: 727b7ad0b7999c74a945b7d73a94e21b
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
@@ -31,7 +31,7 @@ ModelImporter:
     extraUserProperties: []
     clipAnimations:
     - serializedVersion: 16
-      name: JayIdle
+      name: JayIdleAnim
       takeName: Take 001
       internalID: 1827226128182048838
       firstFrame: 20
