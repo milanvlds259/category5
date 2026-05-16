@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 96c4544bb4226204499add3a8dc45f79
+guid: f177e06ae1714dd469756fa4cb50e3e4
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
@@ -35,7 +35,7 @@ ModelImporter:
       takeName: Take 001
       internalID: 1827226128182048838
       firstFrame: 0
-      lastFrame: 8
+      lastFrame: 10
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -63,8 +63,8 @@ ModelImporter:
       name: Atk2
       takeName: Take 001
       internalID: 9067093048684652814
-      firstFrame: 9
-      lastFrame: 30
+      firstFrame: 11
+      lastFrame: 31
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -92,7 +92,7 @@ ModelImporter:
       name: Atk3
       takeName: Take 001
       internalID: -8481709605947105597
-      firstFrame: 31
+      firstFrame: 32
       lastFrame: 52
       wrapMode: 0
       orientationOffsetY: 0
