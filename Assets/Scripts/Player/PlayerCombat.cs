@@ -623,7 +623,7 @@ namespace Category5.Player
             var anim = GetModelAnimator();
             if (anim == null)
             {
-                // Debug.LogError("PlayerCombat: No model animator available on PlayerModelManager. Cannot play attack animation.");
+                Debug.LogError("PlayerCombat: No model animator available on PlayerModelManager. Cannot play attack animation.");
                 return;
             }
 
@@ -631,55 +631,50 @@ namespace Category5.Player
 
             if (!_hasAnimAttackAnimSpeed)
             {
-                // Debug.LogError("PlayerCombat: Animator parameter 'AttackAnimSpeed' (Float) is missing. Add it to the active runtime animator controller.");
-                return;
+                Debug.LogError("PlayerCombat: Animator parameter 'AttackAnimSpeed' (Float) is missing on the active runtime animator controller. Attack will play without speed scaling.");
             }
-
-            float attackAnimSpeed = GetAttackAnimationSpeedMultiplier();
-            anim.SetFloat(_animAttackAnimSpeedHash, attackAnimSpeed);
-
-            if (_hasAnimAttackTrigger)
+            else
             {
-                if (_ownerNetworkAnimator == null)
-                {
-                    // Debug.LogError("PlayerCombat: Missing OwnerPlayerNetworkAnimator. Cannot sync attack trigger.");
-                    return;
-                }
+                float attackAnimSpeed = GetAttackAnimationSpeedMultiplier();
+                anim.SetFloat(_animAttackAnimSpeedHash, attackAnimSpeed);
+            }
 
-                // tag whether this attack was started airborne so the animator can branch to air attack clips
-                if (_hasAnimIsAirborneAttack)
-                {
-                    anim.SetBool(_animIsAirborneAttackHash, _playerController != null && !_playerController.IsGrounded);
-                }
+            // tag whether this attack was started airborne so the animator can branch to air attack clips
+            if (_hasAnimIsAirborneAttack)
+            {
+                anim.SetBool(_animIsAirborneAttackHash, _playerController != null && !_playerController.IsGrounded);
+            }
 
-                // fire step-specific trigger if available, else fall back to generic Attack
-                // step-specific triggers let the controller route directly to the right attack state
-                // regardless of which state the animator is currently in
-                if (comboStep >= 3 && _hasAnimAttack3Trigger)
-                {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                    Debug.Log($"[COMBO] firing Attack3 trigger — step={comboStep}");
-#endif
-                    _ownerNetworkAnimator.SetTrigger(_animAttack3TriggerHash);
-                }
-                else if (comboStep >= 2 && _hasAnimAttack2Trigger)
-                {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                    Debug.Log($"[COMBO] firing Attack2 trigger — step={comboStep}");
-#endif
-                    _ownerNetworkAnimator.SetTrigger(_animAttack2TriggerHash);
-                }
-                else
-                {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                    Debug.Log($"[COMBO] firing Attack trigger — step={comboStep} hasAttack2={_hasAnimAttack2Trigger} hasAttack3={_hasAnimAttack3Trigger}");
-#endif
-                    _ownerNetworkAnimator.SetTrigger(_animAttackTriggerHash);
-                }
+            if (!_hasAnimAttackTrigger)
+            {
+                Debug.LogError("PlayerCombat: Animator parameter 'Attack' (Trigger) is missing. Add it to the active runtime animator controller.");
                 return;
             }
 
-            // Debug.LogError("PlayerCombat: Animator parameter 'Attack' (Trigger) is missing. Add it to the active runtime animator controller.");
+            // fire step-specific trigger if available, else fall back to generic Attack
+            int triggerHash = _animAttackTriggerHash;
+            if (comboStep >= 3 && _hasAnimAttack3Trigger)
+            {
+                triggerHash = _animAttack3TriggerHash;
+            }
+            else if (comboStep >= 2 && _hasAnimAttack2Trigger)
+            {
+                triggerHash = _animAttack2TriggerHash;
+            }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.Log($"[COMBO] firing Attack trigger — step={comboStep} hash={triggerHash} hasAttack2={_hasAnimAttack2Trigger} hasAttack3={_hasAnimAttack3Trigger}");
+#endif
+
+            if (_ownerNetworkAnimator != null)
+            {
+                _ownerNetworkAnimator.SetTrigger(triggerHash);
+            }
+            else
+            {
+                Debug.LogError("PlayerCombat: OwnerPlayerNetworkAnimator is missing. Trigger set on local animator only — remote clients will not see this attack animation.");
+                anim.SetTrigger(triggerHash);
+            }
         }
 
         // maps attack speed stat to animator attack speed with safe clamps
