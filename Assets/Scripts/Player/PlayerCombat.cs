@@ -115,6 +115,7 @@ namespace Category5.Player
         // public accessors for combat class and charging state
         public CombatClass CurrentCombatClass => combatClass;
         public bool IsCharging => _isCharging;
+        public bool IsAttacking => _isAttacking;
         // true while an arrow animation is playing but hasn't fired yet (between attack input and AttackImpact event)
         // used by playercontroller to keep IsCharging=true in the animator until the recoil clip is done
         public bool HasPendingRangedRelease => _hasPendingRangedRelease;

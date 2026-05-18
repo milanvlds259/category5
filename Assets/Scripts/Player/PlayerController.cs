@@ -632,8 +632,11 @@ namespace Category5.Player
 
             if (move.magnitude > 1f) move.Normalize();
 
-            // always rotate to look direction (which is camera forward if camera exists)
-            if (lookDirection != Vector3.zero)
+            // rotate to look direction (camera forward) only when moving or attacking
+            bool isMoving = _moveInput != Vector2.zero;
+            bool isAttacking = _playerCombat != null && (_playerCombat.IsAttacking || _playerCombat.IsCharging || _playerCombat.HasPendingRangedRelease);
+
+            if ((isMoving || isAttacking) && lookDirection != Vector3.zero)
             {
                 Quaternion targetRotation = Quaternion.LookRotation(lookDirection);
                 transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
