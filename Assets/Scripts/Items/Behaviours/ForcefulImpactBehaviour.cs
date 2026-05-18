@@ -76,10 +76,6 @@ namespace Category5.Items
                 ? PlayerStats.ApplyBeforeDamageMultiplier(Mathf.RoundToInt(impactDamage[idx]), target)
                 : Mathf.RoundToInt(impactDamage[idx]);
 
-            // spiritual well cross-synergy: if the player has mana, boost this hit and spend mana
-            var spiritWell = manager.GetItemBehaviour<SpiritualWellBehaviour>();
-            dmg = spiritWell != null ? spiritWell.ApplyManaBonus(dmg) : dmg;
-
             damageable.TakeDamage(dmg);
         }
 

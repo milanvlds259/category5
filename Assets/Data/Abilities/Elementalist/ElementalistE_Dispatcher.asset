@@ -18,6 +18,7 @@ MonoBehaviour:
   cooldownDuration: 3
   damageCoefficient: 0
   castTime: 0
-  manaCost: 15
+  manaCost: 0
+  consumesAllMana: 0
   vfxPrefab: {fileID: 0}
   sfxClip: {fileID: 0}

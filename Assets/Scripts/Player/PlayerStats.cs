@@ -46,7 +46,6 @@ namespace Category5.Player
         private float _moveSpeedMultiplier = 1f;
         private float _attackSpeedMultiplier = 1f;
         private float _manaRegenMultiplier = 1f;
-        private float _manaCostReduction = 0f;
         private float _armorBonus = 0f;
         private float _critChanceBonus = 0f;
         private float _critDamageBonus = 0f;
@@ -59,9 +58,6 @@ namespace Category5.Player
 
         // dynamic max mana bonus from item behaviours (e.g. Spiritual Well)
         private int _dynamicMaxManaBonus = 0;
-
-        // additive damage multiplier applied to basic attacks only when mana is available (Spiritual Well)
-        private float _basicAttackManaMultiplier = 0f;
 
         // base stat accessors (from class data or fallback)
         public float BaseAttackDamage => _classData != null ? _classData.baseAttackDamage : fallbackAttackDamage;
@@ -92,7 +88,6 @@ namespace Category5.Player
         public float MoveSpeedMultiplier => _moveSpeedMultiplier;
         public float AttackSpeedMultiplier => _attackSpeedMultiplier;
         public float ManaRegenMultiplier => _manaRegenMultiplier;
-        public float ManaCostReduction => _manaCostReduction;
         public float EffectiveMoveSpeed => BaseMoveSpeed * _moveSpeedMultiplier;
         public float TotalArmor => BaseArmor + _armorBonus;
         public float TotalCritChance => Mathf.Clamp01(BaseCritChance + _critChanceBonus);
@@ -125,13 +120,6 @@ namespace Category5.Player
                 _dynamicMaxManaBonus = bonus;
                 OnStatsChanged?.Invoke();
             }
-        }
-
-        // set the additive bonus multiplier applied to basic attacks when mana is available
-        // 0 = no bonus, 0.3 = +30% damage on basic attacks while mana > 0
-        public void SetBasicAttackManaMultiplier(float bonus)
-        {
-            _basicAttackManaMultiplier = bonus;
         }
 
         // set dynamic max hp bonus from item behaviours (e.g. Recharging Shield)
@@ -202,7 +190,6 @@ namespace Category5.Player
             _moveSpeedMultiplier = 1f;
             _attackSpeedMultiplier = 1f;
             _manaRegenMultiplier = 1f;
-            _manaCostReduction = 0f;
             _armorBonus = 0f;
             _critChanceBonus = 0f;
             _critDamageBonus = 0f;
@@ -267,10 +254,6 @@ namespace Category5.Player
                         _manaRegenMultiplier += scaledValue;
                         break;
                     
-                    case ItemEffectType.ManaCostReduction:
-                        _manaCostReduction += scaledValue;
-                        break;
-                    
                     case ItemEffectType.ArmorBonus:
                         _armorBonus += scaledValue;
                         break;
@@ -298,10 +281,6 @@ namespace Category5.Player
             float effectiveMultiplier = GetEffectiveDamageMultiplier();
             float rawDmg = EffectiveAttackDamage * damageCoefficient * effectiveMultiplier + _flatDamageBonus;
 
-            // apply spiritual well mana bonus (basic attacks only — abilities use their own path)
-            if (_basicAttackManaMultiplier > 0f)
-                rawDmg *= (1f + _basicAttackManaMultiplier);
-            
             // crit roll (server-side)
             bool wasCrit = UnityEngine.Random.value < TotalCritChance;
             if (wasCrit)
