@@ -20,6 +20,9 @@ namespace Category5
         public float castTime = 0f;
         public int manaCost = 0;
 
+        [Tooltip("if true, this ability requires a full ult meter to cast and drains all mana on use")]
+        public bool consumesAllMana = false;
+
         [Header("Visuals & Audio")]
         public GameObject vfxPrefab;
         public AudioClip sfxClip;

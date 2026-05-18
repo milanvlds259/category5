@@ -4,6 +4,7 @@ using TMPro;
 using Unity.Netcode;
 using Category5.Player;
 using Category5.Boss;
+using Category5.Items;
 using System.Collections.Generic;
 
 namespace Category5.UI
@@ -20,9 +21,10 @@ namespace Category5.UI
         [SerializeField] private TextMeshProUGUI bossNameText;
         [SerializeField] private TextMeshProUGUI roundText;
         [SerializeField] private Image charPortraitImage; // displays the local player's class portrait
+        [SerializeField] private InventoryHUD inventoryHUD;
 
         [Header("damage numbers")]
-        [SerializeField] private DamageNumber damageNumberPrefab;
+[SerializeField] private DamageNumber damageNumberPrefab;
         [SerializeField] private Transform damageNumberContainer;
         
         // track current boss for re-registration
@@ -113,9 +115,19 @@ namespace Category5.UI
                         playerManaBar.UpdateMana(current, max);
                     };
                 }
+
+                // initialize inventory hud
+                if (inventoryHUD != null)
+                {
+                    var inventory = player.GetComponent<PlayerInventory>();
+                    if (inventory != null)
+                    {
+                        inventoryHUD.Initialize(inventory);
+                    }
+                }
                 
                 // subscribe to class changes to update the portrait
-                var classManager = player.GetComponent<PlayerClassManager>();
+var classManager = player.GetComponent<PlayerClassManager>();
                 if (classManager != null)
                 {
                     classManager.SelectedClassId.OnValueChanged += (oldId, newId) => UpdateCharPortrait(newId);

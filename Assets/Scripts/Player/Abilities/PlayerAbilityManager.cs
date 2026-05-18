@@ -325,6 +325,10 @@ namespace Category5
                 // Debug.Log("  -> Blocked: Boss intro playing");
                 return;
             }
+            if (Category5.UI.ItemSelectionUI.IsSelectionUIActive)
+            {
+                return;
+            }
             if (playerController.IsDead.Value)
             {
                 // Debug.Log("  -> Blocked: Player dead");
@@ -392,9 +396,12 @@ namespace Category5
             }
             
             // consume mana if ability has a cost
-            if (ability.ConsumeCostOnExecute && ability.Data.manaCost > 0)
+            if (ability.ConsumeCostOnExecute)
             {
-                playerController.RequestConsumeManaServerRpc(ability.Data.manaCost);
+                if (ability.Data.consumesAllMana)
+                    playerController.RequestConsumeAllManaServerRpc();
+                else if (ability.Data.manaCost > 0)
+                    playerController.RequestConsumeManaServerRpc(ability.Data.manaCost);
             }
             
             // send request to server to set cooldown on NetworkVariable
@@ -499,7 +506,11 @@ namespace Category5
             if (!IsOwner) return;
             if (ability == null || ability.Data == null) return;
 
-            if (ability.Data.manaCost > 0)
+            if (ability.Data.consumesAllMana)
+            {
+                playerController.RequestConsumeAllManaServerRpc();
+            }
+            else if (ability.Data.manaCost > 0)
             {
                 playerController.RequestConsumeManaServerRpc(ability.Data.manaCost);
             }

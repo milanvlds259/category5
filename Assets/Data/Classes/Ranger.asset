@@ -26,14 +26,15 @@ MonoBehaviour:
   basicAttackProjectile: {fileID: 11400000, guid: ec4e19a6215de594291cf4b54dd2dbfb, type: 2}
   baseAttackDamage: 12
   baseMaxHealth: 100
-  baseMaxMana: 80
+  baseMaxMana: 100
   baseMoveSpeed: 7
   baseAttackSpeed: 1.2
   baseDodgeCooldown: 2
-  baseManaRegenRate: 2
+  baseManaRegenRate: 5
   baseArmor: 8
   baseCritChance: 0.1
   baseCritDamage: 1.75
   lightAttackCoefficient: 0.8
   heavyAttackCoefficient: 1.5
+  meleeComboResetTime: 1
   modelPrefab: {fileID: 429167651815117660, guid: c0c2b05d8eee21345aa0b5556d74455a, type: 3}

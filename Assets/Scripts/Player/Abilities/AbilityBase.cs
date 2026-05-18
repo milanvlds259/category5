@@ -43,8 +43,16 @@ namespace Category5
             if (playerController == null) return false;
             if (playerController.IsDead.Value) return false;
             
-            // check mana cost
-            if (playerController.CurrentMana.Value < abilityData.manaCost) return false;
+            // ult abilities require a completely full mana bar
+            if (abilityData.consumesAllMana)
+            {
+                if (playerController.CurrentMana.Value < playerController.MaxMana) return false;
+            }
+            else
+            {
+                // regular mana cost check
+                if (playerController.CurrentMana.Value < abilityData.manaCost) return false;
+            }
 
             return true;
         }
