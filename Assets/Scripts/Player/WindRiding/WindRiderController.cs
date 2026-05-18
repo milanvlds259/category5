@@ -23,6 +23,9 @@ namespace Category5.Player.WindRiding
 
         public bool IsRidingForward => _ridingForward;
 
+        public bool IsRidingTunnel => _currentMode == RidingMode.Tunnel;
+        public bool IsRidingCloud => _currentMode == RidingMode.Cloud;
+
         // current normalized progress along the spline (0-1)
         public float Progress => _t;
 
@@ -30,9 +33,20 @@ namespace Category5.Player.WindRiding
         public float CurrentSpeed => _currentSpeed;
 
         // current sway offset normalized (-1 to 1)
-        public float NormalizedSway => settings.maxSwayOffset > 0f
-            ? _currentSway / settings.maxSwayOffset
-            : 0f;
+        public float NormalizedSway
+        {
+            get
+            {
+                if (_currentMode == RidingMode.Cloud)
+                {
+                    // For cloud surfing, use lateral velocity as the sway indicator
+                    return settings.steeringResponsiveness > 0f 
+                        ? Mathf.Clamp(_swayVelocity / settings.steeringResponsiveness, -1f, 1f) 
+                        : 0f;
+                }
+                return settings.maxSwayOffset > 0f ? _currentSway / settings.maxSwayOffset : 0f;
+            }
+        }
 
         // cached references
         private PlayerController _playerController;
@@ -41,12 +55,15 @@ namespace Category5.Player.WindRiding
         private InputSystem_Actions _inputActions;
 
         // riding state
+        public enum RidingMode { None, Tunnel, Cloud }
+        private RidingMode _currentMode = RidingMode.None;
         private WindTunnel _activeTunnel;
         private float _t;
         private bool _ridingForward;
         private float _currentSpeed;
         private float _currentSway;
         private float _targetSway;
+        private float _swayVelocity;
         private Vector3 _ridingVelocity;
 
         // expose settings for camera or other systems that need to read them
@@ -78,7 +95,10 @@ namespace Category5.Player.WindRiding
         // called by WindLaunchPad when the local player jumps on the pad
         public void StartRiding(WindTunnel tunnel, bool forward, float launchForce)
         {
-            if (IsWindRiding) return;
+            // Allow starting a tunnel ride even if already wind riding (e.g. transitioning from cloud)
+            // but ignore if we are already in a tunnel
+            if (_currentMode == RidingMode.Tunnel) return;
+            
             if (tunnel == null)
             {
                 Debug.LogError("WindRiderController: cannot start riding with null tunnel");
@@ -89,14 +109,16 @@ namespace Category5.Player.WindRiding
 
             _activeTunnel = tunnel;
             _ridingForward = forward;
+            _currentMode = RidingMode.Tunnel;
             IsWindRiding = true;
-            Debug.Log($"[WindRide] StartRiding called — IsWindRiding set to true on {gameObject.name}");
+            Debug.Log($"[WindRide] StartRiding Tunnel called on {gameObject.name}");
 
             // figure out where on the spline we are closest to
             _t = forward ? 0f : 1f;
             _currentSpeed = settings.baseSpeed;
             _currentSway = 0f;
             _targetSway = 0f;
+            _swayVelocity = 0f;
             _ridingVelocity = Vector3.zero;
 
             // tell playercontroller we are riding (it will skip its own movement)
@@ -106,6 +128,46 @@ namespace Category5.Player.WindRiding
             gameObject.layer = LayerMask.NameToLayer("PlayerInTunnel");
 
             WindRideEvents.InvokeRideStarted(_playerController, transform.position);
+        }
+
+        public void StartCloudRiding()
+        {
+            if (IsWindRiding) return;
+
+            _currentMode = RidingMode.Cloud;
+            IsWindRiding = true;
+            
+            // Inherit speed if we are already moving fast (e.g. from a dash or high speed glide)
+            float horizontalSpeed = _playerController.CurrentMovementSpeed;
+            _currentSpeed = Mathf.Max(settings.baseSpeed, horizontalSpeed);
+
+            _currentSway = 0f;
+            _swayVelocity = 0f;
+            _ridingVelocity = Vector3.zero;
+
+            // ignore cloud boundaries
+            gameObject.layer = LayerMask.NameToLayer("PlayerInTunnel");
+            WindRideEvents.InvokeRideStarted(_playerController, transform.position);
+            Debug.Log($"[WindRide] StartCloudRiding at speed: {_currentSpeed}");
+        }
+
+        public void EndCloudRiding()
+        {
+            if (_currentMode != RidingMode.Cloud) return;
+
+            // Preserve full momentum when jumping/exiting clouds
+            Vector3 exitVelocity = transform.forward * _currentSpeed;
+            Vector3 exitPos = transform.position;
+
+            IsWindRiding = false;
+            _currentMode = RidingMode.None;
+            _swayVelocity = 0f;
+            _ridingVelocity = Vector3.zero;
+
+            _playerController.SetExternalVelocity(exitVelocity);
+            gameObject.layer = LayerMask.NameToLayer("Player");
+            WindRideEvents.InvokeRideEnded(_playerController, exitPos, exitVelocity);
+            Debug.Log($"[WindRide] EndCloudRiding with exit velocity: {exitVelocity.magnitude}");
         }
 
         private void Update()
@@ -121,11 +183,74 @@ namespace Category5.Player.WindRiding
 
             HandleSwayInput();
             HandleSpeedInput();
-            AdvanceAlongSpline();
-            ApplyMovement();
-            RotateToTangent();
-            FireProgressEvents();
-            CheckExit();
+
+            if (_currentMode == RidingMode.Tunnel)
+            {
+                AdvanceAlongSpline();
+                ApplyMovement();
+                RotateToTangent();
+                FireProgressEvents();
+                CheckExit();
+            }
+            else if (_currentMode == RidingMode.Cloud)
+            {
+                ApplyCloudMovement();
+                RotateToVelocity();
+            }
+        }
+
+        private void ApplyCloudMovement()
+        {
+            // Calculate forward and right based on horizontal plane to prevent downward pitch feedback
+            Vector3 forward = transform.forward;
+            forward.y = 0;
+            forward.Normalize();
+            
+            Vector3 right = transform.right;
+            right.y = 0;
+            right.Normalize();
+
+            // Forward and lateral movement
+            Vector3 moveDir = forward * _currentSpeed + right * _swayVelocity;
+            Vector3 frameMove = moveDir * Time.deltaTime;
+
+            // Height correction (hovering above cloud)
+            RaycastHit hit;
+            LayerMask cloudLayer = 1 << 8; // CloudSurface
+            if (Physics.Raycast(transform.position + Vector3.up * 2f, Vector3.down, out hit, 5f, cloudLayer, QueryTriggerInteraction.Collide))
+            {
+                float targetHeight = hit.point.y + settings.cloudHoverHeight;
+                float heightDiff = targetHeight - transform.position.y;
+                frameMove.y += heightDiff * settings.cloudFollowStiffness * Time.deltaTime;
+            }
+
+            _characterController.Move(frameMove);
+            _ridingVelocity = moveDir;
+        }
+
+        private void RotateToVelocity()
+        {
+            // For cloud riding, rotate to follow the horizontal velocity vector
+            Vector3 horizontalVelocity = _ridingVelocity;
+            horizontalVelocity.y = 0;
+
+            if (horizontalVelocity.sqrMagnitude > 0.001f)
+            {
+                Quaternion baseRot = Quaternion.LookRotation(horizontalVelocity, Vector3.up);
+
+                // Add banking roll (increased for cloud surfing to feel more evident)
+                float leanTarget = -(_swayVelocity / settings.steeringResponsiveness) * settings.maxLeanAngle * settings.leanWeight * 1.5f;
+                leanTarget = Mathf.Clamp(leanTarget, -settings.maxLeanAngle, settings.maxLeanAngle);
+                Quaternion leanRot = Quaternion.Euler(0, 0, leanTarget);
+                
+                Quaternion targetRot = baseRot * leanRot;
+
+                transform.rotation = Quaternion.Slerp(
+                    transform.rotation,
+                    targetRot,
+                    settings.playerRotationSpeed * Time.deltaTime
+                );
+            }
         }
 
         private void HandleSwayInput()
@@ -133,15 +258,39 @@ namespace Category5.Player.WindRiding
             Vector2 moveInput = _inputActions.Player.Move.ReadValue<Vector2>();
             float lateralInput = moveInput.x;
 
+            // Surfing Handling: Build lateral velocity instead of direct position snapping
             if (Mathf.Abs(lateralInput) > 0.05f)
             {
-                _targetSway = lateralInput * settings.maxSwayOffset;
-                _currentSway = Mathf.Lerp(_currentSway, _targetSway, settings.swaySpeed * Time.deltaTime);
+                _swayVelocity += lateralInput * settings.steeringResponsiveness * Time.deltaTime;
             }
-            else
+
+            // Apply inertia/friction (decay velocity)
+            _swayVelocity *= settings.steeringInertia;
+
+            // In Tunnel mode, we track a fixed path offset and clamp it
+            if (_currentMode == RidingMode.Tunnel)
             {
-                // return to center
-                _currentSway = Mathf.Lerp(_currentSway, 0f, settings.swayReturnSpeed * Time.deltaTime);
+                // Update sway position based on velocity
+                _currentSway += _swayVelocity * Time.deltaTime;
+
+                // Clamp sway position to bounds
+                float limit = settings.maxSwayOffset;
+                if (_currentSway > limit)
+                {
+                    _currentSway = limit;
+                    _swayVelocity = 0f;
+                }
+                else if (_currentSway < -limit)
+                {
+                    _currentSway = -limit;
+                    _swayVelocity = 0f;
+                }
+            }
+            else if (_currentMode == RidingMode.Cloud)
+            {
+                // In Cloud mode, we don't track a center path offset (_currentSway)
+                // We just let _swayVelocity drive the free-form movement
+                _currentSway = 0f; 
             }
 
             float newNorm = NormalizedSway;
@@ -153,10 +302,22 @@ namespace Category5.Player.WindRiding
             Vector2 moveInput = _inputActions.Player.Move.ReadValue<Vector2>();
             float forwardInput = moveInput.y; // W = 1, S = -1
 
-            // map [-1, 1] to [minMult, maxMult]
-            float normalized = (forwardInput + 1f) * 0.5f; // 0 to 1
-            float multiplier = Mathf.Lerp(settings.minSpeedMultiplier, settings.maxSpeedMultiplier, normalized);
-            _currentSpeed = settings.baseSpeed * multiplier;
+            // Surfing Logic: Auto-accelerate if not braking
+            if (forwardInput < -0.1f)
+            {
+                // Braking (leaning back)
+                _currentSpeed -= settings.brakingDeceleration * Time.deltaTime;
+            }
+            else
+            {
+                // Auto-acceleration (even with no input or forward input)
+                _currentSpeed += settings.acceleration * Time.deltaTime;
+            }
+
+            // Clamp current speed between min and max multipliers of base speed
+            float minS = settings.baseSpeed * settings.minSpeedMultiplier;
+            float maxS = settings.baseSpeed * settings.maxSpeedMultiplier;
+            _currentSpeed = Mathf.Clamp(_currentSpeed, minS, maxS);
         }
 
         private void AdvanceAlongSpline()
@@ -210,7 +371,15 @@ namespace Category5.Player.WindRiding
 
             if (facing.sqrMagnitude > 0.001f)
             {
-                Quaternion targetRot = Quaternion.LookRotation(facing, Vector3.up);
+                Quaternion baseRot = Quaternion.LookRotation(facing, Vector3.up);
+
+                // Add banking roll based on lateral velocity
+                float leanTarget = -(_swayVelocity / settings.steeringResponsiveness) * settings.maxLeanAngle * settings.leanWeight;
+                leanTarget = Mathf.Clamp(leanTarget, -settings.maxLeanAngle, settings.maxLeanAngle);
+                Quaternion leanRot = Quaternion.Euler(0, 0, leanTarget);
+                
+                Quaternion targetRot = baseRot * leanRot;
+
                 transform.rotation = Quaternion.Slerp(
                     transform.rotation,
                     targetRot,

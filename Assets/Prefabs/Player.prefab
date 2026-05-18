@@ -346,7 +346,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 2528484781
+  GlobalObjectIdHash: 1432883955
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -674,16 +674,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.WindRiding.WindRiderController
   settings:
     baseSpeed: 15
-    minSpeedMultiplier: 0.64
-    maxSpeedMultiplier: 1.299
+    minSpeedMultiplier: 0.54
+    maxSpeedMultiplier: 1.37
+    acceleration: 8
+    brakingDeceleration: 12
     maxSwayOffset: 3.5
-    swaySpeed: 5
-    swayReturnSpeed: 3
+    steeringResponsiveness: 25
+    steeringInertia: 0.92
     windLiftMultiplier: 1.1
     pathFollowStiffness: 10
     entryLaunchForce: 15
     exitMomentumMultiplier: 0.8
     playerRotationSpeed: 8
+    maxLeanAngle: 35
 --- !u!114 &3848571735681686035
 MonoBehaviour:
   m_ObjectHideFlags: 0
