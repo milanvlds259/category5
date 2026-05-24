@@ -8,6 +8,7 @@ using Category5.Core;
 using Category5.Audio;
 using Category5.UI;
 using Category5.Player.WindRiding;
+using Category5.Player.Van;
 
 namespace Category5.Player
 {
@@ -178,6 +179,12 @@ namespace Category5.Player
         
         // cached reference to wind rider controller
         private WindRiderController _windRider;
+
+        // cached reference to recall controller
+        private RecallController _recallController;
+
+        // true when the player is channeling recall
+        public bool IsRecallChanneling => _recallController != null && _recallController.IsChanneling;
         
         // true when the player is surfing through a wind tunnel
         public bool IsWindRiding => _windRider != null && _windRider.IsWindRiding;
@@ -198,6 +205,9 @@ namespace Category5.Player
 
         // whether the player is currently on the ground (used by fighter q dual-mode)
         public bool IsGrounded => _isGrounded;
+
+        // ground layers exposed for van descent detection
+        public LayerMask GroundLayers => groundLayers;
         
         // horizontal movement speed in world units per second (used by tempest engine damage formula)
         public float CurrentMovementSpeed => _controller != null
@@ -212,6 +222,7 @@ namespace Category5.Player
             _playerCombat = GetComponent<PlayerCombat>();
             _playerModelManager = GetComponent<PlayerModelManager>();
             _windRider = GetComponent<WindRiderController>();
+            _recallController = GetComponent<RecallController>();
             
             // cache all renderers for death visibility toggle
             _renderers = GetComponentsInChildren<Renderer>();
@@ -539,8 +550,8 @@ namespace Category5.Player
                 }
             }
             
-            // check if input should be blocked (pause menu, power-up selection, boss intro, or island item selection)
-            bool inputBlocked = Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying || Category5.UI.ItemSelectionUI.IsSelectionUIActive;
+            // check if input should be blocked (pause menu, power-up selection, boss intro, island item selection, or recall channeling)
+            bool inputBlocked = Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying || Category5.UI.ItemSelectionUI.IsSelectionUIActive || IsRecallChanneling;
 
             // ensure we have a camera reference
             if (_cameraTransform == null)
@@ -988,6 +999,15 @@ namespace Category5.Player
                     TargetClientIds = new ulong[] { OwnerClientId }
                 }
             });
+
+            // cancel recall channel when taking damage
+            CancelRecallOnDamageClientRpc(new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = new ulong[] { OwnerClientId }
+                }
+            });
             
             // trigger damage feedback on the player who took damage
             TriggerDamageFeedbackClientRpc(transform.position, damage, new ClientRpcParams
@@ -1014,6 +1034,16 @@ namespace Category5.Player
             if (_playerCombat != null)
             {
                 _playerCombat.CancelCharge();
+            }
+        }
+
+        // cancel recall channel on the owning client when taking damage
+        [ClientRpc]
+        private void CancelRecallOnDamageClientRpc(ClientRpcParams clientRpcParams = default)
+        {
+            if (_recallController != null)
+            {
+                _recallController.InterruptRecall();
             }
         }
         
@@ -1066,6 +1096,47 @@ namespace Category5.Player
             PlayerEvents.InvokeDeath(position);
         }
         
+        // teleports the player to the given position (used by recall)
+        // handles both networked (via ClientRpc) and offline modes
+        public void RecallTeleport(Vector3 position, Quaternion rotation)
+        {
+            if (_isOffline)
+            {
+                if (_controller != null)
+                    _controller.enabled = false;
+
+                transform.position = position;
+                transform.rotation = rotation;
+
+                if (_controller != null)
+                    _controller.enabled = true;
+
+                _velocity = Vector3.zero;
+            }
+            else
+            {
+                RecallTeleportClientRpc(position, rotation);
+            }
+        }
+
+        [ClientRpc]
+        private void RecallTeleportClientRpc(Vector3 position, Quaternion rotation)
+        {
+            if (_controller != null)
+                _controller.enabled = false;
+
+            transform.position = position;
+            transform.rotation = rotation;
+
+            if (_controller != null)
+                _controller.enabled = true;
+
+            _velocity = Vector3.zero;
+
+            if (_playerCombat != null)
+                _playerCombat.ResetCombatState();
+        }
+
         // respawns the player at a spawn point with full health (server only)
         // works for both dead players (revives) and alive players (repositions and heals)
         public void Respawn()
@@ -1082,7 +1153,7 @@ namespace Category5.Player
             IsDead.Value = false;
             
             // move to spawn point
-            var spawnPoint = Category5.Core.PlayerSpawnPoint.GetNextSpawnPoint();
+            var spawnPoint = Category5.Core.PlayerSpawnPoint.GetNextIslandSpawnPoint();
             if (spawnPoint != null)
             {
                 // need to temporarily disable character controller to move

@@ -25,6 +25,7 @@ namespace Category5.Player.WindRiding
 
         public bool IsRidingTunnel => _currentMode == RidingMode.Tunnel;
         public bool IsRidingCloud => _currentMode == RidingMode.Cloud;
+        public bool IsRidingVanDescent => _currentMode == RidingMode.VanDescent;
 
         // current normalized progress along the spline (0-1)
         public float Progress => _t;
@@ -55,7 +56,7 @@ namespace Category5.Player.WindRiding
         private InputSystem_Actions _inputActions;
 
         // riding state
-        public enum RidingMode { None, Tunnel, Cloud }
+        public enum RidingMode { None, Tunnel, Cloud, VanDescent }
         private RidingMode _currentMode = RidingMode.None;
         private WindTunnel _activeTunnel;
         private float _t;
@@ -65,6 +66,9 @@ namespace Category5.Player.WindRiding
         private float _targetSway;
         private float _swayVelocity;
         private Vector3 _ridingVelocity;
+
+        // van descent state
+        private int _preDescentLayer;
 
         // expose settings for camera or other systems that need to read them
         public WindRideSettings Settings => settings;
@@ -170,6 +174,44 @@ namespace Category5.Player.WindRiding
             Debug.Log($"[WindRide] EndCloudRiding with exit velocity: {exitVelocity.magnitude}");
         }
 
+        public void StartVanDescent()
+        {
+            if (IsWindRiding) return;
+
+            _currentMode = RidingMode.VanDescent;
+            IsWindRiding = true;
+
+            _currentSpeed = settings.vanDescentSpeed;
+            _swayVelocity = 0f;
+            _ridingVelocity = Vector3.zero;
+
+            _preDescentLayer = gameObject.layer;
+            gameObject.layer = LayerMask.NameToLayer("PlayerInTunnel");
+
+            WindRideEvents.InvokeRideStarted(_playerController, transform.position);
+            Debug.Log($"[WindRide] StartVanDescent from position: {transform.position}");
+        }
+
+        public void EndVanDescent()
+        {
+            if (_currentMode != RidingMode.VanDescent) return;
+
+            Vector3 exitPos = transform.position;
+            Vector3 exitVelocity = _ridingVelocity;
+
+            IsWindRiding = false;
+            _currentMode = RidingMode.None;
+            _swayVelocity = 0f;
+            _ridingVelocity = Vector3.zero;
+
+            _playerController.SetExternalVelocity(exitVelocity);
+
+            gameObject.layer = _preDescentLayer;
+
+            WindRideEvents.InvokeRideEnded(_playerController, exitPos, exitVelocity);
+            Debug.Log($"[WindRide] EndVanDescent at position: {exitPos}");
+        }
+
         private void Update()
         {
             if (!IsWindRiding) return;
@@ -180,6 +222,14 @@ namespace Category5.Player.WindRiding
 
             // don't advance while paused
             if (Category5.UI.PauseMenu.GameIsPaused) return;
+
+            if (_currentMode == RidingMode.VanDescent)
+            {
+                HandleSwayInput();
+                ApplyVanDescentMovement();
+                RotateToVelocity();
+                return;
+            }
 
             HandleSwayInput();
             HandleSpeedInput();
@@ -226,6 +276,52 @@ namespace Category5.Player.WindRiding
 
             _characterController.Move(frameMove);
             _ridingVelocity = moveDir;
+        }
+
+        private void ApplyVanDescentMovement()
+        {
+            // Steer laterally using sway velocity (same feel as cloud surfing)
+            Vector3 forward = transform.forward;
+            forward.y = 0;
+            forward.Normalize();
+
+            Vector3 right = transform.right;
+            right.y = 0;
+            right.Normalize();
+
+            // Horizontal movement from sway
+            Vector3 horizontalMove = right * _swayVelocity * Time.deltaTime;
+
+            // Check for ground proximity to avoid overshooting
+            LayerMask groundLayer = _playerController.GroundLayers;
+            float stepDown = _currentSpeed * Time.deltaTime;
+            bool aboutToLand = false;
+
+            if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit,
+                settings.vanGroundRaycastDistance, groundLayer, QueryTriggerInteraction.Ignore))
+            {
+                float distanceToGround = hit.distance;
+
+                // If we're within a step + buffer of the ground, clamp the vertical step
+                if (distanceToGround <= stepDown + 0.5f)
+                {
+                    stepDown = Mathf.Max(0f, distanceToGround - 0.1f);
+                    aboutToLand = true;
+                }
+            }
+
+            // Downward movement (clamped to avoid going through ground)
+            Vector3 verticalMove = Vector3.down * stepDown;
+
+            Vector3 frameMove = horizontalMove + verticalMove;
+            _characterController.Move(frameMove);
+
+            _ridingVelocity = horizontalMove / Time.deltaTime;
+
+            if (aboutToLand)
+            {
+                EndVanDescent();
+            }
         }
 
         private void RotateToVelocity()
@@ -286,9 +382,9 @@ namespace Category5.Player.WindRiding
                     _swayVelocity = 0f;
                 }
             }
-            else if (_currentMode == RidingMode.Cloud)
+            else if (_currentMode == RidingMode.Cloud || _currentMode == RidingMode.VanDescent)
             {
-                // In Cloud mode, we don't track a center path offset (_currentSway)
+                // In Cloud or VanDescent mode, we don't track a center path offset (_currentSway)
                 // We just let _swayVelocity drive the free-form movement
                 _currentSway = 0f; 
             }

@@ -13,6 +13,7 @@ using Category5.Audio;
 using Category5.Enemies;
 using Category5.Core;
 using Category5.Boss;
+using Category5.Player.Van;
 
 namespace Category5
 {
@@ -337,6 +338,13 @@ namespace Category5
             if (playerController.IsWindRiding)
             {
                 // Debug.Log("  -> Blocked: Wind riding");
+                return;
+            }
+            if (playerController.IsRecallChanneling)
+            {
+                var recallController = playerController.GetComponent<RecallController>();
+                if (recallController != null)
+                    recallController.InterruptRecall();
                 return;
             }
             if (playerCombat.IsCharging)

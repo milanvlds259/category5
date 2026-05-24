@@ -208,6 +208,15 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Recall"",
+                    ""type"": ""Button"",
+                    ""id"": ""d4e5f6a7-8b9c-0d1e-2f3a-4b5c6d7e8f9a"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -648,6 +657,17 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""groups"": ""Keyboard&Mouse"",
                     ""action"": ""Crouch"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""47f63dab-1a26-4b5f-9c7d-8e0f1a2b3c4d"",
+                    ""path"": ""<Keyboard>/v"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""Recall"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -1287,6 +1307,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         m_Player_Ability1 = m_Player.FindAction("Ability1", throwIfNotFound: true);
         m_Player_Ability2 = m_Player.FindAction("Ability2", throwIfNotFound: true);
         m_Player_Ability3 = m_Player.FindAction("Ability3", throwIfNotFound: true);
+        m_Player_Recall = m_Player.FindAction("Recall", throwIfNotFound: true);
         // UI
         m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
         m_UI_Navigate = m_UI.FindAction("Navigate", throwIfNotFound: true);
@@ -1397,6 +1418,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_Ability1;
     private readonly InputAction m_Player_Ability2;
     private readonly InputAction m_Player_Ability3;
+    private readonly InputAction m_Player_Recall;
     /// <summary>
     /// Provides access to input actions defined in input action map "Player".
     /// </summary>
@@ -1460,6 +1482,10 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Player/Ability3".
         /// </summary>
         public InputAction @Ability3 => m_Wrapper.m_Player_Ability3;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/Recall".
+        /// </summary>
+        public InputAction @Recall => m_Wrapper.m_Player_Recall;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -1525,6 +1551,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @Ability3.started += instance.OnAbility3;
             @Ability3.performed += instance.OnAbility3;
             @Ability3.canceled += instance.OnAbility3;
+            @Recall.started += instance.OnRecall;
+            @Recall.performed += instance.OnRecall;
+            @Recall.canceled += instance.OnRecall;
         }
 
         /// <summary>
@@ -1575,6 +1604,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @Ability3.started -= instance.OnAbility3;
             @Ability3.performed -= instance.OnAbility3;
             @Ability3.canceled -= instance.OnAbility3;
+            @Recall.started -= instance.OnRecall;
+            @Recall.performed -= instance.OnRecall;
+            @Recall.canceled -= instance.OnRecall;
         }
 
         /// <summary>
@@ -2062,6 +2094,13 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnAbility3(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Recall" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnRecall(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.

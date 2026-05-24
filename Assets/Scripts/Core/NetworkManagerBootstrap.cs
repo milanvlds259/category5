@@ -119,8 +119,8 @@ namespace Category5.Core
                 }
             }
             
-            // get spawn point
-            var spawnPoint = PlayerSpawnPoint.GetNextSpawnPoint();
+            // get van spawn point for initial spawn
+            var spawnPoint = PlayerSpawnPoint.GetNextVanSpawnPoint();
             Vector3 spawnPos = spawnPoint != null ? spawnPoint.transform.position : Vector3.zero;
             Quaternion spawnRot = spawnPoint != null ? spawnPoint.transform.rotation : Quaternion.identity;
             
@@ -148,7 +148,7 @@ namespace Category5.Core
         
         private void RepositionPlayer(NetworkObject playerObject)
         {
-            var spawnPoint = PlayerSpawnPoint.GetNextSpawnPoint();
+            var spawnPoint = PlayerSpawnPoint.GetNextVanSpawnPoint();
             if (spawnPoint != null)
             {
                 // disable character controller if present to allow position change

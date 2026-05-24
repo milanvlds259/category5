@@ -5,22 +5,29 @@ namespace Category5.Core
 {
     public class PlayerSpawnPoint : MonoBehaviour
     {
-        // static list of all spawn points in the scene
-        private static List<PlayerSpawnPoint> spawnPoints = new List<PlayerSpawnPoint>();
-        private static int nextSpawnIndex = 0;
+        public enum SpawnType { Van, Island }
+
+        private static List<PlayerSpawnPoint> vanSpawnPoints = new List<PlayerSpawnPoint>();
+        private static List<PlayerSpawnPoint> islandSpawnPoints = new List<PlayerSpawnPoint>();
+        private static int nextVanIndex = 0;
+        private static int nextIslandIndex = 0;
         
-        [SerializeField] private int spawnIndex = -1; // -1 means auto-assign
+        [SerializeField] private int spawnIndex = -1;
+        [SerializeField] private SpawnType spawnType = SpawnType.Island;
+        
+        public SpawnType Type => spawnType;
         
         private void OnEnable()
         {
-            spawnPoints.Add(this);
-            // sort by spawn index for consistent ordering
-            spawnPoints.Sort((a, b) => a.GetSpawnIndex().CompareTo(b.GetSpawnIndex()));
+            var list = spawnType == SpawnType.Van ? vanSpawnPoints : islandSpawnPoints;
+            list.Add(this);
+            list.Sort((a, b) => a.GetSpawnIndex().CompareTo(b.GetSpawnIndex()));
         }
         
         private void OnDisable()
         {
-            spawnPoints.Remove(this);
+            var list = spawnType == SpawnType.Van ? vanSpawnPoints : islandSpawnPoints;
+            list.Remove(this);
         }
         
         private int GetSpawnIndex()
@@ -28,88 +35,115 @@ namespace Category5.Core
             return spawnIndex >= 0 ? spawnIndex : transform.GetSiblingIndex();
         }
         
-        // ensures spawn points are populated, finding them if needed
-        private static void EnsureSpawnPointsPopulated()
+        private static void EnsurePopulated(SpawnType type)
         {
-            if (spawnPoints.Count == 0)
+            var list = type == SpawnType.Van ? vanSpawnPoints : islandSpawnPoints;
+            if (list.Count == 0)
             {
-                // fallback: find all spawn points in the scene
                 PlayerSpawnPoint[] found = FindObjectsByType<PlayerSpawnPoint>(FindObjectsSortMode.None);
                 foreach (var sp in found)
                 {
-                    if (!spawnPoints.Contains(sp))
+                    if (sp.spawnType == type && !list.Contains(sp))
                     {
-                        spawnPoints.Add(sp);
+                        list.Add(sp);
                     }
                 }
-                
-                // sort by spawn index for consistent ordering
-                spawnPoints.Sort((a, b) => a.GetSpawnIndex().CompareTo(b.GetSpawnIndex()));
-                
-                // Debug.Log($"PlayerSpawnPoint: Found {spawnPoints.Count} spawn points via fallback search");
+                list.Sort((a, b) => a.GetSpawnIndex().CompareTo(b.GetSpawnIndex()));
             }
         }
         
-        // gets the next available spawn point
-        public static PlayerSpawnPoint GetNextSpawnPoint()
+        public static PlayerSpawnPoint GetNextVanSpawnPoint()
         {
-            EnsureSpawnPointsPopulated();
-            
-            if (spawnPoints.Count == 0)
+            EnsurePopulated(SpawnType.Van);
+            if (vanSpawnPoints.Count == 0)
             {
-                Debug.LogWarning("PlayerSpawnPoint: No spawn points found in scene");
+                Debug.LogWarning("PlayerSpawnPoint: No van spawn points found in scene");
                 return null;
             }
-            
-            PlayerSpawnPoint point = spawnPoints[nextSpawnIndex % spawnPoints.Count];
-            nextSpawnIndex++;
+            PlayerSpawnPoint point = vanSpawnPoints[nextVanIndex % vanSpawnPoints.Count];
+            nextVanIndex++;
             return point;
         }
         
-        // resets the spawn index, call when starting a new game
-        public static void ResetSpawnIndex()
+        public static PlayerSpawnPoint GetNextIslandSpawnPoint()
         {
-            nextSpawnIndex = 0;
-        }
-        
-        // gets a specific spawn point by index
-        public static PlayerSpawnPoint GetSpawnPoint(int index)
-        {
-            EnsureSpawnPointsPopulated();
-            
-            if (spawnPoints.Count == 0)
+            EnsurePopulated(SpawnType.Island);
+            if (islandSpawnPoints.Count == 0)
             {
-                Debug.LogWarning("PlayerSpawnPoint: No spawn points found in scene");
+                Debug.LogWarning("PlayerSpawnPoint: No island spawn points found in scene");
                 return null;
             }
-            
-            return spawnPoints[index % spawnPoints.Count];
+            PlayerSpawnPoint point = islandSpawnPoints[nextIslandIndex % islandSpawnPoints.Count];
+            nextIslandIndex++;
+            return point;
         }
         
-        // gets all spawn points
-        public static List<PlayerSpawnPoint> GetAllSpawnPoints()
+        public static void ResetSpawnIndex()
         {
-            return new List<PlayerSpawnPoint>(spawnPoints);
+            nextVanIndex = 0;
+            nextIslandIndex = 0;
+        }
+        
+        public static PlayerSpawnPoint GetVanSpawnPoint(int index)
+        {
+            EnsurePopulated(SpawnType.Van);
+            if (vanSpawnPoints.Count == 0)
+            {
+                Debug.LogWarning("PlayerSpawnPoint: No van spawn points found in scene");
+                return null;
+            }
+            return vanSpawnPoints[index % vanSpawnPoints.Count];
+        }
+        
+        public static PlayerSpawnPoint GetIslandSpawnPoint(int index)
+        {
+            EnsurePopulated(SpawnType.Island);
+            if (islandSpawnPoints.Count == 0)
+            {
+                Debug.LogWarning("PlayerSpawnPoint: No island spawn points found in scene");
+                return null;
+            }
+            return islandSpawnPoints[index % islandSpawnPoints.Count];
+        }
+        
+        public static List<PlayerSpawnPoint> GetAllVanSpawnPoints()
+        {
+            EnsurePopulated(SpawnType.Van);
+            return new List<PlayerSpawnPoint>(vanSpawnPoints);
+        }
+        
+        public static List<PlayerSpawnPoint> GetAllIslandSpawnPoints()
+        {
+            EnsurePopulated(SpawnType.Island);
+            return new List<PlayerSpawnPoint>(islandSpawnPoints);
         }
         
         private void OnDrawGizmos()
         {
-            Gizmos.color = Color.blue;
+            if (spawnType == SpawnType.Van)
+            {
+                Gizmos.color = Color.green;
+            }
+            else
+            {
+                Gizmos.color = Color.blue;
+            }
             Gizmos.DrawWireSphere(transform.position, 0.5f);
             Gizmos.DrawLine(transform.position, transform.position + transform.forward * 2f);
             
-            // draw spawn index label
 #if UNITY_EDITOR
-            UnityEditor.Handles.Label(transform.position + Vector3.up, $"Spawn {GetSpawnIndex()}");
+            string label = spawnType == SpawnType.Van ? "Van" : "Island";
+            UnityEditor.Handles.Label(transform.position + Vector3.up, $"{label} Spawn {GetSpawnIndex()}");
 #endif
         }
         
-        // reset statics on domain reload
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
         {
-            spawnPoints = new List<PlayerSpawnPoint>();
-            nextSpawnIndex = 0;
+            vanSpawnPoints = new List<PlayerSpawnPoint>();
+            islandSpawnPoints = new List<PlayerSpawnPoint>();
+            nextVanIndex = 0;
+            nextIslandIndex = 0;
         }
     }
 }

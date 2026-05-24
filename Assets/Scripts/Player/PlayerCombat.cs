@@ -384,6 +384,15 @@ namespace Category5.Player
             
             // prevent attack input during wind riding
             if (_playerController != null && _playerController.IsWindRiding) return false;
+
+            // interrupt recall channel if trying to attack
+            if (_playerController != null && _playerController.IsRecallChanneling)
+            {
+                var recallController = _playerController.GetComponent<Van.RecallController>();
+                if (recallController != null)
+                    recallController.InterruptRecall();
+                return false;
+            }
             
             return true;
         }
