@@ -67,15 +67,5 @@ namespace Category5.Player.WindRiding
 
         [Tooltip("how strongly the player sticks to the cloud surface height")]
         public float cloudFollowStiffness = 5.0f;
-
-        [Header("Van Descent")]
-        [Tooltip("downward speed when exiting the van")]
-        public float vanDescentSpeed = 25f;
-
-        [Tooltip("horizontal steering responsiveness during van descent")]
-        public float vanDescentSteering = 20f;
-
-        [Tooltip("how far to raycast below for ground detection during van descent")]
-        public float vanGroundRaycastDistance = 150f;
         }
 }

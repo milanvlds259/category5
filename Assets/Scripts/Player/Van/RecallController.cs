@@ -41,8 +41,8 @@ namespace Category5.Player.Van
             if (_inputActions == null)
                 _inputActions = new InputSystem_Actions();
             _inputActions.Player.Enable();
-            _inputActions.Player.Recall.started += OnRecallStarted;
-            _inputActions.Player.Recall.canceled += OnRecallCanceled;
+            _inputActions.Player.Recall.started += OnRecallInputStarted;
+            _inputActions.Player.Recall.canceled += OnRecallInputCanceled;
             _inputBound = true;
         }
 
@@ -50,8 +50,8 @@ namespace Category5.Player.Van
         {
             if (_inputBound)
             {
-                _inputActions.Player.Recall.started -= OnRecallStarted;
-                _inputActions.Player.Recall.canceled -= OnRecallCanceled;
+                _inputActions.Player.Recall.started -= OnRecallInputStarted;
+                _inputActions.Player.Recall.canceled -= OnRecallInputCanceled;
                 _inputActions.Player.Disable();
                 _inputBound = false;
             }
@@ -95,7 +95,7 @@ namespace Category5.Player.Van
             }
         }
 
-        private void OnRecallStarted(InputAction.CallbackContext context)
+        private void OnRecallInputStarted(InputAction.CallbackContext context)
         {
             if (!IsOwner && !IsOffline()) return;
             if (_playerController.IsDead.Value) return;
@@ -110,7 +110,7 @@ namespace Category5.Player.Van
             Debug.Log("[Recall] Started channeling");
         }
 
-        private void OnRecallCanceled(InputAction.CallbackContext context)
+        private void OnRecallInputCanceled(InputAction.CallbackContext context)
         {
             if (_state != RecallState.Channeling) return;
             InterruptRecall();

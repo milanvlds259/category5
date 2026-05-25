@@ -1,41 +1,62 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using Category5.Player;
 using Category5.Player.Van;
 
 namespace Category5.UI
 {
-    // world space progress bar that shows recall channel progress above the player
-    // should be a child of the player prefab
     public class RecallProgressUI : MonoBehaviour
     {
         [Header("UI References")]
-        [SerializeField] private Image fillBar;
+        [SerializeField] private Slider slider;
         [SerializeField] private TextMeshProUGUI progressText;
         [SerializeField] private CanvasGroup canvasGroup;
 
         [Header("Settings")]
-        [SerializeField] private float fadeSpeed = 4f;
+        [SerializeField] private float fadeSpeed = 6f;
 
         private RecallController _recallController;
-        private Transform _cameraTransform;
         private bool _isSubscribed;
         private float _targetAlpha = 0f;
 
+        private bool IsOffline()
+        {
+            return Unity.Netcode.NetworkManager.Singleton == null ||
+                   !Unity.Netcode.NetworkManager.Singleton.IsListening;
+        }
+
         private void Start()
         {
-            _recallController = GetComponentInParent<RecallController>();
-            if (_recallController == null)
+            if (canvasGroup != null)
             {
-                enabled = false;
-                return;
+                canvasGroup.alpha = 0f;
+                canvasGroup.blocksRaycasts = false;
             }
 
-            if (canvasGroup != null)
-                canvasGroup.alpha = 0f;
+            StartCoroutine(FindLocalPlayer());
+        }
+
+        private System.Collections.IEnumerator FindLocalPlayer()
+        {
+            yield return null;
+
+            PlayerController localPlayer = FindFirstObjectByType<PlayerController>();
+            while (localPlayer == null || !(localPlayer.IsOwner || IsOffline()))
+            {
+                localPlayer = FindFirstObjectByType<PlayerController>();
+                yield return null;
+            }
+
+            _recallController = localPlayer.GetComponent<RecallController>();
+            if (_recallController == null)
+            {
+                Debug.LogWarning("[RecallProgressUI] Local player has no RecallController");
+                enabled = false;
+                yield break;
+            }
 
             Subscribe();
-            SetVisible(false);
         }
 
         private void OnEnable()
@@ -72,14 +93,16 @@ namespace Category5.UI
 
         private void HandleRecallStarted()
         {
-            SetVisible(true);
             _targetAlpha = 1f;
+
+            if (canvasGroup != null)
+                canvasGroup.blocksRaycasts = true;
         }
 
         private void HandleRecallProgress(float progress)
         {
-            if (fillBar != null)
-                fillBar.fillAmount = progress;
+            if (slider != null)
+                slider.value = progress;
 
             if (progressText != null)
                 progressText.text = $"Recall {Mathf.RoundToInt(progress * 100f)}%";
@@ -89,47 +112,21 @@ namespace Category5.UI
         {
             _targetAlpha = 0f;
 
-            if (fillBar != null)
-                fillBar.fillAmount = 0f;
+            if (canvasGroup != null)
+                canvasGroup.blocksRaycasts = false;
+
+            if (slider != null)
+                slider.value = 0f;
 
             if (progressText != null)
                 progressText.text = "";
         }
 
-        private void LateUpdate()
+        private void Update()
         {
-            if (_recallController == null) return;
-
-            // billboard toward camera
-            if (_cameraTransform == null)
-            {
-                if (Camera.main != null)
-                    _cameraTransform = Camera.main.transform;
-            }
-
-            if (_cameraTransform != null)
-            {
-                transform.rotation = Quaternion.LookRotation(transform.position - _cameraTransform.position);
-            }
-
-            // fade in/out
             if (canvasGroup != null)
             {
                 canvasGroup.alpha = Mathf.MoveTowards(canvasGroup.alpha, _targetAlpha, fadeSpeed * Time.deltaTime);
-            }
-        }
-
-        private void SetVisible(bool visible)
-        {
-            if (canvasGroup != null)
-                canvasGroup.alpha = visible ? 1f : 0f;
-
-            if (!visible)
-            {
-                if (fillBar != null)
-                    fillBar.fillAmount = 0f;
-                if (progressText != null)
-                    progressText.text = "";
             }
         }
     }

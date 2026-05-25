@@ -335,7 +335,15 @@ public class MapGenerator : NetworkBehaviour
                                                     arenaMask, 
                                                     QueryTriggerInteraction.Collide
                                                     );
-        if (colliders.Length > 1) // More than one collider means overlap
+        // Only count colliders from previously placed arenas (children of mapParent) to avoid
+        // false overlaps with scene geometry (van, decorations, etc.)
+        int arenaColliders = 0;
+        foreach (Collider c in colliders)
+        {
+            if (c.gameObject == arena || c.transform.IsChildOf(parent))
+                arenaColliders++;
+        }
+        if (arenaColliders > 1) // More than one arena collider means overlap
         {
             DestroyImmediate(arena); // Remove the overlapping arena
 
