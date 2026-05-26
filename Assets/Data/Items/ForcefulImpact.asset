@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a5fd3245b27c2c419efd63766ca013e, type: 3}
   m_Name: ForcefulImpact
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Items.ItemData
-  itemName: Forceful Impact
+  itemName: Spiked Kneepads
   description: 'Sprinting into or dashing through an enemy deals <color=#FF6B35><b>{0}</b></color>
     damage on contact.
 

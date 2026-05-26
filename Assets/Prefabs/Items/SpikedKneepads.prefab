@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 7431130188438898788}
   - component: {fileID: 315980806533769988}
   m_Layer: 0
-  m_Name: ForcefulImpact
+  m_Name: SpikedKneepads
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
