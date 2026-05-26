@@ -10,7 +10,7 @@ public class TriggerVolume : MonoBehaviour
     [SerializeField] private Collider collider;
 
     public LayerMask targetLayers;
-    public string targetTag;
+    public string targetTag; // set in Arena.cs when this is created
 
     public event Action OnTriggerVolumeEnter;
 
@@ -57,13 +57,14 @@ public class TriggerVolume : MonoBehaviour
         {
             if (other.gameObject.tag == targetTag)
             {
-                OnTriggerVolumeEnter.Invoke();
+                if (OnTriggerVolumeEnter != null)
+                    OnTriggerVolumeEnter?.Invoke();
             }
         }
         else
         {
-            Debug.Log(other.gameObject.name);
-            OnTriggerVolumeEnter.Invoke();
+            if (OnTriggerVolumeEnter != null)
+                OnTriggerVolumeEnter?.Invoke();
         }
     }
 }

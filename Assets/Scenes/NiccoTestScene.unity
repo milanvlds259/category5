@@ -332,7 +332,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 9.776978, y: -49.50699}
+  m_AnchoredPosition: {x: 9.776855, y: -49.506958}
   m_SizeDelta: {x: 86.12, y: 34.7347}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &61144361
@@ -3778,7 +3778,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 95.89734, y: -8.799988}
+  m_AnchoredPosition: {x: 95.89746, y: -8.800049}
   m_SizeDelta: {x: 86.1203, y: 40.7067}
   m_Pivot: {x: 1, y: 1}
 --- !u!114 &492782286
@@ -5579,7 +5579,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 37.9, y: -37}
+  m_AnchoredPosition: {x: 37.899902, y: -37}
   m_SizeDelta: {x: 320, y: 320}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &711907232
@@ -10380,11 +10380,11 @@ GameObject:
   - component: {fileID: 1374391190}
   m_Layer: 0
   m_Name: MapCamera
-  m_TagString: Untagged
+  m_TagString: MapCamera
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1374391190
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10982,6 +10982,7 @@ MonoBehaviour:
   bossNameText: {fileID: 1215513403}
   roundText: {fileID: 1242543839}
   charPortraitImage: {fileID: 0}
+  inventoryHUD: {fileID: 0}
   damageNumberPrefab: {fileID: 5865795987653267983, guid: e5ce9861f6e1b7245b7f66edd690895d, type: 3}
   damageNumberContainer: {fileID: 729073551}
 --- !u!1 &1499219358
@@ -14037,6 +14038,58 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1784738280}
   m_CullTransparentMesh: 1
+--- !u!1 &1792379086
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1792379087}
+  - component: {fileID: 1792379088}
+  m_Layer: 0
+  m_Name: BaseArenaObject
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!4 &1792379087
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1792379086}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.473, y: -0.00001, z: -1.63313}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1792379088
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1792379086}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: adce34e6526a4324995ee6e0e5b76fe5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Arena
+  scaleFactor: 0
+  radius: 0
+  isEye: 0
+  arenaBounds: {fileID: 0}
+  trigger: {fileID: 0}
+  parent: {fileID: 0}
+  enemySpawner: {fileID: 0}
+  arenaMapSprite: {fileID: 0}
 --- !u!1 &1810477755
 GameObject:
   m_ObjectHideFlags: 0
@@ -15285,6 +15338,8 @@ MonoBehaviour:
   cloudwallPrefab: {fileID: 3313645192529685122, guid: 3e620a9914c42ce45a3c385cf3d9a423, type: 3}
   cloudSpherePrefab: {fileID: 3342093096742335561, guid: a6375263bcea6e24e85504dd46be2e62, type: 3}
   enemySpawnerPrefab: {fileID: 6454236440128641259, guid: 2c754b57692fedd4c86b835d9e049ee6, type: 3}
+  arenaMapSprite: {fileID: 0}
+  pathMapSprite: {fileID: 0}
 --- !u!114 &1958033729
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17497,3 +17552,4 @@ SceneRoots:
   - {fileID: 1958033730}
   - {fileID: 1347864453}
   - {fileID: 1374391193}
+  - {fileID: 1792379087}

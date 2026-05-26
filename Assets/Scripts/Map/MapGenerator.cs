@@ -25,6 +25,7 @@ public class MapGenerator : NetworkBehaviour
         - Want to make paths only move points side to side?
     */
 
+    // The random seed used to generate the map
     public NetworkVariable<int> Seed = new NetworkVariable<int>(
         0, // default value
         NetworkVariableReadPermission.Everyone,
@@ -47,7 +48,7 @@ public class MapGenerator : NetworkBehaviour
     public Vector3 maxBounds;
 
     // List to hold references to created arenas/eyes
-    private List<ArenaData> arenas = new List<ArenaData>();
+    private List<Arena> arenas = new List<Arena>();
     // Layer mask used in arena generation so that they don't generate overlapping
     [SerializeField] LayerMask arenaMask;
 
@@ -78,41 +79,10 @@ public class MapGenerator : NetworkBehaviour
     [SerializeField] Sprite arenaMapSprite;
     [SerializeField] Sprite pathMapSprite;
 
-    class ArenaData
-    {
-        public Vector3 position;
-        public float scaleFactor;
-        public GameObject gameObjectRef;
-
-        // Stores if this arena is an eye or not, players can drop into eyes
-        public bool isEye;
-        // Stores if the arena is a "hidden" arena. Hidden arenas will be initially inaccessible, and
-        // paths connected to them will also be hidden
-        public bool isHidden;
-        // Arenas have a capsule collider surrounding them that defines
-        // the arena's boundaries (The storm cloud walls)
-        public CapsuleCollider arenaBounds;
-
-        public TriggerVolume trigger;
-
-        public ArenaData(Vector3 pos, GameObject objRef, float scale)
-        {
-            position = pos;
-            gameObjectRef = objRef;
-            scaleFactor = scale;
-
-            // Arenas are not eyes by default. If they are set to true it's in GenerateMap()
-            isEye = false;
-
-            arenaBounds = gameObjectRef.GetComponent<CapsuleCollider>();
-            trigger = gameObjectRef.GetComponent<TriggerVolume>();
-        }
-    }
-
     class Path
     {
-        public ArenaData arenaA;
-        public ArenaData arenaB;
+        public Arena arenaA;
+        public Arena arenaB;
         public GameObject gameObjectRef;
 
         public bool isHidden;
@@ -120,7 +90,7 @@ public class MapGenerator : NetworkBehaviour
         // The spline that makes up the physical object of this path
         public Spline spline;
 
-        public Path(ArenaData a, ArenaData b, GameObject objRef)
+        public Path(Arena a, Arena b, GameObject objRef)
         {
             arenaA = a;
             arenaB = b;
@@ -141,11 +111,13 @@ public class MapGenerator : NetworkBehaviour
 
     public void StartRound()
     {
+        // Get a random seed on the server, then generate a map with it
+        // Clients will use the seed from the server so they generate the same map
         if (IsServer) {
             GetSeed();
             DeleteMap();
             GenerateMap(Seed.Value);
-            AddEnemySpawnersToArenas();
+            //AddEnemySpawnersToArenas();
             return;
         }
         // Everyone waits for the seed to be ready
@@ -199,15 +171,18 @@ public class MapGenerator : NetworkBehaviour
 
         mapParent = new GameObject("Map");
 
+        // Number of eyes cannot exceed number of arenas, and cannot be < 0
+        numberOfEyes = Math.Clamp(numberOfEyes, 0, numberOfArenas);
 
         // The main boss arena will always be created in the center of the map
-        ArenaData bossArena = CreateArena(Vector3.zero, mapParent.transform, "boss", 1.5f);
+        Arena bossArena = CreateArena(Vector3.zero, mapParent.transform, "boss", 1.5f);
+        AddCloudBoundaryToArena(bossArena);
 
         // Create arenas at random positions between the input Vector3s for storm eyes
         for (int i = 0; i < numberOfArenas; i++)
         {
             // Store a boolean for if an arena was successfully created and create an arena
-            ArenaData arenaCreated = CreateArena(minBounds, maxBounds, i.ToString(), mapParent.transform);
+            Arena arenaCreated = CreateArena(minBounds, maxBounds, i.ToString(), mapParent.transform);
 
             int maxIterations = 100; // Prevent infinite loops
             // As long as the arena wasn't created (overlaps), try again
@@ -224,33 +199,17 @@ public class MapGenerator : NetworkBehaviour
                 // Try creating the arena again at another random pos
                 arenaCreated = CreateArena(minBounds, maxBounds, i.ToString(), mapParent.transform);
             }
-            // Add an enemy spawner to the created arena
-            // AddEnemySpawnerToArena(arenaCreated);
+            
+            AddCloudBoundaryToArena(arenaCreated);
         }
-
-        // Number of eyes cannot exceed number of arenas, and cannot be < 0
-        numberOfEyes = Math.Clamp(numberOfEyes, 0, arenas.Count);
-        // Assign arenas to be the storm's eyes (points where players can drop in)
-        // 0 is always boss arena, go to number of eyes + 1
-        for (int i = 0; i <= numberOfEyes; i++)
-        {
-            arenas[i].isEye = true;
-        }
-        // After setting eyes, add cloud boundaries to close off arenas
-        foreach (ArenaData arena in arenas)
-        {
-            // Add the cloud boundaries on all arenas
-            // eyes get cylinders (cloudwall) and other get spheres
-            AddCloudBoundaryToArena(arena);
-        }
-
+   
         // Create paths between arenas
         int pathCount = 0;
         // Loop through each arena here
         for (int i = 0; i < arenas.Count; i++)
         {
-            ArenaData closestArena = null;
-            ArenaData secondClosestArena = null;
+            Arena closestArena = null;
+            Arena secondClosestArena = null;
             // Loop through all arenas again here
             for (int j = 0; j < arenas.Count; j++)
             {
@@ -260,13 +219,13 @@ public class MapGenerator : NetworkBehaviour
                 // and create paths between them until each arena has at least 2 paths, 
                 // or there are no more arenas within a certain distance threshold
                 // Get distance between the two arenas
-                float distance = Vector3.Distance(arenas[i].position, arenas[j].position);
-                if (closestArena == null || distance < Vector3.Distance(arenas[i].position, closestArena.position))
+                float distance = Vector3.Distance(arenas[i].transform.position, arenas[j].transform.position);
+                if (closestArena == null || distance < Vector3.Distance(arenas[i].transform.position, closestArena.transform.position))
                 {
                     secondClosestArena = closestArena;
                     closestArena = arenas[j];
                 }
-                else if (secondClosestArena == null || distance < Vector3.Distance(arenas[i].position, secondClosestArena.position))
+                else if (secondClosestArena == null || distance < Vector3.Distance(arenas[i].transform.position, secondClosestArena.transform.position))
                 {
                     secondClosestArena = arenas[j];
                 }
@@ -305,39 +264,27 @@ public class MapGenerator : NetworkBehaviour
             // Add a mesh to all paths
             StartCoroutine(CreatePathMeshes());
         }
+
+        // Get the spawners from each arena and add them to the spawners list in this script
+        foreach (Arena arena in arenas)
+        {
+            spawners.AddRange(arena.spawners);
+        }
     }
 
 
     // Creates an arena at the specified location, specific location version!
     // Overload below that does a random position
-    ArenaData CreateArena(Vector3 inputPos, Transform parent, String numberforname = "", float scaleFactor=1f)
-    {
-        // TEMPORARY! Replace basic shapes with prefabs of premade arenas and stuff
-        
-        // Create a new arena as a cube primitive GameObject
-        GameObject arena = GameObject.CreatePrimitive(PrimitiveType.Cube);
-
-        // Set transform
-        arena.transform.position = inputPos;
-        arena.transform.localScale = new Vector3(
-                                            60*scaleFactor,
-                                            2*scaleFactor,
-                                            60*scaleFactor
-                                            );
-        
-        // Add a Rigidbody to make it interact with physics
-        arena.AddComponent<Rigidbody>();
-        arena.GetComponent<Rigidbody>().isKinematic = true;
-
-        
+    Arena CreateArena(Vector3 inputPos, Transform parent, String numberforname = "", float scaleFactor=1f)
+    {   
         // Check if the new arena is too close to a previous one
         // Use an OverlapBox to detect collisions
         // Do not let arenas spawn on top of each other
         // The radius is a little bigger than the arena's actual size to prevent them from being too close, 
         // since the paths will be generated from the edges of the arenas
-        Collider[] colliders = Physics.OverlapCapsule(arena.transform.position - new Vector3(0, 100, 0), 
-                                                    arena.transform.position + new Vector3(0, 100, 0), 
-                                                    arena.transform.localScale.x * 2, 
+        Collider[] colliders = Physics.OverlapCapsule(inputPos - new Vector3(0, 100, 0), 
+                                                    inputPos + new Vector3(0, 100, 0), 
+                                                    scaleFactor * 120f, 
                                                     arenaMask, 
                                                     QueryTriggerInteraction.Collide
                                                     );
@@ -351,97 +298,65 @@ public class MapGenerator : NetworkBehaviour
         }
         if (arenaColliders > 1) // More than one arena collider means overlap
         {
-            DestroyImmediate(arena); // Remove the overlapping arena
+            // DestroyImmediate(arena); // Remove the overlapping arena
 
             // Return null, the arena wasn't created
             return null;
         }
         else
         {
-            arena.GetComponent<MeshRenderer>().material = islandMaterial;
-
-            // Add a capsule collider to define the bounds of the arena
-            CapsuleCollider collider = arena.AddComponent<CapsuleCollider>();
-            collider.radius = arena.transform.localScale.x / (scaleFactor * 60) + 0.25f; // Set the radius
-            collider.height = 100f; // Set the height
-            collider.center = new Vector3(0, 10, 0); // Center the collider on the arena
-            collider.isTrigger = true; // Set the collider to be a trigger so players can fall through
-
-            // Add TriggerVolume script that will invoke an event when that capsule
-            // collider trigger is entered. This will automatically get the capsule trigger collider
-            TriggerVolume trigger = arena.AddComponent<TriggerVolume>();
-            trigger.targetLayers = LayerMask.GetMask("Player");
-            trigger.targetTag = "Player";
-
-            // Add cloud layer
-            GameObject cloudLayer = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            DestroyImmediate(cloudLayer.GetComponent<CapsuleCollider>()); // Remove the cloud layer's collider
-            cloudLayer.transform.position = new Vector3(arena.transform.position.x, arena.transform.position.y - 1f, arena.transform.position.z);
-            cloudLayer.transform.localScale = new Vector3(
-                                            collider.radius * 2.2f * arena.transform.localScale.x,
-                                            1f,
-                                            collider.radius * 2.2f * arena.transform.localScale.x
-                                            );
-            cloudLayer.transform.parent = arena.transform;
-            cloudLayer.GetComponent<MeshRenderer>().material = cloudMaterial; // Set the cloud material
-            MeshCollider cloudCollider = cloudLayer.AddComponent<MeshCollider>();
-            cloudCollider.convex = true; // Set convex to true so it can be a trigger
-            cloudCollider.isTrigger = true; // Add a mesh collider and set it to be a trigger so players can fall through
-            cloudLayer.layer = 8;
+            // Create an empty gameobject to serve as the arena's base object
+            GameObject arena = new GameObject();
+            arena.transform.position = inputPos;
             
             // Set the arena's name and make it a child of the parent param
             if (!string.IsNullOrEmpty(numberforname))
             {
                 arena.name = "Arena_" + numberforname;
             }
-            arena.transform.parent = parent;
 
             // Attach Arena script
             Arena arenaScript = arena.AddComponent<Arena>();
+            arenaScript.parent = parent;
+            arenaScript.scaleFactor = scaleFactor;
 
-            // Attach Sprite Renderer for the mini and overhead maps
-            GameObject sprite = new GameObject("sprite");
-            sprite.transform.position = arena.transform.position;
-            sprite.transform.localScale = new Vector3(
-                                            collider.radius * 2.2f * arena.transform.localScale.x,
-                                            collider.radius * 2.2f * arena.transform.localScale.x,
-                                            1f
-                                            );
-            sprite.transform.rotation = UnityEngine.Quaternion.Euler(90, 0, 0);
-            int layerIndex = LayerMask.NameToLayer("Map");
-            sprite.layer = layerIndex;
-            sprite.transform.parent = arena.transform;
-
-            SpriteRenderer renderer = sprite.AddComponent<SpriteRenderer>();
-            renderer.sprite = arenaMapSprite;
+            arenaScript.arenaMapSprite = arenaMapSprite;
+            
+            // Have the arena script generate the interior of the arena
+            arenaScript.GenerateArena(enemySpawnerPrefab);
 
             // Create an ArenaData instance to hold the arena's data
-            ArenaData arenaData = new ArenaData(arena.transform.position, arena, scaleFactor);
-            arenas.Add(arenaData); // Store reference to the created arena
+            //ArenaData arenaData = new ArenaData(arena.transform.position, arena, scaleFactor);
+            arenas.Add(arenaScript); // Store reference to the created arena
 
-            //arena.tag = "Arena"; // Set the tag of the arena to "Arena" for easy reference
+            // Make the arena an eye if we still need more eyes
+            if (numberOfEyes > 0)
+            {
+                arenaScript.isEye = true;
+                numberOfEyes--;
+            }
 
-            return arenaData; // No overlap, return the created arena data
+            return arenaScript; // No overlap, return the created arena data
         }
     }
 
     // Overload of CreateArena that takes in Vector3 min and max for a random position,
     // Then calls the original version on a random position within the box created by the min and max
     // The min and max are the bounds of the area where the arena can spawn
-    ArenaData CreateArena(Vector3 min, Vector3 max, String numberForName, Transform parent)
+    Arena CreateArena(Vector3 min, Vector3 max, String numberForName, Transform parent)
     {
         // Create the arena, and check if the arena was successfully created
         // This call doesn't pass a scalefactor, so it defaults to 1f
-        ArenaData arenaData = CreateArena(
+        Arena arena = CreateArena(
                                     new Vector3(Random.Range(min.x, max.x), Random.Range(min.y, max.y), Random.Range(min.z, max.z)),
                                     parent,
                                     numberForName
                                  );
 
-        if ( arenaData != null )
+        if ( arena != null )
         {
             // If it was return the arena data
-            return arenaData;
+            return arena;
         }
         else
         {
@@ -450,38 +365,7 @@ public class MapGenerator : NetworkBehaviour
         }
     }
 
-    // Adds an enemy spawner to the given arena, making it a child of the arena and setting the bounds of the enemy spawns
-    void AddEnemySpawnersToArenas()
-    {
-        if (!IsServer) return;
-
-        for (int i = 1; i < arenas.Count; i++)
-        {
-            ArenaData arena = arenas[i];
-            GameObject spawnerObj = Instantiate(enemySpawnerPrefab);
-        
-            EnemySpawner spawner = spawnerObj.GetComponent<EnemySpawner>();
-            spawner.spawnBounds = new Vector3(arena.gameObjectRef.transform.localScale.x, 0, arena.gameObjectRef.transform.localScale.z);
-            // Here set the spawner to only start spawning using the triggervolume on this arena
-            spawner.autoStartOnSpawn = false;
-            spawner.startOnTrigger = true;
-            spawner.triggerVolume = arena.trigger;
-
-            spawner.GetComponent<NetworkObject>().Spawn();
-
-            spawnerObj.transform.parent = arena.gameObjectRef.transform;
-            spawnerObj.transform.position = arena.position + new Vector3(0, 5f, 0); // Position it a little above the arena
-
-            // Add the spawner to the spawners list
-            spawners.Add(spawnerObj);
-
-            Arena arenaScript = arena.gameObjectRef.GetComponent<Arena>();
-            arenaScript.enemySpawner = spawner;
-        }
-        
-    }
-
-    void AddCloudBoundaryToArena(ArenaData arena)
+    void AddCloudBoundaryToArena(Arena arena)
     {
         GameObject cloudBoundary;
         float Yscale = 0;
@@ -490,25 +374,25 @@ public class MapGenerator : NetworkBehaviour
         if (arena.isEye)
         {
             cloudBoundary = Instantiate(cloudwallPrefab);
-            Yscale = 100 + Mathf.Abs(Mathf.Clamp(arena.position.y, -999, 0));
-            Ypos = arena.position.y + (cloudBoundary.transform.localScale.y/2);
+            Yscale = 100;
+            Ypos = arena.transform.position.y;
         }
         else
         {
             cloudBoundary = Instantiate(cloudSpherePrefab);
-            Yscale = arena.gameObjectRef.transform.localScale.x * 1.3f;
-            Ypos = arena.position.y;
+            Yscale = arena.radius;
+            Ypos = arena.transform.position.y;
         }
         
         cloudBoundary.transform.localScale = new Vector3(
-            arena.gameObjectRef.transform.localScale.x * 1.3f,
+            arena.radius,
             Yscale,
-            arena.gameObjectRef.transform.localScale.z * 1.3f
+            arena.radius
         );
         cloudBoundary.transform.position = new Vector3(
-            arena.position.x,
+            arena.transform.position.x,
             Ypos,
-            arena.position.z
+            arena.transform.position.z
         );
         cloudBoundary.SetActive(true);
         cloudBoundary.transform.parent = mapParent.transform;
@@ -524,7 +408,7 @@ public class MapGenerator : NetworkBehaviour
     }
 
     // Creates a path between two given arenas
-    void CreatePath(ArenaData arenaA, ArenaData arenaB, Transform parent, String numberforname = "")
+    void CreatePath(Arena arenaA, Arena arenaB, Transform parent, String numberforname = "")
     {
         // Checks if the path is valid
         // Path to same arena?
@@ -569,11 +453,11 @@ public class MapGenerator : NetworkBehaviour
 
         // Get the points on each arena's bounds collider closest to the other arena
         // These will be the start and end points of the path
-        Vector3 pointOnA = arenaA.arenaBounds.ClosestPoint(arenaB.position);
+        Vector3 pointOnA = arenaA.arenaBounds.ClosestPoint(arenaB.transform.position);
         Vector3 pointOnB = arenaB.arenaBounds.ClosestPoint(pointOnA);
         // Make sure the points are at the level of the arena (plus a little to be above cloud level)
-        pointOnA = new Vector3(pointOnA.x, arenaA.position.y + + 5f, pointOnA.z);
-        pointOnB = new Vector3(pointOnB.x, arenaB.position.y + 5f, pointOnB.z);
+        pointOnA = new Vector3(pointOnA.x, arenaA.transform.position.y + + 5f, pointOnA.z);
+        pointOnB = new Vector3(pointOnB.x, arenaB.transform.position.y + 5f, pointOnB.z);
 
         BezierKnot Aknot = new BezierKnot(pointOnA);
         BezierKnot Bknot = new BezierKnot(pointOnB);
@@ -721,8 +605,8 @@ public class MapGenerator : NetworkBehaviour
             launchPadA.transform.localScale = new Vector3(25, 25, 25);
             launchPadB.transform.localScale = new Vector3(25, 25, 25);
 
-            launchPadA.transform.LookAt(path.arenaA.position);
-            launchPadB.transform.LookAt(path.arenaB.position);
+            launchPadA.transform.LookAt(path.arenaA.transform.position);
+            launchPadB.transform.LookAt(path.arenaB.transform.position);
             launchPadA.transform.Rotate(new Vector3(0, -90, 0));
             launchPadB.transform.Rotate(new Vector3(0, -90, 0));
 
@@ -828,7 +712,7 @@ public class MapGenerator : NetworkBehaviour
     void RepositionEntrance(Path path, string whichEntrance = "A")
     {
         BezierKnot entranceKnot;
-        ArenaData arena = null;
+        Arena arena = null;
         int knotIndex;
         int secondaryKnotIndex; // Used for the knot that makes the path face the arena
         // The passed whichEntrance string decides if we're checking the first knot or the last
@@ -854,7 +738,7 @@ public class MapGenerator : NetworkBehaviour
 
         // Get necessary references
         Vector3 entrancePos = entranceKnot.Position; // Knot's position
-        Vector3 directionFromArena = (entrancePos - arena.position).normalized; // Dir from arena center to the knot
+        Vector3 directionFromArena = (entrancePos - arena.transform.position).normalized; // Dir from arena center to the knot
         float angle = Mathf.Atan2(directionFromArena.z, directionFromArena.x); // Float angle value of the direction (in radians)
 
         // Initialize sweep angle in the positive direction
@@ -871,7 +755,7 @@ public class MapGenerator : NetworkBehaviour
             directionFromArena = new Vector3(Mathf.Cos(posAngle), 0, Mathf.Sin(posAngle));
 
             // Raycast from the arena
-            RaycastHit[] hits = Physics.RaycastAll(arena.position, directionFromArena, arena.gameObjectRef.transform.localScale.x + 100f);
+            RaycastHit[] hits = Physics.RaycastAll(arena.transform.position, directionFromArena, arena.radius + 100f);
             foreach (RaycastHit hit in hits)
             {
                 //Debug.Log("POSITIVE " + arena.gameObjectRef.name + " " + hit.collider.gameObject.name + " " + path.gameObjectRef.name + " " + attempts);
@@ -899,7 +783,7 @@ public class MapGenerator : NetworkBehaviour
             directionFromArena = new Vector3(Mathf.Cos(negAngle), 0, Mathf.Sin(negAngle));
 
             // Raycast from the arena
-            RaycastHit[] hits = Physics.RaycastAll(arena.position, directionFromArena, arena.gameObjectRef.transform.localScale.x + 100f);
+            RaycastHit[] hits = Physics.RaycastAll(arena.transform.position, directionFromArena, arena.radius + 100f);
             foreach (RaycastHit hit in hits)
             {
                 //Debug.Log("NEGATIVE " + arena.gameObjectRef.name + " " + hit.collider.gameObject.name + " " + path.gameObjectRef.name + " " + attempts);
@@ -934,7 +818,7 @@ public class MapGenerator : NetworkBehaviour
         
         // Get a point in the new direction to get 
         Vector3 newDirection = new Vector3(Mathf.Cos(newAngle), 0, Mathf.Sin(newAngle));
-        Vector3 newPoint = arena.position + newDirection * arena.gameObjectRef.transform.localScale.x;
+        Vector3 newPoint = arena.transform.position + newDirection * arena.radius;
                 
         entranceKnot.Position = arena.arenaBounds.ClosestPoint(newPoint);
         // Debug.Log(angle + "<-ANGLE " + "\n NewANGLE->" + newAngle  + "\n POSANGLE->" + posAngle + " " + Mathf.Abs(posAngle - angle) + " " + (angle + 90*Mathf.Deg2Rad).ToString() + " \n NEGANGLE->" + negAngle + " " + Mathf.Abs(negAngle - angle) + " " + (angle - 90*Mathf.Deg2Rad).ToString() + " \n " + newPoint + "<-NEWPOINT OLDPOINT->" + entrancePos + "\n ARENA->" + arena.gameObjectRef.name + " \n PATH->" + path.gameObjectRef.name);
