@@ -59,6 +59,12 @@ namespace Category5.Player
         // dynamic max mana bonus from item behaviours (e.g. Spiritual Well)
         private int _dynamicMaxManaBonus = 0;
 
+        // dynamic crit chance bonus from item behaviours (e.g. Mark of the Alpha)
+        private float _dynamicCritChanceBonus = 0f;
+
+        // dynamic mana regen bonus from item behaviours (e.g. Mark of the Alpha)
+        private float _dynamicManaRegenBonus = 0f;
+
         // base stat accessors (from class data or fallback)
         public float BaseAttackDamage => _classData != null ? _classData.baseAttackDamage : fallbackAttackDamage;
         private int BaseMaxHealth => _classData != null ? _classData.baseMaxHealth : fallbackMaxHealth;
@@ -90,9 +96,9 @@ namespace Category5.Player
         public float ManaRegenMultiplier => _manaRegenMultiplier;
         public float EffectiveMoveSpeed => BaseMoveSpeed * _moveSpeedMultiplier;
         public float TotalArmor => BaseArmor + _armorBonus;
-        public float TotalCritChance => Mathf.Clamp01(BaseCritChance + _critChanceBonus);
+        public float TotalCritChance => Mathf.Clamp01(BaseCritChance + _critChanceBonus + _dynamicCritChanceBonus);
         public float TotalCritDamage => BaseCritDamage + _critDamageBonus;
-        public float EffectiveManaRegenRate => BaseManaRegenRate * _manaRegenMultiplier;
+        public float EffectiveManaRegenRate => BaseManaRegenRate * (_manaRegenMultiplier + _dynamicManaRegenBonus);
         public bool HasClassData => _classData != null;
 
         // base stat accessors for item behaviour calculations
@@ -118,6 +124,26 @@ namespace Category5.Player
             if (_dynamicMaxManaBonus != bonus)
             {
                 _dynamicMaxManaBonus = bonus;
+                OnStatsChanged?.Invoke();
+            }
+        }
+
+        // set dynamic crit chance bonus from item behaviours (e.g. Mark of the Alpha)
+        public void SetDynamicCritChanceBonus(float bonus)
+        {
+            if (!Mathf.Approximately(_dynamicCritChanceBonus, bonus))
+            {
+                _dynamicCritChanceBonus = bonus;
+                OnStatsChanged?.Invoke();
+            }
+        }
+
+        // set dynamic mana regen multiplier bonus from item behaviours (e.g. Mark of the Alpha)
+        public void SetDynamicManaRegenBonus(float bonus)
+        {
+            if (!Mathf.Approximately(_dynamicManaRegenBonus, bonus))
+            {
+                _dynamicManaRegenBonus = bonus;
                 OnStatsChanged?.Invoke();
             }
         }

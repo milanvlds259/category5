@@ -159,6 +159,9 @@ namespace Category5.Player
 
         // item behaviour events
 
+        // fired when player takes actual (non-dodged) damage. passes raw damage value (before armor)
+        public event Action<int> OnPlayerTookDamage;
+
         // fired when player dodges damage via i-frames. passes remaining dodge timer so items can detect timing
         public event Action<float> OnPlayerDodgedAttack;
 
@@ -990,6 +993,8 @@ namespace Category5.Player
 
             CurrentHealth.Value -= (_playerStats != null ? _playerStats.ApplyArmor(effectiveDamage) : effectiveDamage);
             // Debug.Log($"Player took {damage} damage (after armor). Health: {CurrentHealth.Value}");
+
+            OnPlayerTookDamage?.Invoke(effectiveDamage);
             
             // cancel any charging attack when taking damage
             CancelChargeOnDamageClientRpc(new ClientRpcParams

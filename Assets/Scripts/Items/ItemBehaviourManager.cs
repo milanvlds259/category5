@@ -242,6 +242,16 @@ namespace Category5.Items
             return _activeBehaviours.ContainsKey(itemId);
         }
 
+        // syncs Mark of the Alpha aura stacks from server to clients for visual updates
+        [ClientRpc]
+        public void MarkOfTheAlphaAuraStacksClientRpc(int stacks)
+        {
+            if (IsServer) return;
+            var markOfTheAlpha = GetItemBehaviour<MarkOfTheAlphaBehaviour>();
+            if (markOfTheAlpha != null)
+                markOfTheAlpha.OnAuraStacksSynced(stacks);
+        }
+
         // called by the owner when a body contact fires during sprint/dodge
         // relays to the server-side ForcefulImpactBehaviour to apply damage
         [Rpc(SendTo.Server)]

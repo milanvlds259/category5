@@ -486,7 +486,6 @@ MonoBehaviour:
   slider: {fileID: 906196778}
   progressText: {fileID: 1651653416}
   canvasGroup: {fileID: 53371448}
-  recallPanel: {fileID: 53371445}
   fadeSpeed: 6
 --- !u!225 &53371448
 CanvasGroup:
@@ -4324,14 +4323,7 @@ MonoBehaviour:
   allItems:
   - {fileID: 11400000, guid: 5bd6b24b91c47334098f472a26b8437e, type: 2}
   - {fileID: 11400000, guid: 68db43c70fef2cc4089c8ded0c837172, type: 2}
-  - {fileID: 11400000, guid: 5be8e967ffc5d69478bb987df5cbd984, type: 2}
-  - {fileID: 11400000, guid: 78804a97dbce5dd44925f2bf364ca3c5, type: 2}
-  - {fileID: 11400000, guid: 830d0226e6df22c41abbb53b49aafb3f, type: 2}
-  - {fileID: 11400000, guid: 1105c2f9e75d13f4c81d659210d70e82, type: 2}
-  - {fileID: 11400000, guid: d827f677aff1a6c4299c3c6c12bdd7cb, type: 2}
-  - {fileID: 11400000, guid: 17e70640f72c2c2459b5b4978c402010, type: 2}
-  - {fileID: 11400000, guid: b3087fbced0ac164595fa35ca8eaa269, type: 2}
-  - {fileID: 11400000, guid: aa63826c2c3de8a4c817fc5ce68a3a50, type: 2}
+  - {fileID: 11400000, guid: 162342a0da0d46d28708917498e12a68, type: 2}
   useWeightedSelection: 0
   allowDuplicateChoices: 0
 --- !u!1 &820791430

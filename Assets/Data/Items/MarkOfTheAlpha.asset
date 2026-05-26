@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a5fd3245b27c2c419efd63766ca013e, type: 3}
+  m_Name: MarkOfTheAlpha
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Items.ItemData
+  itemName: Mark of the Alpha
+  description: 'On kill, gain a <color=#FFD700>ramping aura</color> ({2}m base)
+    granting <color=#FFD700>+{0}% crit chance</color> and <color=#88DDFF>+{1}% mana
+    regen</color> per stack (max {3}). Killing extends the aura. Taking damage or
+    {4}s without a kill resets it.'
+  icon: {fileID: 0}
+  category: 0
+  effects: []
+  behaviourPrefab: {fileID: 6943901526859401234, guid: 08a30e83362348fbbd560a5aff6b315b, type: 3}
+  glowColor: {r: 1, g: 0.84, b: 0, a: 1}
+  visualEffectPrefab: {fileID: 0}
+  goldCost: 0
