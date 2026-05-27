@@ -24,10 +24,10 @@ public class Arena : NetworkBehaviour
 
     public TriggerVolume trigger;
 
+    public List<GameObject> islands = new List<GameObject>();
+
     // The map parent, this gets set in the create arena method in map generator script
     public Transform parent;
-
-    public List<GameObject> spawners = new List<GameObject>();
 
     public Sprite arenaMapSprite;
     protected SpriteRenderer mapSprite;

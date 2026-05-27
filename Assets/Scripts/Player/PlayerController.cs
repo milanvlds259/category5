@@ -341,7 +341,7 @@ namespace Category5.Player
                     _inputActions.Player.Sprint.canceled -= OnSprintCanceled;
                     // _inputActions.Player.Dodge.performed -= OnDodge;
                     // _inputActions.Player.Sprint.performed -= OnSprint;
-                    _inputActions.Player.Map.performed -= OnMapToggle;
+                    // _inputActions.Player.Map.performed -= OnMapToggle;
                 }
                 return;
             }
@@ -530,7 +530,7 @@ namespace Category5.Player
                 _inputActions.Player.Dodge.started += OnDodge;
                 _inputActions.Player.Sprint.canceled += OnSprintCanceled;
                 // _inputActions.Player.Sprint.performed += OnSprint;
-                _inputActions.Player.Map.performed += OnMapToggle;
+                // _inputActions.Player.Map.performed += OnMapToggle;
             }
         }
 
@@ -543,7 +543,7 @@ namespace Category5.Player
                 _inputActions.Player.Sprint.canceled -= OnSprintCanceled;
                 // _inputActions.Player.Dodge.performed -= OnDodge;
                 // _inputActions.Player.Sprint.performed -= OnSprint;
-                _inputActions.Player.Map.performed -= OnMapToggle;
+                // _inputActions.Player.Map.performed -= OnMapToggle;
                 _inputActions.Player.Disable();
             }
         }
@@ -973,11 +973,6 @@ namespace Category5.Player
             if (IsClient) mapCamera.enabled = !mapCamera.enabled;
         }
 
-        private void OnMapToggle(InputAction.CallbackContext context)
-        {
-            Debug.Log("OPEN MAP");
-            if (IsClient) mapCamera.enabled = !mapCamera.enabled;
-        }
         
         // method to cancel sprint (called by combat/abilities/etc)
         public void CancelSprint()

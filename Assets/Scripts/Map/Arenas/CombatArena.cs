@@ -12,6 +12,7 @@ public class CombatArena : Arena
         
         // Create a new arena as a cube primitive GameObject
         GameObject island = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        islands.Add(island);
 
         // Set transform
         island.transform.position = transform.position;
@@ -76,32 +77,5 @@ public class CombatArena : Arena
 
         mapSprite = sprite.GetComponentInChildren<SpriteRenderer>();
         mapSprite.color = Color.orange;
-        Debug.Log("Created arena with scale factor " + scaleFactor);
-
-        AddEnemySpawnersToArena(gameObject, enemySpawnerPrefab);
-    }
-
-    // Adds an enemy spawner to the given arena, making it a child of the arena and setting the bounds of the enemy spawns
-    void AddEnemySpawnersToArena(GameObject island, GameObject enemySpawnerPrefab)
-    {
-        Debug.Log("BEFORE");
-        //if (!IsServer) return;
-        Debug.Log("CARARARARARAR");
-        GameObject spawnerObj = Instantiate(enemySpawnerPrefab);
-    
-        EnemySpawner spawner = spawnerObj.GetComponent<EnemySpawner>();
-        spawner.spawnBounds = new Vector3(island.transform.localScale.x, 0, island.transform.localScale.z);
-        // Here set the spawner to only start spawning using the triggervolume on this arena
-        spawner.autoStartOnSpawn = false;
-        spawner.startOnTrigger = true;
-        spawner.triggerVolume = trigger;
-
-        spawner.GetComponent<NetworkObject>().Spawn();
-
-        spawnerObj.transform.parent = island.transform;
-        spawnerObj.transform.position = island.transform.position + new Vector3(0, 5f, 0); // Position it a little above the arena
-
-        // Add the spawner to the spawners list
-        spawners.Add(spawnerObj);
     }
 }

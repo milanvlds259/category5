@@ -209,6 +209,8 @@ public class MapGenerator : NetworkBehaviour
             
             AddCloudBoundaryToArena(arenaCreated);
         }
+        // After the arenas are created, add enemy spawners to them
+        AddEnemySpawnersToArenas();
    
         // Create paths between arenas
         int pathCount = 0;
@@ -271,12 +273,6 @@ public class MapGenerator : NetworkBehaviour
             // Add a mesh to all paths
             StartCoroutine(CreatePathMeshes());
         }
-
-        // Get the spawners from each arena and add them to the spawners list in this script
-        foreach (Arena arena in arenas)
-        {
-            spawners.AddRange(arena.spawners);
-        }
     }
 
 
@@ -300,7 +296,7 @@ public class MapGenerator : NetworkBehaviour
         int arenaColliders = 0;
         foreach (Collider c in colliders)
         {
-            if (c.gameObject == arena || c.transform.IsChildOf(parent))
+            if (c.transform.IsChildOf(parent))
                 arenaColliders++;
         }
         if (arenaColliders > 1) // More than one arena collider means overlap
@@ -385,6 +381,47 @@ public class MapGenerator : NetworkBehaviour
         }
     }
 
+    // Adds an enemy spawner to the given arena, making it a child of the arena and setting the bounds of the enemy spawns
+    void AddEnemySpawnersToArenas()
+    {
+        if (!IsServer) return;
+    
+        foreach (Arena arena in arenas)
+        {
+            if (arena is CombatArena)
+            {
+                foreach (GameObject island in arena.islands)
+                {
+                    GameObject spawnerObj = Instantiate(enemySpawnerPrefab);
+    
+                    EnemySpawner spawner = spawnerObj.GetComponent<EnemySpawner>();
+                    spawner.spawnBounds = new Vector3(island.transform.localScale.x, 0, island.transform.localScale.z);
+                    // Here set the spawner to only start spawning using the triggervolume on this arena
+                    spawner.autoStartOnSpawn = false;
+                    spawner.startOnTrigger = true;
+                    spawner.triggerVolume = arena.trigger;
+
+                    spawner.GetComponent<NetworkObject>().Spawn();
+
+                    spawnerObj.transform.parent = island.transform;
+                    spawnerObj.transform.position = island.transform.position + new Vector3(0, 5f, 0); // Position it a little above the arena
+
+                    // Add the spawner to the spawners list
+                    spawners.Add(spawnerObj);
+                }
+            }
+        }
+    }
+
+    private IEnumerator AddNavMeshSurfaceToArenas()
+    {
+        yield return new WaitForEndOfFrame();
+       
+        NavMeshSurface surface = mapParent.AddComponent<NavMeshSurface>();
+        surface.layerMask = LayerMask.GetMask("Default");
+        surface.BuildNavMesh();
+    }
+
     void AddCloudBoundaryToArena(Arena arena)
     {
         GameObject cloudBoundary;
@@ -416,15 +453,6 @@ public class MapGenerator : NetworkBehaviour
         );
         cloudBoundary.SetActive(true);
         cloudBoundary.transform.parent = mapParent.transform;
-    }
-
-    private IEnumerator AddNavMeshSurfaceToArenas()
-    {
-        yield return new WaitForEndOfFrame();
-       
-        NavMeshSurface surface = mapParent.AddComponent<NavMeshSurface>();
-        surface.layerMask = LayerMask.GetMask("Default");
-        surface.BuildNavMesh();
     }
 
     // Creates a path between two given arenas
