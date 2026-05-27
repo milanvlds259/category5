@@ -185,6 +185,11 @@ namespace Category5.UI
             ShowTitleScreen();
 
             //RYLAN CODE
+            MenuState.SetValue();
+            //Destroy any voices from the previous scene (anti-doubling measure)
+            AkUnitySoundEngine.ExecuteActionOnEvent("Play_Music_Switch", AkActionOnEventType.AkActionOnEventType_Stop, AkUnitySoundEngine.AK_INVALID_GAME_OBJECT);
+
+
             //Play title screen music
             playEvent.Post(gameObject);
         }
