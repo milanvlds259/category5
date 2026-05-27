@@ -79,6 +79,13 @@ public class MapGenerator : NetworkBehaviour
     [SerializeField] Sprite arenaMapSprite;
     [SerializeField] Sprite pathMapSprite;
 
+    // Enum to specify arena types, used in CreateArena to determine which type of arena to create
+    public enum ArenaType
+    {
+        Combat,
+        Boss
+    }
+
     class Path
     {
         public Arena arenaA;
@@ -175,14 +182,14 @@ public class MapGenerator : NetworkBehaviour
         numberOfEyes = Math.Clamp(numberOfEyes, 0, numberOfArenas);
 
         // The main boss arena will always be created in the center of the map
-        Arena bossArena = CreateArena(Vector3.zero, mapParent.transform, "boss", 1.5f);
+        Arena bossArena = CreateArena(Vector3.zero, mapParent.transform, ArenaType.Boss, "boss", 1.5f);
         AddCloudBoundaryToArena(bossArena);
 
         // Create arenas at random positions between the input Vector3s for storm eyes
         for (int i = 0; i < numberOfArenas; i++)
         {
             // Store a boolean for if an arena was successfully created and create an arena
-            Arena arenaCreated = CreateArena(minBounds, maxBounds, i.ToString(), mapParent.transform);
+            Arena arenaCreated = CreateArena(minBounds, maxBounds, ArenaType.Combat, i.ToString(), mapParent.transform);
 
             int maxIterations = 100; // Prevent infinite loops
             // As long as the arena wasn't created (overlaps), try again
@@ -197,7 +204,7 @@ public class MapGenerator : NetworkBehaviour
                 }
 
                 // Try creating the arena again at another random pos
-                arenaCreated = CreateArena(minBounds, maxBounds, i.ToString(), mapParent.transform);
+                arenaCreated = CreateArena(minBounds, maxBounds, ArenaType.Combat, i.ToString(), mapParent.transform);
             }
             
             AddCloudBoundaryToArena(arenaCreated);
@@ -275,7 +282,7 @@ public class MapGenerator : NetworkBehaviour
 
     // Creates an arena at the specified location, specific location version!
     // Overload below that does a random position
-    Arena CreateArena(Vector3 inputPos, Transform parent, String numberforname = "", float scaleFactor=1f)
+    Arena CreateArena(Vector3 inputPos, Transform parent, ArenaType arenaType, string numberforname = "", float scaleFactor=1f)
     {   
         // Check if the new arena is too close to a previous one
         // Use an OverlapBox to detect collisions
@@ -316,7 +323,19 @@ public class MapGenerator : NetworkBehaviour
             }
 
             // Attach Arena script
-            Arena arenaScript = arena.AddComponent<Arena>();
+            Arena arenaScript;
+            switch (arenaType)
+            {
+                case ArenaType.Boss:
+                    arenaScript = arena.AddComponent<BossArena>();
+                    break;
+                case ArenaType.Combat:
+                    arenaScript = arena.AddComponent<CombatArena>();
+                    break;
+                default:
+                    arenaScript = arena.AddComponent<CombatArena>();
+                    break;
+            }
             arenaScript.parent = parent;
             arenaScript.scaleFactor = scaleFactor;
 
@@ -343,13 +362,14 @@ public class MapGenerator : NetworkBehaviour
     // Overload of CreateArena that takes in Vector3 min and max for a random position,
     // Then calls the original version on a random position within the box created by the min and max
     // The min and max are the bounds of the area where the arena can spawn
-    Arena CreateArena(Vector3 min, Vector3 max, String numberForName, Transform parent)
+    Arena CreateArena(Vector3 min, Vector3 max, ArenaType arenaType, string numberForName, Transform parent)
     {
         // Create the arena, and check if the arena was successfully created
         // This call doesn't pass a scalefactor, so it defaults to 1f
         Arena arena = CreateArena(
                                     new Vector3(Random.Range(min.x, max.x), Random.Range(min.y, max.y), Random.Range(min.z, max.z)),
                                     parent,
+                                    arenaType,
                                     numberForName
                                  );
 

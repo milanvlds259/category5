@@ -1,53 +1,8 @@
-using System.Collections.Generic;
-using Category5.Enemies;
-using Unity.Netcode;
-using Unity.VisualScripting;
 using UnityEngine;
 
-public class Arena : NetworkBehaviour
+public class BossArena : Arena
 {
-    public float scaleFactor;
-    public float radius;
-
-    // Stores if this arena is an eye or not, players can drop into eyes
-    public bool isEye;
-
-    public bool isBoss=false;
-    
-    // Stores if the arena is a "hidden" arena. Hidden arenas will be initially inaccessible, and
-    // paths connected to them will also be hidden
-    private bool isHidden;
-
-    // Arenas have a capsule collider surrounding them that defines
-    // the arena's boundaries (The storm cloud walls)
-    public CapsuleCollider arenaBounds;
-
-    public TriggerVolume trigger;
-
-    // The map parent, this gets set in the create arena method in map generator script
-    public Transform parent;
-
-    public List<GameObject> spawners = new List<GameObject>();
-
-    public Sprite arenaMapSprite;
-    private SpriteRenderer mapSprite;
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        // if (enemySpawner != null && enemySpawner.isCleared)
-        // {
-        //     mapSprite.color = Color.softBlue;
-        // }
-    }
-
-    public void GenerateArena(GameObject enemySpawnerPrefab)
+    public override void GenerateArena(GameObject enemySpawnerPrefab)
     {
         // TEMPORARY! Replace basic shapes with prefabs of premade arenas and stuff
 
@@ -59,9 +14,9 @@ public class Arena : NetworkBehaviour
         // Set transform
         island.transform.position = transform.position;
         island.transform.localScale = new Vector3(
-                                            60*scaleFactor,
+                                            radius,
                                             2*scaleFactor,
-                                            60*scaleFactor
+                                            radius
                                             );
         
         // Add a Rigidbody to make it interact with physics
@@ -73,7 +28,7 @@ public class Arena : NetworkBehaviour
 
         // Add a capsule collider to define the bounds of the arena
         arenaBounds = gameObject.AddComponent<CapsuleCollider>();
-        arenaBounds.radius = 60*scaleFactor; // Set the radius
+        arenaBounds.radius = radius; // Set the radius
         arenaBounds.height = 100f; // Set the height
         arenaBounds.center = new Vector3(0, 10, 0); // Center the collider on the arena
         arenaBounds.isTrigger = true; // Set the collider to be a trigger so players can fall through
@@ -120,30 +75,5 @@ public class Arena : NetworkBehaviour
         mapSprite = sprite.GetComponentInChildren<SpriteRenderer>();
         mapSprite.color = Color.orange;
         Debug.Log("Created arena with scale factor " + scaleFactor);
-        AddEnemySpawnersToArena(island, enemySpawnerPrefab);
-    }
-
-    // Adds an enemy spawner to the given arena, making it a child of the arena and setting the bounds of the enemy spawns
-    void AddEnemySpawnersToArena(GameObject island, GameObject enemySpawnerPrefab)
-    {
-        Debug.Log("BEFORE");
-        //if (!IsServer) return;
-        Debug.Log("CARARARARARAR");
-        GameObject spawnerObj = Instantiate(enemySpawnerPrefab);
-    
-        EnemySpawner spawner = spawnerObj.GetComponent<EnemySpawner>();
-        spawner.spawnBounds = new Vector3(island.transform.localScale.x, 0, island.transform.localScale.z);
-        // Here set the spawner to only start spawning using the triggervolume on this arena
-        spawner.autoStartOnSpawn = false;
-        spawner.startOnTrigger = true;
-        spawner.triggerVolume = trigger;
-
-        spawner.GetComponent<NetworkObject>().Spawn();
-
-        spawnerObj.transform.parent = island.transform;
-        spawnerObj.transform.position = island.transform.position + new Vector3(0, 5f, 0); // Position it a little above the arena
-
-        // Add the spawner to the spawners list
-        spawners.Add(spawnerObj);
     }
 }
