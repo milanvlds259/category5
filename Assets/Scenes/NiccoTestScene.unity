@@ -7773,6 +7773,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Core.PlayerSpawnPoint
   spawnIndex: 1
+  spawnType: 1
 --- !u!1 &1055726807
 GameObject:
   m_ObjectHideFlags: 0
@@ -8255,6 +8256,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Core.PlayerSpawnPoint
   spawnIndex: 3
+  spawnType: 1
 --- !u!1 &1107157810
 GameObject:
   m_ObjectHideFlags: 0
@@ -14082,13 +14084,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: adce34e6526a4324995ee6e0e5b76fe5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Arena
+  ShowTopMostFoldoutHeaderGroup: 1
   scaleFactor: 0
   radius: 0
   isEye: 0
+  isBoss: 0
+  isHidden: 0
+  connectedPaths: []
   arenaBounds: {fileID: 0}
   trigger: {fileID: 0}
-  parent: {fileID: 0}
-  enemySpawner: {fileID: 0}
+  islands: []
   arenaMapSprite: {fileID: 0}
 --- !u!1 &1810477755
 GameObject:
@@ -14780,6 +14785,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Core.PlayerSpawnPoint
   spawnIndex: 2
+  spawnType: 1
 --- !u!1 &1918106565
 GameObject:
   m_ObjectHideFlags: 0
@@ -14906,6 +14912,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Core.PlayerSpawnPoint
   spawnIndex: 0
+  spawnType: 1
 --- !u!1 &1926285137
 GameObject:
   m_ObjectHideFlags: 0
@@ -16991,6 +16998,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Core.PlayerSpawnPoint
   spawnIndex: 4
+  spawnType: 1
 --- !u!1 &2107171374
 GameObject:
   m_ObjectHideFlags: 0

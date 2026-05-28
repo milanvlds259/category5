@@ -86,28 +86,6 @@ public class MapGenerator : NetworkBehaviour
         Boss
     }
 
-    class Path
-    {
-        public Arena arenaA;
-        public Arena arenaB;
-        public GameObject gameObjectRef;
-
-        public bool isHidden;
-
-        // The spline that makes up the physical object of this path
-        public Spline spline;
-
-        public Path(Arena a, Arena b, GameObject objRef)
-        {
-            arenaA = a;
-            arenaB = b;
-            gameObjectRef = objRef;
-            spline = gameObjectRef.GetComponent<SplineContainer>().Spline;
-            // Paths are only hidden if they are connected to a hidden arena
-            isHidden = false;
-        }
-    }
-
     /*
     void Start()
     {
@@ -245,18 +223,11 @@ public class MapGenerator : NetworkBehaviour
             CreatePath(arenas[i], secondClosestArena, mapParent.transform, pathCount.ToString());
             pathCount++;
         }
-        // Reposition the path entrances away from each
-        // other to reduce crowding
-        foreach (Path path in paths)
-        {
-            RepositionEntrance(path, "A");
-            RepositionEntrance(path, "B");
-        }
 
         foreach (Path path in paths)
         {
             AddPathMidpoints(path.gameObjectRef.GetComponent<SplineContainer>());
-            // IMPORTANT: force refresh
+            // force refresh
             path.gameObjectRef.GetComponent<SplineContainer>().Spline.Closed = true;
             path.gameObjectRef.GetComponent<SplineContainer>().Spline.Closed = false;
         }
@@ -273,6 +244,13 @@ public class MapGenerator : NetworkBehaviour
             // Add a mesh to all paths
             StartCoroutine(CreatePathMeshes());
         }
+
+        // Reposition the path entrances away from each
+        // other to reduce crowding
+        foreach (Arena arena in arenas)
+        {
+            RepositionEntrances(arena, 40f);
+        }
     }
 
 
@@ -285,9 +263,9 @@ public class MapGenerator : NetworkBehaviour
         // Do not let arenas spawn on top of each other
         // The radius is a little bigger than the arena's actual size to prevent them from being too close, 
         // since the paths will be generated from the edges of the arenas
-        Collider[] colliders = Physics.OverlapCapsule(inputPos - new Vector3(0, 100, 0), 
-                                                    inputPos + new Vector3(0, 100, 0), 
-                                                    scaleFactor * 120f, 
+        Collider[] colliders = Physics.OverlapCapsule(inputPos - new Vector3(0, maxBounds.y, 0), 
+                                                    inputPos + new Vector3(0, maxBounds.y, 0), 
+                                                    scaleFactor * 60f, 
                                                     arenaMask, 
                                                     QueryTriggerInteraction.Collide
                                                     );
@@ -297,9 +275,12 @@ public class MapGenerator : NetworkBehaviour
         foreach (Collider c in colliders)
         {
             if (c.transform.IsChildOf(parent))
+            {
                 arenaColliders++;
+            }
+                
         }
-        if (arenaColliders > 1) // More than one arena collider means overlap
+        if (arenaColliders > 0) // overlap
         {
             // DestroyImmediate(arena); // Remove the overlapping arena
 
@@ -311,6 +292,7 @@ public class MapGenerator : NetworkBehaviour
             // Create an empty gameobject to serve as the arena's base object
             GameObject arena = new GameObject();
             arena.transform.position = inputPos;
+            arena.transform.parent = parent;
             
             // Set the arena's name and make it a child of the parent param
             if (!string.IsNullOrEmpty(numberforname))
@@ -332,7 +314,6 @@ public class MapGenerator : NetworkBehaviour
                     arenaScript = arena.AddComponent<CombatArena>();
                     break;
             }
-            arenaScript.parent = parent;
             arenaScript.scaleFactor = scaleFactor;
 
             arenaScript.arenaMapSprite = arenaMapSprite;
@@ -403,7 +384,6 @@ public class MapGenerator : NetworkBehaviour
 
                     spawner.GetComponent<NetworkObject>().Spawn();
 
-                    spawnerObj.transform.parent = island.transform;
                     spawnerObj.transform.position = island.transform.position + new Vector3(0, 5f, 0); // Position it a little above the arena
 
                     // Add the spawner to the spawners list
@@ -487,7 +467,8 @@ public class MapGenerator : NetworkBehaviour
             Add two spline points to the spline component, set their positions to the centers of the two arenas
         */
         // Create a gameobject with a splinecontainer component
-        SplineContainer splineContainer = new GameObject("Path_" + numberforname).AddComponent<SplineContainer>();
+        GameObject pathObj = new GameObject("Path_" + numberforname);
+        SplineContainer splineContainer = pathObj.AddComponent<SplineContainer>();
 
         // Give the path a Path tag
         splineContainer.tag = "Path";
@@ -542,9 +523,18 @@ public class MapGenerator : NetworkBehaviour
         splineContainer.gameObject.layer = 8;
 
         // Create a Path instance to hold the path's data
-        Path pathData = new Path(arenaA, arenaB, splineContainer.gameObject);
+        // Path pathData = new Path(arenaA, arenaB, splineContainer.gameObject);
+        Path pathData = pathObj.AddComponent<Path>();
+        pathData.arenaA = arenaA;
+        pathData.arenaB = arenaB;
+        pathData.gameObjectRef = splineContainer.gameObject;
+        pathData.spline = spline;
 
         paths.Add(pathData); // Store reference to the created path
+
+        // Add the path to the arenas that it connects
+        arenaA.connectedPaths.Add(pathData);
+        arenaB.connectedPaths.Add(pathData);
     }
     void AddPathMidpoints(SplineContainer splineContainer)
     {
@@ -636,11 +626,14 @@ public class MapGenerator : NetworkBehaviour
             spline.Insert(spline.Count - 2, newKnot, TangentMode.AutoSmooth);
         }
     }
-
+    // Adds the wind tunnel to each path which players can use to travel through the paths
+    // Also adds launch pads at the start and end of each path, and sets the tunnel's start and end launch pads to those
     void AddWindTunnelToPaths()
     {
+        // loop through paths
         foreach (Path path in paths)
         {
+            // Create launch pads at the start and end of the path, set them to be children of the path, and set the tunnel's start and end launch pads to those
             GameObject launchPadA = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             GameObject launchPadB = GameObject.CreatePrimitive(PrimitiveType.Sphere);
 
@@ -653,6 +646,9 @@ public class MapGenerator : NetworkBehaviour
             launchPadA.transform.localScale = new Vector3(25, 25, 25);
             launchPadB.transform.localScale = new Vector3(25, 25, 25);
 
+            launchPadA.tag = "Path";
+            launchPadB.tag = "Path";
+
             launchPadA.transform.LookAt(path.arenaA.transform.position);
             launchPadB.transform.LookAt(path.arenaB.transform.position);
             launchPadA.transform.Rotate(new Vector3(0, -90, 0));
@@ -660,13 +656,18 @@ public class MapGenerator : NetworkBehaviour
 
             launchPadA.transform.parent = path.gameObjectRef.transform;
             launchPadB.transform.parent = path.gameObjectRef.transform;
-            
 
+            path.entranceA = launchPadA;
+            path.entranceB = launchPadB;
+            
+            // Set the materials of the launch pads
             MeshRenderer renderer = launchPadA.GetComponent<MeshRenderer>();
             renderer.material = entranceMaterial;
             renderer = launchPadB.GetComponent<MeshRenderer>();
             renderer.material = entranceMaterial;
 
+            // Create the TestWindTunnelSetup component and set its variables to the spline and launch pads
+            // This is the part that actually moves the player along the path when they enter the launch pad trigger
             TestWindTunnelSetup tunnel = path.gameObjectRef.AddComponent<TestWindTunnelSetup>();
             tunnel.pathSpline = path.spline;
             tunnel.startLaunchPad = launchPadA.GetComponent<WindLaunchPad>();
@@ -756,127 +757,167 @@ public class MapGenerator : NetworkBehaviour
         }
     }
 
-    // Repositions the entrance of the path to be farther from other entrances, so they don't overlap/get too close
-    void RepositionEntrance(Path path, string whichEntrance = "A")
+    // Repositions the entrances on an arena, so they don't overlap/get too close
+    void RepositionEntrances(Arena arena,  float minimumAngle = 60f)
     {
-        BezierKnot entranceKnot;
-        Arena arena = null;
-        int knotIndex;
-        int secondaryKnotIndex; // Used for the knot that makes the path face the arena
-        // The passed whichEntrance string decides if we're checking the first knot or the last
-        switch (whichEntrance)
+        // Dictionary that holds pairs of entrances and the angle between them, used to check if the entrances are too close and need to be repositioned
+        Dictionary<(GameObject, GameObject), float> entrancePairDistances = new Dictionary<(GameObject, GameObject), float>();
+        // This dictionary holds the entrance gameobjects as keys and their associated spline and knot as values, used to reposition the entrances later in this function
+        Dictionary<GameObject, (Spline, BezierKnot, int)> entranceData = new Dictionary<GameObject, (Spline, BezierKnot, int)>();
+        foreach (Path path in arena.connectedPaths)
         {
-            case "A":
+            
+            BezierKnot entranceKnot;
+            GameObject entranceObj;
+            int knotIndex = 0;
+
+            if (path.arenaA == arena)
+            {
+                entranceKnot = path.spline[0];
+                entranceObj = path.entranceA;
                 knotIndex = 0;
-                secondaryKnotIndex = 1;
-                arena = path.arenaA;
-                break;
-            case "B":
-                Spline spline = path.gameObjectRef.GetComponent<SplineContainer>().Spline;
-                knotIndex = spline.Count-1;
-                secondaryKnotIndex = spline.Count-2;
-                arena = path.arenaB;
-                break;
-            default:
-                //Debug.LogWarning("Invalid entrance specified for repositioning. Must be 'A' or 'B'.");
-                return;
-        }
-        // Set the knot to whatever index we got from whichEntrance (first or last)
-        entranceKnot = path.gameObjectRef.GetComponent<SplineContainer>().Spline[knotIndex];
-
-        // Get necessary references
-        Vector3 entrancePos = entranceKnot.Position; // Knot's position
-        Vector3 directionFromArena = (entrancePos - arena.transform.position).normalized; // Dir from arena center to the knot
-        float angle = Mathf.Atan2(directionFromArena.z, directionFromArena.x); // Float angle value of the direction (in radians)
-
-        // Initialize sweep angle in the positive direction
-        float posAngle = angle;
-        bool foundAngle = false;
-        int attempts = 0;
-        // Sweep angle to +90 degrees (from the path entrance) in increments of 1 degree, and raycast in that direction to check for other entrances
-        while (attempts < 360 && !foundAngle)
-        {
-            posAngle += Mathf.Deg2Rad * 1; // Increment the angle by 1 degree
-            attempts++; // Increment attempts
-
-            // Get the direction vector from the arena based on the angle
-            directionFromArena = new Vector3(Mathf.Cos(posAngle), 0, Mathf.Sin(posAngle));
-
-            // Raycast from the arena
-            RaycastHit[] hits = Physics.RaycastAll(arena.transform.position, directionFromArena, arena.radius + 100f);
-            foreach (RaycastHit hit in hits)
-            {
-                //Debug.Log("POSITIVE " + arena.gameObjectRef.name + " " + hit.collider.gameObject.name + " " + path.gameObjectRef.name + " " + attempts);
-                // If we hit a path's collider other than the entrance collider
-                if (hit.collider.gameObject.CompareTag("Path") && hit.collider.gameObject != path.gameObjectRef)
-                {
-                    // Debug.Log("GOINGPOS " + "PATH " + path.gameObjectRef.name + "HIT COLL ->" + hit.collider.gameObject.name);
-                    foundAngle = true; // there's another entrance in this direction
-                    break; // Exit the loop
-                }
             }
-        }
-
-        // Initialize sweep angle in the negative direction
-        float negAngle = angle;
-        foundAngle = false;
-        attempts = 0;
-        // Sweep angle to -90 degrees (from the path entrance) in increments of 1 degree, and raycast in that direction to check for other entrances
-        while (attempts < 360 && !foundAngle)
-        {
-            negAngle -= Mathf.Deg2Rad * 1; // decrement the angle by 1 degree
-            attempts++; // Increment attempts
-
-            // Get the direction vector from the arena based on the angle
-            directionFromArena = new Vector3(Mathf.Cos(negAngle), 0, Mathf.Sin(negAngle));
-
-            // Raycast from the arena
-            RaycastHit[] hits = Physics.RaycastAll(arena.transform.position, directionFromArena, arena.radius + 100f);
-            foreach (RaycastHit hit in hits)
+            else
             {
-                //Debug.Log("NEGATIVE " + arena.gameObjectRef.name + " " + hit.collider.gameObject.name + " " + path.gameObjectRef.name + " " + attempts);
-                // If we hit a path's collider other than the entrance collider
-                if (hit.collider.gameObject.CompareTag("Path") && hit.collider.gameObject != path.gameObjectRef)
-                {
-                    // Debug.Log("GOINGNEG" + " PATH " + path.gameObjectRef.name + "HIT COLL ->" + hit.collider.gameObject.name);
-                    foundAngle = true; // there's another entrance in this direction
-                    break; // Exit the loop
-                }
+                entranceKnot = path.spline[path.spline.Count - 1];
+                entranceObj = path.entranceB;
+                knotIndex = path.spline.Count - 1;
             }
-        }
 
-        // Now decide on the new angle of the entrance
-        float newAngle = 0f;
-        // compare the final pos and neg angles, and choose a random new angle that is farther from other path entrances
-        if (Mathf.Abs( Mathf.Abs(posAngle - angle) - Mathf.Abs(negAngle - angle) ) <= 0.0001f ) // If they were equal (or close enough)
-        {
-            // Don't move the entrance, exit the function
-            // Debug.Log("PATH " + path.gameObjectRef.name + " DIDNT MOVE ON " + arena.gameObjectRef.name);
-            return;
-        }
-        else if (Mathf.Abs(posAngle - angle) > Mathf.Abs(negAngle - angle)) // Negative angle closer
-        {
-            newAngle = Random.Range(angle + Mathf.Deg2Rad * 5, posAngle - Mathf.Deg2Rad * 5);
-        }
-        else if (Mathf.Abs(posAngle - angle) < Mathf.Abs(negAngle - angle)) // Positive angle closer
-        {
-            newAngle = Random.Range(angle - Mathf.Deg2Rad * 5, negAngle + Mathf.Deg2Rad * 5);
-        }
-        
-        
-        // Get a point in the new direction to get 
-        Vector3 newDirection = new Vector3(Mathf.Cos(newAngle), 0, Mathf.Sin(newAngle));
-        Vector3 newPoint = arena.transform.position + newDirection * arena.radius;
+            // Fill out the entranceData dictionary for this entrance
+            entranceData.Add(entranceObj, (path.spline, entranceKnot, knotIndex));
+
+            // Loop through paths again to compare this entrance to the others
+            foreach (Path otherPath in arena.connectedPaths)
+            {
+                if (otherPath == path) continue; // skip the same path
+
+                BezierKnot otherEntranceKnot;
+                GameObject otherEntranceObj;
+
+                if (otherPath.arenaA == arena)
+                {
+                    otherEntranceKnot = otherPath.spline[0];
+                    otherEntranceObj = otherPath.entranceA;
+                }
+                else
+                {
+                    otherEntranceKnot = otherPath.spline[otherPath.spline.Count - 1];
+                    otherEntranceObj = otherPath.entranceB;
+                }
+
+                float angleBetween = AngularDistance(
+                    GetAngle(arena.transform.position, entranceKnot.Position),
+                    GetAngle(arena.transform.position, otherEntranceKnot.Position)
+                );
                 
-        entranceKnot.Position = arena.arenaBounds.ClosestPoint(newPoint);
-        // Debug.Log(angle + "<-ANGLE " + "\n NewANGLE->" + newAngle  + "\n POSANGLE->" + posAngle + " " + Mathf.Abs(posAngle - angle) + " " + (angle + 90*Mathf.Deg2Rad).ToString() + " \n NEGANGLE->" + negAngle + " " + Mathf.Abs(negAngle - angle) + " " + (angle - 90*Mathf.Deg2Rad).ToString() + " \n " + newPoint + "<-NEWPOINT OLDPOINT->" + entrancePos + "\n ARENA->" + arena.gameObjectRef.name + " \n PATH->" + path.gameObjectRef.name);
-        // Gotta set knot to make it actually move the knot
-        path.spline.SetKnot(knotIndex, entranceKnot);
+                // Check if we've already compared these two entrances, if we have, skip
+                var keyA = (entranceObj, otherEntranceObj);
+                var keyB = (otherEntranceObj, entranceObj);
 
-        // Do the same for the secondary knot, slightly farther out
-        BezierKnot secondaryKnot = path.spline[secondaryKnotIndex];
-        secondaryKnot.Position = newPoint + newDirection * 20f;
-        path.spline.SetKnot(secondaryKnotIndex, secondaryKnot);
+                if (entrancePairDistances.ContainsKey(keyA) ||
+                    entrancePairDistances.ContainsKey(keyB))
+                {
+                    continue;
+                }
+                // If not, add the pair and their angle distance to the dictionary
+                entrancePairDistances.Add(keyA, angleBetween);
+            }
+        }
+        foreach ( var entrances in entrancePairDistances.Keys)
+        {
+            Debug.Log(entranceData[entrances.Item1].Item2.Position + " and " + entranceData[entrances.Item2].Item2.Position + " angle " + entrancePairDistances[entrances] + " on " + arena.gameObject.name);
+        }
+        // EntrancePairDistances now contains all pairs of entrances and the angle between them, so we can loop through it and reposition any entrances that are too close together
+        // Get the angles from the pairs and sort them from smallest to largest
+        float[] anglesBetween = entrancePairDistances.Values.ToArray();
+        Array.Sort(anglesBetween);
+        // loop through the angles
+        foreach (float angle in anglesBetween)
+        {
+            // Get the associated pair of entrances (May be more than one, so we use an array)
+            (GameObject, GameObject)[] entrancePairArray = entrancePairDistances.Where(x => x.Value == angle).Select(x => x.Key).ToArray();
+            foreach ((GameObject, GameObject) pair in entrancePairArray)
+            {
+                GameObject[] entrancePair = { pair.Item1, pair.Item2 };
+
+                if (angle < minimumAngle) // if the angle is less than the minimum angle, we consider the entrances too close and reposition them
+                {
+                    // Get the directions from the arena to the entrances
+                    Vector3 entranceDirection1 = (entrancePair[0].transform.position - arena.transform.position).normalized;
+                    float angleRad1 = Mathf.Atan2(entranceDirection1.z, entranceDirection1.x);
+                    Vector3 entranceDirection2 = (entrancePair[1].transform.position - arena.transform.position).normalized;
+                    float angleRad2 = Mathf.Atan2(entranceDirection2.z, entranceDirection2.x);
+
+                    // Get the new position of each entrance here based on which one is in which direction
+                    if (angleRad1 < angleRad2)
+                    {
+                        angleRad1 -= (minimumAngle - angle) * Mathf.Deg2Rad / 2f;
+                        angleRad2 += (minimumAngle - angle) * Mathf.Deg2Rad / 2f;
+                    }
+                    else
+                    {
+                        angleRad1 += (minimumAngle - angle) * Mathf.Deg2Rad / 2f;
+                        angleRad2 -= (minimumAngle - angle) * Mathf.Deg2Rad / 2f;
+                    }
+
+                    // Finally, for each entrance we change their position based on the new positions
+                    // Here we use the entrance data from earlier since we have to set knot positions on the splines of the paths to move the entrances
+                    for (int i = 0; i < entrancePair.Length; i++)
+                    {
+                        float newAngle;
+                        if (i == 0) {
+                            newAngle = angleRad1;
+                        }
+                        else {
+                            newAngle = angleRad2;
+                        }
+
+                        Vector3 newDir = new Vector3(
+                        Mathf.Cos(newAngle),
+                        0,
+                        Mathf.Sin(newAngle)
+                        );
+
+                        Vector3 newPos = arena.transform.position + newDir * arena.radius;
+
+                        entrancePair[i].transform.position = newPos;
+
+                        Spline thisPathSpline = entranceData[entrancePair[i]].Item1;
+                        BezierKnot entranceKnot = entranceData[entrancePair[i]].Item2;
+                        entranceKnot.Position = newPos;
+                        thisPathSpline.SetKnot(entranceData[entrancePair[i]].Item3, entranceKnot);
+
+                        // Do the same for the secondary knot, slightly farther out
+                        int secondaryKnotIndex;
+                        if (entranceData[entrancePair[i]].Item3 == 0)
+                        {
+                            secondaryKnotIndex = 1;
+                        }
+                        else
+                        {
+                            secondaryKnotIndex = entranceData[entrancePair[i]].Item1.Count - 2;
+                        }
+                        BezierKnot secondaryKnot = thisPathSpline[secondaryKnotIndex];
+                        secondaryKnot.Position = newPos + newDir * 20f;
+                        thisPathSpline.SetKnot(secondaryKnotIndex, secondaryKnot);
+                    }
+                }
+            }
+        }
+    }
+    // Helper methods for RepositionEntrance
+    float GetAngle(Vector3 arenaPos, Vector3 point)
+    {
+        Vector3 dir = (point - arenaPos).normalized;
+        return Mathf.Atan2(dir.z, dir.x);
+    }
+    float AngularDistance(float a, float b)
+    {
+        return Mathf.Abs(Mathf.DeltaAngle(
+            a * Mathf.Rad2Deg,
+            b * Mathf.Rad2Deg
+        ));
     }
 
     // NOT WORKING
