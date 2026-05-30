@@ -65,6 +65,12 @@ namespace Category5.Player
         // dynamic mana regen bonus from item behaviours (e.g. Mark of the Alpha)
         private float _dynamicManaRegenBonus = 0f;
 
+        // dynamic move speed bonus from item behaviours (e.g. Kinetic Cleats)
+        private float _dynamicMoveSpeedBonus = 0f;
+
+        // dynamic crit damage bonus from item behaviours (e.g. Kinetic Cleats)
+        private float _dynamicCritDamageBonus = 0f;
+
         // base stat accessors (from class data or fallback)
         public float BaseAttackDamage => _classData != null ? _classData.baseAttackDamage : fallbackAttackDamage;
         private int BaseMaxHealth => _classData != null ? _classData.baseMaxHealth : fallbackMaxHealth;
@@ -94,10 +100,10 @@ namespace Category5.Player
         public float MoveSpeedMultiplier => _moveSpeedMultiplier;
         public float AttackSpeedMultiplier => _attackSpeedMultiplier;
         public float ManaRegenMultiplier => _manaRegenMultiplier;
-        public float EffectiveMoveSpeed => BaseMoveSpeed * _moveSpeedMultiplier;
+        public float EffectiveMoveSpeed => BaseMoveSpeed * (GetEffectiveSpeedMultiplier() + _dynamicMoveSpeedBonus);
         public float TotalArmor => BaseArmor + _armorBonus;
         public float TotalCritChance => Mathf.Clamp01(BaseCritChance + _critChanceBonus + _dynamicCritChanceBonus);
-        public float TotalCritDamage => BaseCritDamage + _critDamageBonus;
+        public float TotalCritDamage => BaseCritDamage + _critDamageBonus + _dynamicCritDamageBonus;
         public float EffectiveManaRegenRate => BaseManaRegenRate * (_manaRegenMultiplier + _dynamicManaRegenBonus);
         public bool HasClassData => _classData != null;
 
@@ -159,8 +165,28 @@ namespace Category5.Player
             }
         }
 
+        // set dynamic move speed bonus from item behaviours (e.g. Kinetic Cleats)
+        public void SetDynamicMoveSpeedBonus(float bonus)
+        {
+            if (!Mathf.Approximately(_dynamicMoveSpeedBonus, bonus))
+            {
+                _dynamicMoveSpeedBonus = bonus;
+                OnStatsChanged?.Invoke();
+            }
+        }
+
+        // set dynamic crit damage bonus from item behaviours (e.g. Kinetic Cleats)
+        public void SetDynamicCritDamageBonus(float bonus)
+        {
+            if (!Mathf.Approximately(_dynamicCritDamageBonus, bonus))
+            {
+                _dynamicCritDamageBonus = bonus;
+                OnStatsChanged?.Invoke();
+            }
+        }
+
         // event for when stats change
-        public event System.Action OnStatsChanged;
+public event System.Action OnStatsChanged;
 
         // per-hit multiplier hook — melee, ranged, and abilities all fire this per target
         public delegate void BeforeDamageHandler(ref float bonusDamageMultiplier, GameObject target);

@@ -324,11 +324,12 @@ namespace Category5.Player
                     _inputActions.Player.Disable();
                     _inputActions.Player.Jump.performed -= OnJump;
                     _inputActions.Player.Dodge.started -= OnDodge;
+                    _inputActions.Player.Sprint.started -= HandleSprintStarted;
                     _inputActions.Player.Sprint.canceled -= OnSprintCanceled;
                 }
                 return;
             }
-            
+
             // lock and hide cursor for gameplay
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
@@ -511,6 +512,7 @@ namespace Category5.Player
                 _inputActions.Player.Enable();
                 _inputActions.Player.Jump.performed += OnJump;
                 _inputActions.Player.Dodge.started += OnDodge;
+                _inputActions.Player.Sprint.started += HandleSprintStarted;
                 _inputActions.Player.Sprint.canceled += OnSprintCanceled;
             }
         }
@@ -521,6 +523,7 @@ namespace Category5.Player
             {
                 _inputActions.Player.Jump.performed -= OnJump;
                 _inputActions.Player.Dodge.started -= OnDodge;
+                _inputActions.Player.Sprint.started -= HandleSprintStarted;
                 _inputActions.Player.Sprint.canceled -= OnSprintCanceled;
                 _inputActions.Player.Disable();
             }
@@ -618,8 +621,20 @@ namespace Category5.Player
         {
             _moveInput = _inputActions.Player.Move.ReadValue<Vector2>();
             
+            // strictly forward check: cancel sprint if we stop moving forward or start strafing too much
+            if (_isSprinting)
+            {
+                bool movingForward = _moveInput.y > 0.5f;
+                bool strictlyForward = movingForward && Mathf.Abs(_moveInput.x) < 0.5f;
+                
+                if (!strictlyForward)
+                {
+                    CancelSprint();
+                }
+            }
+
             Vector3 move = Vector3.zero;
-            Vector3 lookDirection = transform.forward;
+Vector3 lookDirection = transform.forward;
 
             // if we still don't have a camera we can't move relative to it
             if (_cameraTransform != null)
@@ -667,12 +682,6 @@ namespace Category5.Player
                 // apply charge movement speed reduction if charging
                 float effectiveSpeed = _playerStats != null ? _playerStats.EffectiveMoveSpeed : moveSpeed;
                 
-                // apply speed multiplier from inventory (items and abilities)
-                if (_playerStats != null)
-                {
-                    effectiveSpeed *= _playerStats.GetEffectiveSpeedMultiplier();
-                }
-                
                 // apply sprint multiplier
                 if (_isSprinting)
                 {
@@ -685,7 +694,7 @@ namespace Category5.Player
                 }
                 
                 _controller.Move(move * effectiveSpeed * Time.deltaTime);
-            }
+}
         }
 
         private void HandleCloudDetection()
@@ -939,8 +948,24 @@ namespace Category5.Player
             }
         }
         
-        private void OnSprintCanceled(InputAction.CallbackContext context)
+        private void HandleSprintStarted(InputAction.CallbackContext context)
         {
+            if (IsDead.Value) return;
+            
+            // strictly forward check: only allow starting sprint if moving forward
+            Vector2 input = _inputActions.Player.Move.ReadValue<Vector2>();
+            bool movingForward = input.y > 0.5f;
+            bool strictlyForward = movingForward && Mathf.Abs(input.x) < 0.5f;
+
+            if (strictlyForward)
+            {
+                _isSprinting = true;
+                OnSprintStarted?.Invoke(transform.position);
+            }
+        }
+
+        private void OnSprintCanceled(InputAction.CallbackContext context)
+{
             Debug.Log("[PlayerController] OnSprintCanceled (Shift Released)");
             CancelSprint();
         }
