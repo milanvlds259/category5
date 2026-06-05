@@ -287,6 +287,9 @@ namespace Category5
         // public accessor for spectating state
         public bool IsSpectating => _isSpectating;
 
+        // public accessor for current look pitch (used by gliding system)
+        public float Pitch => _rotationY;
+
         public void SetTarget(Transform newTarget)
         {
             target = newTarget;

@@ -1,8 +1,5 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Splines;
-using Unity.Mathematics;
-using Category5.Audio;
 using Category5.Core;
 using Category5.Player;
 using Category5.Player.WindRiding;
@@ -24,7 +21,6 @@ namespace Category5.Player.Van
         [SerializeField] private GameObject exitPrompt;
 
         private PlayerController _currentPlayer;
-        private GameObject _activeTunnelObject;
 
         private void Awake()
         {
@@ -32,22 +28,6 @@ namespace Category5.Player.Van
             if (!col.isTrigger)
             {
                 col.isTrigger = true;
-            }
-
-            WindRideEvents.OnRideEnded += OnAnyRideEnded;
-        }
-
-        private void OnDestroy()
-        {
-            WindRideEvents.OnRideEnded -= OnAnyRideEnded;
-        }
-
-        private void OnAnyRideEnded(PlayerController player, Vector3 position, Vector3 exitVelocity)
-        {
-            if (player == _currentPlayer && _activeTunnelObject != null)
-            {
-                Destroy(_activeTunnelObject);
-                _activeTunnelObject = null;
             }
         }
 
@@ -68,10 +48,6 @@ namespace Category5.Player.Van
                     return;
                 }
 
-                // build runtime tunnel from exit position to the spawn point
-                WindTunnel tunnel = BuildExitTunnel(exitPosition.position, spawnPoint.transform.position);
-                if (tunnel == null) return;
-
                 // teleport player to exit position to clear van geometry
                 CharacterController cc = _currentPlayer.GetComponent<CharacterController>();
                 if (cc != null)
@@ -83,25 +59,14 @@ namespace Category5.Player.Van
                 if (cc != null)
                     cc.enabled = true;
 
-                rider.StartRiding(tunnel, true, launchUpwardForce);
+                // Give the player an initial horizontal boost in the exit direction
+                // and an upward boost. StartGliding will inherit this speed.
+                Vector3 exitBoost = exitPosition.forward * 20f + Vector3.up * launchUpwardForce;
+                _currentPlayer.SetExternalVelocity(exitBoost);
+
+                rider.StartGliding();
                 ClearCurrentPlayer();
             }
-        }
-
-        private WindTunnel BuildExitTunnel(Vector3 start, Vector3 end)
-        {
-            _activeTunnelObject = new GameObject("VanExitTunnel_Runtime");
-
-            SplineContainer container = _activeTunnelObject.AddComponent<SplineContainer>();
-            WindTunnel tunnel = _activeTunnelObject.AddComponent<WindTunnel>();
-
-            Spline spline = container.Spline;
-            spline.Clear();
-
-            spline.Add(new BezierKnot(new float3(start.x, start.y, start.z)));
-            spline.Add(new BezierKnot(new float3(end.x, end.y, end.z)));
-
-            return tunnel;
         }
 
         private void OnTriggerEnter(Collider other)

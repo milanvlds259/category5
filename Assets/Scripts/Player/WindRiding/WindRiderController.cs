@@ -25,6 +25,7 @@ namespace Category5.Player.WindRiding
 
         public bool IsRidingTunnel => _currentMode == RidingMode.Tunnel;
         public bool IsRidingCloud => _currentMode == RidingMode.Cloud;
+        public bool IsRidingGlide => _currentMode == RidingMode.Gliding;
 
         // current normalized progress along the spline (0-1)
         public float Progress => _t;
@@ -55,7 +56,7 @@ namespace Category5.Player.WindRiding
         private InputSystem_Actions _inputActions;
 
         // riding state
-        public enum RidingMode { None, Tunnel, Cloud }
+        public enum RidingMode { None, Tunnel, Cloud, Gliding }
         private RidingMode _currentMode = RidingMode.None;
         private WindTunnel _activeTunnel;
         private float _t;
@@ -65,6 +66,7 @@ namespace Category5.Player.WindRiding
         private float _targetSway;
         private float _swayVelocity;
         private Vector3 _ridingVelocity;
+        private ThirdPersonCamera _camera;
 
         // expose settings for camera or other systems that need to read them
         public WindRideSettings Settings => settings;
@@ -74,6 +76,7 @@ namespace Category5.Player.WindRiding
             _playerController = GetComponent<PlayerController>();
             _characterController = GetComponent<CharacterController>();
             _modelManager = GetComponent<PlayerModelManager>();
+            _camera = FindFirstObjectByType<ThirdPersonCamera>();
         }
 
         private void OnEnable()
@@ -151,8 +154,33 @@ namespace Category5.Player.WindRiding
             Debug.Log($"[WindRide] StartCloudRiding at speed: {_currentSpeed}");
         }
 
-        public void EndCloudRiding()
+        public void StartGliding()
         {
+            if (_currentMode == RidingMode.Gliding) return;
+
+            _currentMode = RidingMode.Gliding;
+            IsWindRiding = true;
+
+            // Initial speed based on current horizontal movement or base glide speed
+            float horizontalSpeed = _playerController.CurrentMovementSpeed;
+            _currentSpeed = Mathf.Max(settings.glideBaseSpeed, horizontalSpeed);
+
+            _currentSway = 0f;
+            _swayVelocity = 0f;
+            _ridingVelocity = Vector3.zero;
+
+            // Ensure camera reference
+            if (_camera == null) _camera = FindFirstObjectByType<ThirdPersonCamera>();
+
+            // Put the player on the playerintunnel layer to ignore cloud boundaries
+            gameObject.layer = LayerMask.NameToLayer("PlayerInTunnel");
+
+            WindRideEvents.InvokeRideStarted(_playerController, transform.position);
+            Debug.Log($"[WindRide] StartGliding at speed: {_currentSpeed}");
+        }
+
+        public void EndCloudRiding()
+{
             if (_currentMode != RidingMode.Cloud) return;
 
             // Preserve full momentum when jumping/exiting clouds
@@ -197,10 +225,102 @@ namespace Category5.Player.WindRiding
                 ApplyCloudMovement();
                 RotateToVelocity();
             }
+            else if (_currentMode == RidingMode.Gliding)
+            {
+                UpdateGliding();
+            }
+        }
+
+        private void UpdateGliding()
+        {
+            if (_camera == null) _camera = FindFirstObjectByType<ThirdPersonCamera>();
+            if (_camera == null) return;
+
+            // Calculate pitch influence (-1 to 1 range, where 1 is looking down)
+            // _camera.Pitch range is typically around minVerticalAngle to maxVerticalAngle
+            // Let's normalize it so maxVerticalAngle (looking up) is -1 and minVerticalAngle (looking down) is 1
+            float pitch = _camera.Pitch;
+            
+            // Normalize pitch: assuming min -20 (down) to max 60 (up) from ThirdPersonCamera.cs
+            // Actually, we want a target dive angle. Let's use 0 as level, >0 as down, <0 as up.
+            // In ThirdPersonCamera: _rotationY -= lookInput.y, so up is negative, down is positive? 
+            // Let's check ThirdPersonCamera.cs: _rotationY is clamped between minVerticalAngle (-20) and maxVerticalAngle (60).
+            // Usually -20 is looking up and 60 is looking down? No, usually positive is down in these setups.
+            // Let's re-read ThirdPersonCamera: _rotationY -= _lookInput.y. If I move mouse up, _lookInput.y is positive, _rotationY decreases.
+            // So negative _rotationY is looking UP, positive is looking DOWN.
+            // Min -20 (up), Max 60 (down).
+
+            float diveFactor = Mathf.Clamp(pitch / settings.glideMaxDiveAngle, -1f, 1f);
+
+            // Speed logic: acceleration when diving, deceleration when leveling out
+            if (diveFactor > 0.1f)
+            {
+                _currentSpeed += diveFactor * settings.glideAcceleration * Time.deltaTime;
+            }
+            else
+            {
+                _currentSpeed -= settings.glideDeceleration * Time.deltaTime;
+            }
+            _currentSpeed = Mathf.Clamp(_currentSpeed, settings.glideMinSpeed, settings.glideMaxSpeed);
+
+            // Vertical velocity logic: gravity + lift
+            // Lift is strongest when diveFactor is negative (looking up)
+            float verticalVelocity = settings.glideGravity;
+            if (diveFactor < 0)
+            {
+                // Looking up reduces falling speed
+                verticalVelocity *= (1f - (Mathf.Abs(diveFactor) * settings.glidePitchLift));
+            }
+            else
+            {
+                // Diving increases falling speed
+                verticalVelocity += diveFactor * settings.glideGravity * 2f; // Fall faster when diving
+            }
+
+            // Apply movement
+            Vector3 forward = _camera.transform.forward;
+            forward.y = 0;
+            forward.Normalize();
+
+            // Lateral steering (sway) inherited from common input handling
+            Vector3 right = _camera.transform.right;
+            right.y = 0;
+            right.Normalize();
+
+            Vector3 moveDir = forward * _currentSpeed + right * _swayVelocity + Vector3.up * verticalVelocity;
+            _characterController.Move(moveDir * Time.deltaTime);
+            _ridingVelocity = moveDir;
+
+            // Rotate player to look where they are going
+            RotateToVelocity();
+
+            // Exit gliding if we hit the ground
+            if (_characterController.isGrounded)
+            {
+                EndGliding();
+            }
+        }
+
+        private void EndGliding()
+        {
+            if (_currentMode != RidingMode.Gliding) return;
+
+            Vector3 exitVelocity = _ridingVelocity;
+            Vector3 exitPos = transform.position;
+
+            IsWindRiding = false;
+            _currentMode = RidingMode.None;
+            _swayVelocity = 0f;
+            _ridingVelocity = Vector3.zero;
+
+            _playerController.SetExternalVelocity(exitVelocity);
+            gameObject.layer = LayerMask.NameToLayer("Player");
+            WindRideEvents.InvokeRideEnded(_playerController, exitPos, exitVelocity);
+            Debug.Log($"[WindRide] EndGliding with exit velocity: {exitVelocity.magnitude}");
         }
 
         private void ApplyCloudMovement()
-        {
+{
             // Calculate forward and right based on horizontal plane to prevent downward pitch feedback
             Vector3 forward = transform.forward;
             forward.y = 0;
