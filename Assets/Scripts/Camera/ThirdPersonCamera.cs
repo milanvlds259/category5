@@ -144,7 +144,7 @@ namespace Category5
             
             // in spectator mode, always allow camera input
             // when alive, normal gameplay applies
-            if (IsWindRiding())
+            if (IsWindRiding() && !_windRider.IsRidingGlide)
             {
                 HandleWindRidingCamera();
             }
