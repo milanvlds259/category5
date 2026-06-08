@@ -66,7 +66,7 @@ namespace Category5.Player.WindRiding
         public float cloudHoverHeight = 1.0f;
 
         [Tooltip("how strongly the player sticks to the cloud surface height")]
-        public float cloudFollowStiffness = 5.0f;
+        public float cloudFollowStiffness = 10.0f;
 
         [Header("Gliding")]
         [Tooltip("initial speed when entering glide mode")]

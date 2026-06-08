@@ -380,8 +380,8 @@ public class MapGenerator : NetworkBehaviour
             cloudLayer.GetComponent<MeshRenderer>().material = cloudMaterial; // Set the cloud material
             MeshCollider cloudCollider = cloudLayer.AddComponent<MeshCollider>();
             cloudCollider.convex = true; // Set convex to true so it can be a trigger
-            cloudCollider.isTrigger = true; // Add a mesh collider and set it to be a trigger so players can fall through
-            cloudLayer.layer = 8;
+            cloudCollider.isTrigger = true; // Add a mesh collider and set it to be a trigger so players don't walk on it (surfing only)
+cloudLayer.layer = 8;
             
             // Set the arena's name and make it a child of the parent param
             if (!string.IsNullOrEmpty(numberforname))

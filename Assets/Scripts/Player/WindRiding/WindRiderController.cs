@@ -147,6 +147,7 @@ namespace Category5.Player.WindRiding
             _currentSway = 0f;
             _swayVelocity = 0f;
             _ridingVelocity = Vector3.zero;
+            _playerController.SetExternalVelocity(new Vector3(0, 0.01f, 0));
 
             // ignore cloud boundaries
             gameObject.layer = LayerMask.NameToLayer("PlayerInTunnel");
@@ -341,7 +342,15 @@ namespace Category5.Player.WindRiding
             {
                 float targetHeight = hit.point.y + settings.cloudHoverHeight;
                 float heightDiff = targetHeight - transform.position.y;
-                frameMove.y += heightDiff * settings.cloudFollowStiffness * Time.deltaTime;
+                
+                if (heightDiff > 0)
+                {
+                    frameMove.y = heightDiff;
+                }
+                else
+                {
+                    frameMove.y += heightDiff * settings.cloudFollowStiffness * Time.deltaTime;
+                }
             }
 
             _characterController.Move(frameMove);

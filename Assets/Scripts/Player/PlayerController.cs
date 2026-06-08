@@ -713,7 +713,7 @@ Vector3 lookDirection = transform.forward;
 
             bool wasClouded = _isClouded;
             if (Physics.CheckSphere(transform.position + groundCheckOffset, groundCheckRadius, cloudLayer, QueryTriggerInteraction.Collide)
-                && _windRider != null && _windRider.IsRidingGlide)
+                && _windRider != null)
             {   
                 _isClouded = true;
             }
