@@ -135,7 +135,7 @@ namespace Category5.Player.WindRiding
 
         public void StartCloudRiding()
         {
-            if (IsWindRiding) return;
+            if (_currentMode == RidingMode.Cloud) return;
 
             _currentMode = RidingMode.Cloud;
             IsWindRiding = true;
@@ -169,6 +169,7 @@ namespace Category5.Player.WindRiding
             _currentSway = 0f;
             _swayVelocity = 0f;
             _ridingVelocity = Vector3.zero;
+            _playerController.SetExternalVelocity(new Vector3(0, 0.01f, 0)); // fix so we dont fall thru clouds if gliding
 
             // Ensure camera reference
             if (_camera == null) _camera = FindFirstObjectByType<ThirdPersonCamera>();
