@@ -66,6 +66,31 @@ namespace Category5.Player.WindRiding
         public float cloudHoverHeight = 1.0f;
 
         [Tooltip("how strongly the player sticks to the cloud surface height")]
-        public float cloudFollowStiffness = 5.0f;
-        }
+        public float cloudFollowStiffness = 10.0f;
+
+        [Header("Gliding")]
+        [Tooltip("initial speed when entering glide mode")]
+        public float glideBaseSpeed = 15f;
+
+        [Tooltip("maximum horizontal speed reached at maximum dive angle")]
+        public float glideMaxSpeed = 35f;
+
+        [Tooltip("minimum horizontal speed reached when leveled out")]
+        public float glideMinSpeed = 8f;
+
+        [Tooltip("how fast speed increases when diving (m/s^2)")]
+        public float glideAcceleration = 10f;
+
+        [Tooltip("how fast speed decays when leveled out (m/s^2)")]
+        public float glideDeceleration = 5f;
+
+        [Tooltip("base downward velocity (gravity) while gliding")]
+        public float glideGravity = -4f;
+
+        [Tooltip("how much looking up counters gravity (0 = none, 1 = can fully stop falling)")]
+        public float glidePitchLift = 0.8f;
+
+        [Tooltip("maximum pitch angle (diving) for full acceleration")]
+        public float glideMaxDiveAngle = 45f;
+    }
 }

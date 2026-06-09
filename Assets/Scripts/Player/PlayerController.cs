@@ -88,7 +88,6 @@ namespace Category5.Player
         private bool _isGrounded;
         private bool _isClouded; // Surfing on clouds (wait I'm clouded)
         private LayerMask cloudLayer = 1 << 8; // CloudSurface layer
-        private bool _isGliding = false;
         private bool _isOffline = false;
         
         // cached reference to player combat for charge state
@@ -217,8 +216,17 @@ namespace Category5.Player
             ? new Vector3(_controller.velocity.x, 0f, _controller.velocity.z).magnitude
             : 0f;
 
-        private void Awake()
+        public float GetHeightAboveGround()
         {
+            if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit, 100f, groundLayers, QueryTriggerInteraction.Ignore))
+            {
+                return hit.distance;
+            }
+            return float.MaxValue;
+        }
+
+        private void Awake()
+{
             _controller = GetComponent<CharacterController>();
             _inputActions = new InputSystem_Actions();
             _playerStats = GetComponent<PlayerStats>();
@@ -705,7 +713,7 @@ Vector3 lookDirection = transform.forward;
 
             bool wasClouded = _isClouded;
             if (Physics.CheckSphere(transform.position + groundCheckOffset, groundCheckRadius, cloudLayer, QueryTriggerInteraction.Collide)
-                && _isGliding)
+                && _windRider != null)
             {   
                 _isClouded = true;
             }
@@ -743,7 +751,6 @@ Vector3 lookDirection = transform.forward;
             if (Physics.CheckSphere(transform.position + groundCheckOffset, groundCheckRadius, groundLayers, QueryTriggerInteraction.Ignore))
             {
                 _isGrounded = true;
-                _isGliding = false;
             }
             else
             {
@@ -835,6 +842,13 @@ Vector3 lookDirection = transform.forward;
             if (IsDead.Value) return;
             if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying) return;
             
+            // Start gliding if airborne and high enough
+            if (!_isGrounded && GetHeightAboveGround() > 5f && _windRider != null && !IsWindRiding)
+            {
+                _windRider.StartGliding();
+                return;
+            }
+
             // Allow jumping while cloud riding (this will exit the cloud ride)
             if (IsWindRiding)
             {
@@ -868,9 +882,9 @@ Vector3 lookDirection = transform.forward;
             
             if (_isDodging) return;
 
-            if (!_isGrounded) 
+            if (!_isGrounded && _windRider != null) 
             {
-                _isGliding = true;
+                _windRider.StartGliding();
                 return;
             }
             
@@ -1404,7 +1418,7 @@ Vector3 lookDirection = transform.forward;
 
             if (_hasAnimIsWindRiding)
             {
-                bool windRiding = IsWindRiding || _isGliding;
+                bool windRiding = IsWindRiding;
                 if (windRiding && !_prevIsWindRiding)
                 {
                     Debug.Log($"[WindRide] rising edge detected. _hasAnimWindRideActivate={_hasAnimWindRideActivate}, controller={anim.runtimeAnimatorController?.name}");
@@ -1416,7 +1430,7 @@ Vector3 lookDirection = transform.forward;
                 _prevIsWindRiding = windRiding;
                 anim.SetBool(_animIsWindRidingHash, windRiding);
             }
-            else if ((IsWindRiding || _isGliding) && !_prevIsWindRiding)
+            else if (IsWindRiding && !_prevIsWindRiding)
             {
                 Debug.LogError($"[WindRide] rising edge missed — _hasAnimIsWindRiding is false. controller={anim.runtimeAnimatorController?.name}, _animParamsCached={_animParamsCached}");
             }

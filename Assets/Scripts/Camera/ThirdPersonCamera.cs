@@ -144,7 +144,7 @@ namespace Category5
             
             // in spectator mode, always allow camera input
             // when alive, normal gameplay applies
-            if (IsWindRiding())
+            if (IsWindRiding() && !_windRider.IsRidingGlide)
             {
                 HandleWindRidingCamera();
             }
@@ -286,6 +286,9 @@ namespace Category5
         
         // public accessor for spectating state
         public bool IsSpectating => _isSpectating;
+
+        // public accessor for current look pitch (used by gliding system)
+        public float Pitch => _rotationY;
 
         public void SetTarget(Transform newTarget)
         {
