@@ -2,9 +2,8 @@ using UnityEngine;
 
 public class BossArena : Arena
 {
-    public override void GenerateArena(GameObject enemySpawnerPrefab)
+    public override void GenerateArena()
     {
-        base.GenerateArena(enemySpawnerPrefab);
 
         // TEMPORARY! Replace basic shapes with prefabs of premade arenas and stuff
         

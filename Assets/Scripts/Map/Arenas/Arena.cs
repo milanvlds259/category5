@@ -12,7 +12,6 @@ public class Arena : NetworkBehaviour
     // Stores if this arena is an eye or not, players can drop into eyes
     public bool isEye;
 
-    public bool isBoss=false;
     
     // Stores if the arena is a "hidden" arena. Hidden arenas will be initially inaccessible, and
     // paths connected to them will also be hidden
@@ -23,21 +22,16 @@ public class Arena : NetworkBehaviour
 
     // Arenas have a capsule collider surrounding them that defines
     // the arena's boundaries (The storm cloud walls)
-    public CapsuleCollider arenaBounds;
+    public Collider arenaBounds;
 
-    public TriggerVolume trigger;
+    public TriggerVolume trigger; // Unused?
 
+    public GameObject[] islandPrefabs;
     public List<GameObject> islands = new List<GameObject>();
-
+    public List<EnemySpawner> enemySpawners = new List<EnemySpawner>();
 
     public Sprite arenaMapSprite;
     protected SpriteRenderer mapSprite;
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
 
     // Update is called once per frame
     void Update()
@@ -49,15 +43,27 @@ public class Arena : NetworkBehaviour
     }
 
     // Creates the common necessary items for every arena
-    public virtual void GenerateArena(GameObject enemySpawnerPrefab)
+    // This is called on each arena after they are instantiated in the map generator first since other parts of map gen
+    // need the trigger and stuff to be set up before they can do their thing
+    public void GenerateArenaBase()
     {
         radius = scaleFactor*60;
 
         // Add a capsule collider to define the bounds of the arena
-        arenaBounds = gameObject.AddComponent<CapsuleCollider>();
-        arenaBounds.radius = radius; // Set the radius
-        arenaBounds.height = 100f; // Set the height
-        arenaBounds.center = new Vector3(0, 10, 0); // Center the collider on the arena
+        if (isEye)
+        {
+            CapsuleCollider capsule = gameObject.AddComponent<CapsuleCollider>();
+            capsule.radius = radius; // Set the radius
+            capsule.height = 100f; // Set the height
+            capsule.center = new Vector3(0, 10, 0); // Center the collider on the arena
+            arenaBounds = capsule;
+        }
+        else
+        {
+            SphereCollider sphere = gameObject.AddComponent<SphereCollider>();
+            sphere.radius = radius;
+            arenaBounds = sphere;
+        }
         arenaBounds.isTrigger = true; // Set the collider to be a trigger so players can fall through
 
         // Add TriggerVolume script that will invoke an event when that capsule
@@ -67,20 +73,20 @@ public class Arena : NetworkBehaviour
         trigger.targetTag = "Player";
 
         // Add cloud layer
-        GameObject cloudLayer = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-        DestroyImmediate(cloudLayer.GetComponent<CapsuleCollider>()); // Remove the cloud layer's collider
-        cloudLayer.transform.position = new Vector3(transform.position.x, transform.position.y - 1f, transform.position.z);
-        cloudLayer.transform.localScale = new Vector3(
-                                        radius * 2,
-                                        1f,
-                                        radius * 2
-                                        );
-        cloudLayer.transform.parent = transform;
-        // cloudLayer.GetComponent<MeshRenderer>().material = cloudMaterial; // Set the cloud material
-        MeshCollider cloudCollider = cloudLayer.AddComponent<MeshCollider>();
-        cloudCollider.convex = true; // Set convex to true so it can be a trigger
-        cloudCollider.isTrigger = true; // Add a mesh collider and set it to be a trigger so players can fall through
-        cloudLayer.layer = 8;
+        // GameObject cloudLayer = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        // DestroyImmediate(cloudLayer.GetComponent<CapsuleCollider>()); // Remove the cloud layer's collider
+        // cloudLayer.transform.position = new Vector3(transform.position.x, transform.position.y - 1f, transform.position.z);
+        // cloudLayer.transform.localScale = new Vector3(
+        //                                 radius * 2,
+        //                                 1f,
+        //                                 radius * 2
+        //                                 );
+        // cloudLayer.transform.parent = transform;
+        // // cloudLayer.GetComponent<MeshRenderer>().material = cloudMaterial; // Set the cloud material
+        // MeshCollider cloudCollider = cloudLayer.AddComponent<MeshCollider>();
+        // cloudCollider.convex = true; // Set convex to true so it can be a trigger
+        // cloudCollider.isTrigger = true; // Add a mesh collider and set it to be a trigger so players can fall through
+        // cloudLayer.layer = 8;
 
 
         // Attach Sprite Renderer for the mini and overhead maps
@@ -101,5 +107,30 @@ public class Arena : NetworkBehaviour
 
         mapSprite = sprite.GetComponentInChildren<SpriteRenderer>();
         mapSprite.color = Color.orange;
+    }
+
+    public virtual void GenerateArena()
+    {
+        // This will be overridden by the specific arena types to generate the interior of the arena
+    }
+
+    protected void CreateIsland(Vector3 position, Vector3 scale)
+    {
+        // Replace with instantiating a prefab of an island once we have those
+        // GameObject island = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        // islands.Add(island);
+
+        // // Set transform
+        // island.transform.position = position;
+        // island.transform.localScale = scale;
+
+        // // Add a Rigidbody to make it interact with physics
+        // island.AddComponent<Rigidbody>();
+        // island.GetComponent<Rigidbody>().isKinematic = true;
+
+        // island.AddComponent<Island>();
+
+        GameObject island = Instantiate(islandPrefabs[Random.Range(0, islandPrefabs.Length)], position, Quaternion.identity);
+        islands.Add(island);
     }
 }

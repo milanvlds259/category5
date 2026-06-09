@@ -1,32 +1,33 @@
 using Category5.Enemies;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.Splines;
 
 public class CombatArena : Arena
 {
-    public override void GenerateArena(GameObject enemySpawnerPrefab)
+    public override void GenerateArena()
     {
-        base.GenerateArena(enemySpawnerPrefab);
+        foreach (Path path in connectedPaths)
+        {
+            
+            BezierKnot entranceKnot;
+            GameObject entranceObj;
+            int knotIndex = 0;
 
-        // TEMPORARY! Replace basic shapes with prefabs of premade arenas and stuff
-        
-        // Create a new arena as a cube primitive GameObject
-        GameObject island = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        islands.Add(island);
-
-        // Set transform
-        island.transform.position = transform.position;
-        island.transform.localScale = new Vector3(
-                                            radius,
-                                            2*scaleFactor,
-                                            radius
-                                            );
-        
-        // Add a Rigidbody to make it interact with physics
-        island.AddComponent<Rigidbody>();
-        island.GetComponent<Rigidbody>().isKinematic = true;
-
-
-        // arena.GetComponent<MeshRenderer>().material = islandMaterial;
+            if (path.arenaA == this)
+            {
+                entranceKnot = path.spline[0];
+                entranceObj = path.entranceA;
+                knotIndex = 0;
+            }
+            else
+            {
+                entranceKnot = path.spline[path.spline.Count - 1];
+                entranceObj = path.entranceB;
+                knotIndex = path.spline.Count - 1;
+            }
+            Debug.Log("YEAH");
+            CreateIsland(entranceObj.transform.position - new Vector3(0, 25f, 0), new Vector3(20f, 2f, 20f));
+        }
     }
 }
