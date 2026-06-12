@@ -12,9 +12,17 @@ namespace Category5.Enemies
     // place in scene with spawn points and configure in inspector
     public class EnemySpawner : NetworkBehaviour
     {
+        [System.Serializable]
+        public struct WeightedEnemy
+        {
+            public EnemyData data;
+            [Range(1, 100)]
+            public int weight;
+        }
+
         [Header("enemy configuration")]
-        [SerializeField] private EnemyData enemyData;
-        [SerializeField] private GameObject enemyPrefab;
+        [SerializeField] private List<WeightedEnemy> enemyPool = new List<WeightedEnemy>();
+        [SerializeField] private GameObject enemyPrefab; // legacy fallback
         
         [Header("spawn points")]
         [SerializeField] private Transform[] spawnPoints;
@@ -199,7 +207,6 @@ namespace Category5.Enemies
             {
                 spawner.StartSpawning();
             }
-            // Debug.Log($"EnemySpawner: started {spawners.Length} spawners with {enemyMultiplier}x enemy multiplier");
         }
         
         private void StartNextWave()
@@ -229,51 +236,16 @@ namespace Category5.Enemies
                 OnWaveCompleted?.Invoke(this, _currentWave);
 
                 // re-check completion now that spawning has stopped
-                // this handles the case where enemies were killed before the wave officially finished spawning
                 CheckAllEnemiesDefeated();
                 
                 // wait for enemies to die or start next wave after cooldown
                 if (_currentWave < totalWaves)
                 {
                     _waveTimer = waveCooldown;
-                    // next wave will start automatically when _waveTimer reaches 0 in Update
                 }
                 return;
             }
             
-            // choose a spawn point but avoid points that are currently occupied
-            /*
-            Transform spawnPoint = null;
-            int attempts = (spawnPoints != null) ? spawnPoints.Length : 1;
-            for (int i = 0; i < attempts; i++)
-            {
-                Transform candidate = GetNextSpawnPoint();
-                if (candidate == null)
-                {
-                    continue;
-                }
-
-                // check occupancy
-                bool occupied = Physics.OverlapSphere(candidate.position, spawnOccupancyRadius).Length > 0;
-                if (!occupied)
-                {
-                    spawnPoint = candidate;
-                    break;
-                }
-                // if occupied, try next candidate (loop will call GetNextSpawnPoint again)
-            }
-
-            if (spawnPoint == null)
-            {
-                // fallback to a direct GetNextSpawnPoint if all were occupied
-                spawnPoint = GetNextSpawnPoint();
-            }
-            if (spawnPoint == null)
-            {
-                Debug.LogWarning("EnemySpawner: No spawn points available!");
-                return;
-            }*/
-
             Vector3 spawnPoint = transform.position; // default to spawner position if no spawn points defined
             int attempts = 100;
             for (int i = 0; i < attempts; i++)
@@ -289,14 +261,12 @@ namespace Category5.Enemies
                     spawnPoint = candidate;
                     break;
                 }
-                // if occupied, try next candidate (loop will call GetNextSpawnPoint again)
             }
             
-            GameObject prefab = enemyPrefab;
-            if (prefab == null && enemyData != null)
-            {
-                prefab = enemyData.enemyPrefab;
-            }
+            // choose an enemy type from the pool
+            EnemyData selectedData = GetRandomEnemyFromPool();
+            
+            GameObject prefab = (selectedData != null) ? selectedData.enemyPrefab : enemyPrefab;
             
             if (prefab == null)
             {
@@ -327,6 +297,30 @@ namespace Category5.Enemies
             
             _spawnedThisWave++;
         }
+
+        private EnemyData GetRandomEnemyFromPool()
+        {
+            if (enemyPool == null || enemyPool.Count == 0) return null;
+
+            int totalWeight = 0;
+            foreach (var enemy in enemyPool)
+            {
+                if (enemy.data != null) totalWeight += enemy.weight;
+            }
+
+            if (totalWeight <= 0) return enemyPool[0].data;
+
+            int roll = Random.Range(0, totalWeight);
+            int currentWeight = 0;
+            foreach (var enemy in enemyPool)
+            {
+                if (enemy.data == null) continue;
+                currentWeight += enemy.weight;
+                if (roll < currentWeight) return enemy.data;
+            }
+
+            return enemyPool[0].data;
+        }
         
         private void StartNextWaveIfReady()
         {
@@ -339,19 +333,12 @@ namespace Category5.Enemies
         
         private Vector3 GetNextSpawnPoint()
         {
-            /*
-            if (spawnPoints == null || spawnPoints.Length == 0)
-            {
-                return transform.position; // use spawner position as fallback
-            }*/
-            
             if (useRandomSpawnPoints)
             {
                 return new Vector3(
                     Random.Range(transform.position.x - spawnBounds.x/2, transform.position.x + spawnBounds.x/2),
                     Random.Range(transform.position.y - spawnBounds.y/2, transform.position.y + spawnBounds.y/2),
                     Random.Range(transform.position.z - spawnBounds.z/2, transform.position.z + spawnBounds.z/2));
-                //return spawnPoints[UnityEngine.Random.Range(0, spawnPoints.Length)];
             }
             else
             {
@@ -426,19 +413,11 @@ namespace Category5.Enemies
         // per-spawner collection tracking (Story 002: TR-item-002)
         // =====================================
         
-        /// <summary>
-        /// Returns true if the given client has already collected the item from this spawner this round.
-        /// </summary>
         public bool HasPlayerCollected(ulong clientId)
         {
             return _collectionTracker.HasPlayerCollected(clientId);
         }
 
-        /// <summary>
-        /// Attempts to mark the given client as having collected the item from this spawner.
-        /// Returns true if the client was newly marked, false if already collected.
-        /// Server-authoritative callers (ItemDrop) should use this return value as an atomic gate.
-        /// </summary>
         public bool MarkCollected(ulong clientId)
         {
             return _collectionTracker.TryMarkCollected(clientId);
@@ -450,11 +429,9 @@ namespace Category5.Enemies
         
         private void OnDrawGizmos()
         {
-            // draw spawner
             Gizmos.color = Color.magenta;
             Gizmos.DrawWireSphere(transform.position, 0.5f);
             
-            // draw spawn points
             if (spawnPoints != null)
             {
                 Gizmos.color = Color.cyan;
@@ -468,22 +445,20 @@ namespace Category5.Enemies
                 }
             }
 
-            // Draws the bounds of the spawn area (between minSpawnBounds and maxSpawnBounds)
             Gizmos.color = Color.yellow;
             Gizmos.DrawWireCube(transform.position, spawnBounds);
         }
         
         private void OnDrawGizmosSelected()
         {
-            // draw detection range from enemy data
-            if (enemyData != null)
+            if (enemyPool != null && enemyPool.Count > 0 && enemyPool[0].data != null)
             {
                 Gizmos.color = new Color(1f, 0.5f, 0f, 0.2f);
                 foreach (var point in spawnPoints)
                 {
                     if (point != null)
                     {
-                        Gizmos.DrawWireSphere(point.position, enemyData.detectionRange);
+                        Gizmos.DrawWireSphere(point.position, enemyPool[0].data.detectionRange);
                     }
                 }
             }
