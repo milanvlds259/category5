@@ -31,9 +31,11 @@ MonoBehaviour:
   deathLingerDuration: 1.5
   combatMode: 0
   preferredRangedDistance: 8
+  minGroupSize: 3
+  maxGroupSize: 6
   enemyPrefab: {fileID: 8760921033380370291, guid: fc4a646bf6cbe7f4db4d2a904c7cde94, type: 3}
   enemyColor: {r: 1, g: 1, b: 1, a: 1}
-  scaleMultiplier: 0.6
+  scaleMultiplier: 1
   deathVfxPrefab: {fileID: 0}
   spawnVfxPrefab: {fileID: 0}
   experienceReward: 10

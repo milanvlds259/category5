@@ -274,27 +274,42 @@ namespace Category5.Enemies
                 return;
             }
             
-            // spawn the enemy
-            GameObject enemyObject = Instantiate(prefab, spawnPoint, Quaternion.identity);
-            NetworkObject networkObject = enemyObject.GetComponent<NetworkObject>();
-            
-            if (networkObject == null)
+            // determine group size
+            int groupSize = 1;
+            if (selectedData != null)
             {
-                Debug.LogError("EnemySpawner: Enemy prefab must have a NetworkObject component!");
-                Destroy(enemyObject);
-                return;
+                groupSize = Random.Range(selectedData.minGroupSize, selectedData.maxGroupSize + 1);
             }
-            
-            networkObject.Spawn();
-            
-            // register with this spawner
-            EnemyBase enemy = enemyObject.GetComponent<EnemyBase>();
-            if (enemy != null)
+
+            for (int i = 0; i < groupSize; i++)
             {
-                enemy.SetSpawner(this);
-                _aliveEnemies.Add(enemy);
+                // apply slight offset for group members so they don't overlap perfectly
+                Vector3 groupOffset = (i == 0) ? Vector3.zero : new Vector3(Random.Range(-0.5f, 0.5f), 0, Random.Range(-0.5f, 0.5f));
+                Vector3 finalSpawnPos = spawnPoint + groupOffset;
+
+                // spawn the enemy
+                GameObject enemyObject = Instantiate(prefab, finalSpawnPos, Quaternion.identity);
+                NetworkObject networkObject = enemyObject.GetComponent<NetworkObject>();
+                
+                if (networkObject == null)
+                {
+                    Debug.LogError("EnemySpawner: Enemy prefab must have a NetworkObject component!");
+                    Destroy(enemyObject);
+                    continue;
+                }
+                
+                networkObject.Spawn();
+                
+                // register with this spawner
+                EnemyBase enemy = enemyObject.GetComponent<EnemyBase>();
+                if (enemy != null)
+                {
+                    enemy.SetSpawner(this);
+                    _aliveEnemies.Add(enemy);
+                }
             }
-            
+
+            // each clump/group counts as one toward the wave limit
             _spawnedThisWave++;
         }
 

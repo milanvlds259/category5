@@ -38,15 +38,22 @@ namespace Category5.Player.Van
 
             if (Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame)
             {
+                Debug.Log("[VanExit] F key pressed.");
                 WindRiderController rider = _currentPlayer.GetComponent<WindRiderController>();
-                if (rider == null || rider.IsWindRiding) return;
+if (rider == null || rider.IsWindRiding)
+{
+    Debug.LogWarning("[VanExit] Cannot exit: rider=" + (rider != null) + ", isWindRiding=" + (rider?.IsWindRiding ?? false));
+    return;
+}
 
-                PlayerSpawnPoint spawnPoint = PlayerSpawnPoint.GetNextIslandSpawnPoint();
-                if (spawnPoint == null)
-                {
-                    Debug.LogError("VanExitController: no island spawn point found");
-                    return;
-                }
+PlayerSpawnPoint spawnPoint = PlayerSpawnPoint.GetNextIslandSpawnPoint();
+if (spawnPoint == null)
+{
+    Debug.LogError("[VanExit] no island spawn point found");
+    return;
+}
+
+Debug.Log("[VanExit] Teleporting player to " + spawnPoint.name);
 
                 // teleport player to exit position to clear van geometry
                 CharacterController cc = _currentPlayer.GetComponent<CharacterController>();
