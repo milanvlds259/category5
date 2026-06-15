@@ -34,8 +34,15 @@ namespace Category5.Enemies
         [Tooltip("range override for this attack - set to -1 to use the enemy's default attackRange from EnemyData")]
         public float attackRangeOverride = -1f;
 
+        [Header("ranged (optional)")]
+        [Tooltip("if assigned, the enemy will fire this projectile instead of dealing direct damage")]
+        public GameObject projectilePrefab;
+
+        [Tooltip("speed of the projectile")]
+        public float projectileSpeed = 15f;
+
         [Header("vfx / sfx")]
-        [Tooltip("vfx prefab spawned at impact position when this attack hits")]
+[Tooltip("vfx prefab spawned at impact position when this attack hits")]
         public GameObject attackVfxPrefab;
 
         [Tooltip("sound data played when this attack fires")]

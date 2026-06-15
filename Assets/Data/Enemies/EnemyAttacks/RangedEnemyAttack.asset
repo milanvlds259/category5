@@ -10,13 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 10576ecd7024e144fabf2815314973da, type: 3}
-  m_Name: SwarmAttack
+  m_Name: RangedEnemyAttack
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Enemies.EnemyAttackData
-  attackName: Swarm Bite
-  selectionWeight: 1
-  attackDuration: 0.4
-  damageDelay: 0.2
+  attackName: Bolt Shot
+  selectionWeight: 100
+  attackDuration: 1
+  damageDelay: 0.5
   damageMultiplier: 1
-  attackRangeOverride: -1
+  attackRangeOverride: 15
+  projectilePrefab: {fileID: 3628666416982734714, guid: 611ff4a986d8ce0488817fe354f71b22, type: 3}
+  projectileSpeed: 18
   attackVfxPrefab: {fileID: 0}
   attackSound: {fileID: 0}
