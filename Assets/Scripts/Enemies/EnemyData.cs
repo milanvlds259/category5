@@ -127,8 +127,17 @@ namespace Category5.Enemies
         [Range(1f, 30f)]
         public float preferredRangedDistance = 8f;
 
+        [Header("group spawn")]
+        [Tooltip("minimum number of enemies to spawn at once")]
+        [Min(1)]
+        public int minGroupSize = 1;
+
+        [Tooltip("maximum number of enemies to spawn at once")]
+        [Min(1)]
+        public int maxGroupSize = 1;
+
         [Header("visuals")]
-        [Tooltip("prefab to spawn for this enemy type")]
+[Tooltip("prefab to spawn for this enemy type")]
         public GameObject enemyPrefab;
 
         [Tooltip("color tint applied to the enemy's materials on spawn")]

@@ -586,9 +586,9 @@ namespace Category5.Enemies
         }
 
         // deals damage to the current target - uses _currentAttack multiplier if set
-        protected void DealDamageToTarget()
+        protected virtual void DealDamageToTarget()
         {
-            if (currentTargetController == null) return;
+if (currentTargetController == null) return;
 
             float range = _currentAttack != null && _currentAttack.attackRangeOverride > 0f
                 ? _currentAttack.attackRangeOverride

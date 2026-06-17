@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10576ecd7024e144fabf2815314973da, type: 3}
+  m_Name: RangedEnemyAttack
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Enemies.EnemyAttackData
+  attackName: Bolt Shot
+  selectionWeight: 100
+  attackDuration: 1
+  damageDelay: 0.5
+  damageMultiplier: 1
+  attackRangeOverride: 15
+  projectilePrefab: {fileID: 3628666416982734714, guid: 611ff4a986d8ce0488817fe354f71b22, type: 3}
+  projectileSpeed: 18
+  attackVfxPrefab: {fileID: 0}
+  attackSound: {fileID: 0}

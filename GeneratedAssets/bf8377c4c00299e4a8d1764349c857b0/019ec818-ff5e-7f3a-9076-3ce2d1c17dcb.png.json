@@ -1,0 +1,28 @@
+{
+    "asset": "bf8377c4c00299e4a8d1764349c857b0",
+    "fileName": "019ec818-ff5e-7f3a-9076-3ce2d1c17dcb.png",
+    "prompt": "A single stylized magical energy bolt, glowing cyan and white, trail of particles, high quality game asset, white background, side view",
+    "negativePrompt": "",
+    "model": "flux-2-dev",
+    "modelName": "Flux 2 (Dev)",
+    "customSeed": -1,
+    "w3CTraceId": "",
+    "feedback": 0,
+    "refinementMode": "Generation",
+    "pixelateTargetSize": 0,
+    "pixelateKeepImageSize": false,
+    "pixelatePixelBlockSize": 0,
+    "pixelatePixelGridSize": 0,
+    "pixelateMode": 0,
+    "pixelateOutlineThickness": 0,
+    "doodles": {
+        "m_Items": []
+    },
+    "upscaleFactor": 0,
+    "dimensions": {
+        "width": 1024,
+        "height": 1024
+    },
+    "spriteSheet": false,
+    "duration": 0.0
+}

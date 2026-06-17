@@ -1,0 +1,23 @@
+{
+    "asset": "66804613b4499d44792072323dd0030f",
+    "fileName": "019ec81a-dac5-7d6a-ac4d-4824e033009e.glb",
+    "prompt": "stylized magical energy bolt, glowing cyan, sharp edges, sleek fantasy projectile mesh",
+    "negativePrompt": "",
+    "model": "model3d-tripo-p1",
+    "modelName": "Tripo P1",
+    "customSeed": -1,
+    "w3CTraceId": "",
+    "feedback": 0,
+    "refinementMode": "Generation",
+    "promptImageReferenceGuid": "bf8377c4c00299e4a8d1764349c857b0",
+    "modelReferenceGuid": "",
+    "multiviewFrontGuid": "",
+    "multiviewBackGuid": "",
+    "multiviewLeftGuid": "",
+    "multiviewRightGuid": "",
+    "multiviewTopGuid": "",
+    "multiviewBottomGuid": "",
+    "multiviewLeftFrontGuid": "",
+    "multiviewRightFrontGuid": "",
+    "faceLimit": -1
+}

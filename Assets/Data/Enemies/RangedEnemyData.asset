@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b714052ecacfb224eb3b72d5eb5c7671, type: 3}
+  m_Name: RangedEnemyData
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Enemies.EnemyData
+  enemyName: Archer
+  elementType: 0
+  maxHealth: 50
+  moveSpeed: 5.5
+  rotationSpeed: 450
+  damage: 12
+  attackRange: 12
+  attackCooldown: 2
+  staggerDuration: 0.3
+  attacks:
+  - {fileID: 11400000, guid: ccc170e601dcb82429f1715db35ed0d7, type: 2}
+  detectionRange: 30
+  leashRange: 40
+  idleBehavior: 0
+  wanderRadius: 5
+  wanderInterval: 3
+  deathLingerDuration: 1.5
+  combatMode: 1
+  preferredRangedDistance: 10
+  minGroupSize: 1
+  maxGroupSize: 1
+  enemyPrefab: {fileID: 8760921033380370291, guid: 51ec55137339768409bef891635f018d, type: 3}
+  enemyColor: {r: 1, g: 1, b: 1, a: 1}
+  scaleMultiplier: 1
+  deathVfxPrefab: {fileID: 0}
+  spawnVfxPrefab: {fileID: 0}
+  experienceReward: 10
+  physics:
+    gravity: -20
+    groundedStickForce: -2
+    terminalVelocity: -50
+    groundCheckRadius: 0.22
+    groundCheckOffset: {x: 0, y: -0.64, z: 0}
+    groundedConfirmFrames: 2
+    groundedLossFrames: 2
+    launchDecayRate: 12
+  obstacleAvoidanceType: 4
+  avoidancePriority: 50
+  stoppingDistanceFactor: 0.9
+  gizmoColor: {r: 1, g: 0, b: 0, a: 1}
