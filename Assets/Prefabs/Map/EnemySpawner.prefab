@@ -366,11 +366,11 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   enemyPool:
   - data: {fileID: 11400000, guid: 65d344a1e88907a4a897b4c74d0bbdcc, type: 2}
-    weight: 1
+    weight: 75
   - data: {fileID: 11400000, guid: f4239114b4d0b6041a896f3c1b9b6479, type: 2}
-    weight: 1
+    weight: 37
   - data: {fileID: 11400000, guid: 37f9afa68a006d447acb95c13d983a2d, type: 2}
-    weight: 100
+    weight: 31
   enemyPrefab: {fileID: 8760921033380370291, guid: 6022116a8af11da4d865de0cb4f38583, type: 3}
   spawnPoints:
   - {fileID: 7158447917425449163}

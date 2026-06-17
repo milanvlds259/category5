@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: MarkOfTheAlpha
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Items.ItemData
   itemName: Mark of the Alpha
-  description: 'On kill, gain a <color=#FFD700>ramping aura</color> ({2}m base)
-    granting <color=#FFD700>+{0}% crit chance</color> and <color=#88DDFF>+{1}% mana
-    regen</color> per stack (max {3}). Killing extends the aura. Taking damage or
-    {4}s without a kill resets it.'
+  description: On kill, gain a <color=#FFD700>ramping aura</color> ({2}m base) granting
+    <color=#FFD700>+{0}% crit chance</color> and <color=#88DDFF>+{1}% surge regen</color>
+    per stack (max {3}). Killing extends the aura. Taking damage or {4}s without
+    a kill resets it.
   icon: {fileID: 0}
   category: 0
   effects: []
