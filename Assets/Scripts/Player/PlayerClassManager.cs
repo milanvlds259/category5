@@ -21,10 +21,57 @@ namespace Category5.Player
             playerStats = GetComponent<PlayerStats>();
         }
         
+        private bool _isOffline = false;
+        private int _offlineClassId = PlayerClass.NoClassId;
+
+        private void Start()
+        {
+            // if NetworkManager is missing or not running we are in offline mode
+            if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsListening)
+            {
+                _isOffline = true;
+                
+                // subscribe to lobby manager changes in offline mode
+                LobbyManager.OnLobbyPlayersChanged += OnOfflineLobbyChanged;
+                
+                // load initial selection if any
+                if (LobbyManager.Instance != null)
+                {
+                    OnOfflineLobbyChanged();
+                }
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (_isOffline)
+            {
+                LobbyManager.OnLobbyPlayersChanged -= OnOfflineLobbyChanged;
+            }
+        }
+
+        private void OnOfflineLobbyChanged()
+        {
+            if (LobbyManager.Instance == null) return;
+            
+            // find the first player in the lobby (which is us in offline mode)
+            var players = LobbyManager.Instance.GetLobbyPlayers();
+            if (players.Length > 0)
+            {
+                int classId = players[0].SelectedClassId;
+                if (classId != _offlineClassId)
+                {
+                    _offlineClassId = classId;
+                    LoadClassLocally(classId);
+                }
+            }
+        }
+
         public override void OnNetworkSpawn()
         {
-            // Debug.Log($"PlayerClassManager.OnNetworkSpawn: IsServer={IsServer}, IsOwner={IsOwner}, SelectedClass={SelectedClass.Value}, OwnerClientId={OwnerClientId}");
-            
+            _isOffline = false;
+// Debug.Log($"PlayerClassManager.OnNetworkSpawn: IsServer={IsServer}, IsOwner={IsOwner}, SelectedClass={SelectedClass.Value}, OwnerClientId={OwnerClientId}");
+
             // subscribe to class changes
             SelectedClassId.OnValueChanged += OnSelectedClassChanged;
             
@@ -140,12 +187,12 @@ namespace Category5.Player
                 }
             }
 
-            if (!IsOwner)
+            if (!IsOwner && !_isOffline)
             {
                 // Debug.Log($"PlayerClassManager: Applied non-owner class data for player {OwnerClientId}");
                 return;
             }
-            
+
             // spawn new abilities locally
             if (classData.ability1Prefab != null)
             {

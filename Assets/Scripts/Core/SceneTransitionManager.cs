@@ -16,6 +16,7 @@ namespace Category5.Core
         
         [Header("scene names")]
         [SerializeField] private string mainMenuSceneName = "MainMenu";
+        [SerializeField] private string homebaseSceneName = "Homebase";
         [SerializeField] private string gameSceneName = "SampleScene";
 
         [Header("loading screen")]
@@ -110,8 +111,14 @@ namespace Category5.Core
             }
         }
         
+        // loads the homebase scene
+        public void LoadHomebase()
+        {
+            LoadScene(homebaseSceneName);
+        }
+
         // loads the game scene, uses network scene management if available
-        public void LoadGameScene()
+public void LoadGameScene()
         {
             LoadScene(gameSceneName);
         }

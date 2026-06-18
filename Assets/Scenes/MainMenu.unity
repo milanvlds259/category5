@@ -3226,6 +3226,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Core.SceneTransitionManager
   mainMenuSceneName: MainMenu
+  homebaseSceneName: Homebase
   gameSceneName: SampleScene
   loadingScreenUI: {fileID: 857741240}
   postLoadDelay: 1

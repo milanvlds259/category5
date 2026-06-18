@@ -3,16 +3,18 @@ using Unity.Netcode;
 using Unity.Collections;
 using UnityEngine.InputSystem;
 using System;
+using System.Collections.Generic;
 using Category5;
 using Category5.Core;
 using Category5.Audio;
 using Category5.UI;
 using Category5.Player.WindRiding;
 using Category5.Player.Van;
+using Category5.Interactions;
 
 namespace Category5.Player
 {
-    [RequireComponent(typeof(CharacterController))]
+[RequireComponent(typeof(CharacterController))]
     public class PlayerController : NetworkBehaviour, IDamageable
     {
         [Header("Player Identity")]
@@ -225,6 +227,9 @@ namespace Category5.Player
             return float.MaxValue;
         }
 
+        public bool IsLocalPlayer => IsOwner || _isOffline;
+        public bool IsPlayerDead => _isOffline ? false : IsDead.Value;
+
         private void Awake()
 {
             _controller = GetComponent<CharacterController>();
@@ -253,6 +258,31 @@ namespace Category5.Player
                     camera.SetTarget(transform);
                     _cameraTransform = camera.transform;
                 }
+
+                // Initialize systems that usually wait for OnNetworkSpawn
+                InitializeOffline();
+            }
+        }
+
+        private void InitializeOffline()
+        {
+            // initialize name tag
+            var nameTag = GetComponentInChildren<PlayerNameTag>(true);
+            if (nameTag != null)
+            {
+                nameTag.Initialize();
+            }
+
+            // ensure model manager loads a model
+            if (_playerModelManager != null)
+            {
+                _playerModelManager.LoadModel(0); // Default to first class (Fighter) in offline hub
+            }
+
+            // Initialize lobby manager if available to ensure interactables work
+            if (LobbyManager.Instance != null)
+            {
+                LobbyManager.Instance.Initialize();
             }
         }
 
@@ -393,9 +423,13 @@ namespace Category5.Player
         // get the display name as a string (convenience method)
         public string GetPlayerName()
         {
+            if (_isOffline)
+            {
+                return PlayerNameManager.Instance != null ? PlayerNameManager.Instance.GetDisplayName() : "Player";
+            }
             return PlayerName.Value.ToString();
         }
-        
+
         // called when death state changes, syncs visual state on all clients
         private void OnDeadStateChanged(bool wasDead, bool isDead)
         {
@@ -522,6 +556,7 @@ namespace Category5.Player
                 _inputActions.Player.Dodge.started += OnDodge;
                 _inputActions.Player.Sprint.started += HandleSprintStarted;
                 _inputActions.Player.Sprint.canceled += OnSprintCanceled;
+                _inputActions.Player.Interact.performed += OnInteract;
             }
         }
 
@@ -533,19 +568,99 @@ namespace Category5.Player
                 _inputActions.Player.Dodge.started -= OnDodge;
                 _inputActions.Player.Sprint.started -= HandleSprintStarted;
                 _inputActions.Player.Sprint.canceled -= OnSprintCanceled;
+                _inputActions.Player.Interact.performed -= OnInteract;
                 _inputActions.Player.Disable();
             }
         }
 
-        private void Update()
+        private List<IInteractable> _nearbyInteractables = new List<IInteractable>();
+        private IInteractable _currentInteractable;
+
+        private void OnInteract(InputAction.CallbackContext context)
         {
+            if (IsPlayerDead) return;
+            if (Category5.UI.PauseMenu.GameIsPaused || Category5.UI.HubUI.IsAnyMenuOpen || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying) return;
+
+            // Debug.Log($"PlayerController: Interact pressed. Current: {(_currentInteractable != null ? _currentInteractable.GetInteractPrompt() : "None")}");
+
+            if (_currentInteractable != null && _currentInteractable.CanInteract(gameObject))
+            {
+                // Debug.Log($"PlayerController: Interacting with {_currentInteractable.GetType().Name}");
+                _currentInteractable.Interact(gameObject);
+            }
+        }
+
+        private void UpdateInteraction()
+        {
+            IInteractable bestInteractable = null;
+            float bestScore = -1f;
+
+            for (int i = _nearbyInteractables.Count - 1; i >= 0; i--)
+            {
+                var interactable = _nearbyInteractables[i];
+                if (interactable == null || (interactable is MonoBehaviour mb && !mb.gameObject.activeInHierarchy))
+                {
+                    _nearbyInteractables.RemoveAt(i);
+                    continue;
+                }
+
+                if (interactable.CanInteract(gameObject))
+                {
+                    // Calculate score based on dot product (looking at it)
+                    Vector3 directionToInteractable = (((MonoBehaviour)interactable).transform.position - transform.position).normalized;
+                    float score = Vector3.Dot(transform.forward, directionToInteractable);
+                    
+                    if (score > bestScore)
+                    {
+                        bestScore = score;
+                        bestInteractable = interactable;
+                    }
+                }
+            }
+
+            if (bestInteractable != _currentInteractable)
+            {
+                _currentInteractable = bestInteractable;
+                if (_currentInteractable != null)
+                {
+                    Category5.UI.InteractionUI.Instance?.Show(_currentInteractable.GetInteractPrompt());
+                }
+                else
+                {
+                    Category5.UI.InteractionUI.Instance?.Hide();
+                }
+            }
+        }
+
+        private void OnTriggerEnter(Collider other)
+        {
+            var interactable = other.GetComponent<IInteractable>();
+            if (interactable != null && !_nearbyInteractables.Contains(interactable))
+            {
+                _nearbyInteractables.Add(interactable);
+            }
+        }
+
+        private void OnTriggerExit(Collider other)
+        {
+            var interactable = other.GetComponent<IInteractable>();
+            if (interactable != null)
+            {
+                _nearbyInteractables.Remove(interactable);
+            }
+        }
+
+        private void Update()
+{
             if (!IsOwner && !_isOffline) return;
             
             // dead players cannot do anything
             if (IsDead.Value) return;
+
+            UpdateInteraction();
             
             // wind riding: WindRiderController drives all movement
-            if (IsWindRiding)
+if (IsWindRiding)
             {
                 if (_windRider.IsRidingTunnel)
                 {
@@ -564,8 +679,8 @@ namespace Category5.Player
                 }
             }
             
-            // check if input should be blocked (pause menu, power-up selection, boss intro, island item selection, or recall channeling)
-            bool inputBlocked = Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying || Category5.UI.ItemSelectionUI.IsSelectionUIActive || IsRecallChanneling;
+            // check if input should be blocked (pause menu, hub menus, power-up selection, boss intro, island item selection, or recall channeling)
+            bool inputBlocked = Category5.UI.PauseMenu.GameIsPaused || Category5.UI.HubUI.IsAnyMenuOpen || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying || Category5.UI.ItemSelectionUI.IsSelectionUIActive || IsRecallChanneling;
 
             // ensure we have a camera reference
             if (_cameraTransform == null)

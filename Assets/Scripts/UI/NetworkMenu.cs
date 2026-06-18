@@ -181,8 +181,16 @@ namespace Category5.UI
             // hide cancel button initially
             SetCancelButtonVisible(false);
 
-            // show title screen initially
-            ShowTitleScreen();
+            // show title screen initially if we are in the main menu scene
+            // otherwise hide UI (we are in Homebase or another gameplay scene)
+            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "MainMenu")
+            {
+                ShowTitleScreen();
+            }
+            else
+            {
+                CloseAllUI();
+            }
 
             //RYLAN CODE
             MenuState.SetValue();
@@ -336,6 +344,20 @@ namespace Category5.UI
         // called when start game button is clicked (host only)
         public void OnStartGameClicked()
         {
+            // if offline, just load the scene
+            if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsListening)
+            {
+                if (SceneTransitionManager.Instance != null)
+                {
+                    SceneTransitionManager.Instance.LoadGameScene();
+                }
+                else
+                {
+                    UnityEngine.SceneManagement.SceneManager.LoadScene(gameSceneName);
+                }
+                return;
+            }
+
             if (!NetworkManager.Singleton.IsHost)
             {
                 Debug.LogWarning("NetworkMenu: Only the host can start the game");
@@ -631,8 +653,24 @@ namespace Category5.UI
             }
         }
 
-        private void UpdateStatus(string message)
+        private void Update()
         {
+            // if we are in Homebase and UI is open, allow closing with Escape
+            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "Homebase")
+            {
+                if (UnityEngine.InputSystem.Keyboard.current != null && UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame)
+                {
+                    // only close if something is actually active (otherwise pause menu should handle it)
+                    if (mainMenuPanel.activeInHierarchy || (lobbyPanel != null && lobbyPanel.activeInHierarchy) || (characterSelectPanel != null && characterSelectPanel.gameObject.activeInHierarchy))
+                    {
+                        CloseAllUI();
+                    }
+                }
+            }
+        }
+
+        private void UpdateStatus(string message)
+{
             if (statusText != null)
             {
                 statusText.text = message;
@@ -696,6 +734,13 @@ namespace Category5.UI
         // shows the title screen and hides other panels
         private void ShowTitleScreen()
         {
+            // if we are in Homebase, we don't want to show the title screen, just close the UI
+            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "Homebase")
+            {
+                CloseAllUI();
+                return;
+            }
+
             isInLobby = false;
 
             // shutdown network if connected
@@ -751,30 +796,15 @@ namespace Category5.UI
         // called when play button on title screen is clicked
         public void OnPlayButtonClicked()
         {
-            if (titlePanel != null)
+            if (Category5.Core.SceneTransitionManager.Instance != null)
             {
-                HideUI(titlePanel);
+                Category5.Core.SceneTransitionManager.Instance.LoadHomebase();
             }
-
-            if (titleLogoImage != null)
+            else
             {
-                //HideUI(titleLogoImage);
-                AnimatePanelOut(titleLogoImage, titleLogoRect);
+                // fallback if manager missing
+                UnityEngine.SceneManagement.SceneManager.LoadScene("Homebase");
             }
-
-            if (mainMenuPanel != null)
-            {
-                //ShowUI(mainMenuPanel);
-
-                // call animation for main menu panel
-                AnimatePanelIn(mainMenuPanel, mainMenuRect);
-            }
-
-            SetButtonsInteractable(isRelayReady);
-            UpdateStatus(isRelayReady ? "Ready to connect" : "Connecting to services...");
-
-            //RYLAN CODE
-            MenuState.SetValue();
         }
 
         // placeholder for settings button
@@ -1059,8 +1089,57 @@ namespace Category5.UI
                 rect.anchoredPosition = new Vector2(mainMenuStartPos[0], mainMenuStartPos[1]);
             }
         }
+
+        // --- EXTERNAL HUB ACCESS ---
+
+        public void OpenNetworkTerminal()
+        {
+            InitializeLobbyPanels();
+            HideAllPanels();
+            ShowUI(mainMenuPanel);
+            
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+
+        public void OpenCharacterSelect()
+        {
+            InitializeLobbyPanels();
+            HideAllPanels();
+            if (characterSelectPanel != null)
+            {
+                characterSelectPanel.gameObject.SetActive(true);
+            }
+            
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+
+        private void HideAllPanels()
+        {
+            if (titlePanel != null) titlePanel.SetActive(false);
+            if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
+            if (lobbyPanel != null) lobbyPanel.SetActive(false);
+            if (connectingPanel != null) connectingPanel.SetActive(false);
+            if (characterSelectPanel != null) characterSelectPanel.gameObject.SetActive(false);
+        }
+
+        public void CloseAllUI()
+        {
+            HideAllPanels();
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+            
+            // if we are in hub, unblock player input if needed
+            // but usually PlayerController checks this via PauseMenu or other static flags
+        }
+
+        public void OnCloseHubUIClicked()
+        {
+            CloseAllUI();
+        }
     }
 }
-    
+
 
 

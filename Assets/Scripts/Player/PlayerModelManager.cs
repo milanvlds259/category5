@@ -69,10 +69,48 @@ namespace Category5.Player
             }
         }
         
+        private bool _isOffline = false;
+
+        private void Start()
+        {
+            // if NetworkManager is missing or not running we are in offline mode
+            if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsListening)
+            {
+                _isOffline = true;
+                
+                // subscribe to lobby manager changes in offline mode
+                LobbyManager.OnLobbyPlayersChanged += OnOfflineLobbyChanged;
+                
+                // load initial selection if any
+                if (LobbyManager.Instance != null)
+                {
+                    OnOfflineLobbyChanged();
+                }
+            }
+        }
+
+        private void OnOfflineLobbyChanged()
+        {
+            if (LobbyManager.Instance == null) return;
+            
+            // find the first player in the lobby (which is us in offline mode)
+            var players = LobbyManager.Instance.GetLobbyPlayers();
+            if (players.Length > 0)
+            {
+                int classId = players[0].SelectedClassId;
+                if (classId != _currentLoadedClass)
+                {
+                    LoadModel(classId);
+                }
+            }
+        }
+
         public override void OnNetworkSpawn()
         {
+            _isOffline = false;
+            
             if (_classManager == null)
-            {
+{
                 _classManager = GetComponent<PlayerClassManager>();
             }
             
@@ -192,13 +230,6 @@ namespace Category5.Player
         // configures the active model animator and binds network animator to it
         private void SetupAnimator()
         {
-            if (_networkAnimator == null)
-            {
-                Debug.LogError("PlayerModelManager: Cannot bind animator because no NetworkAnimator is present on the player root.");
-                _animator = null;
-                return;
-            }
-
             // find animator on spawned model hierarchy
             var childAnimator = _currentModel.GetComponentInChildren<Animator>(true);
             if (childAnimator == null)
@@ -249,22 +280,20 @@ namespace Category5.Player
             _animator.Rebind();
             _animator.Update(0f);
 
-            // bind network animator after the animator is fully configured
-            if (_ownerNetworkAnimator != null)
+            // bind network animator after the animator is fully configured (if networked)
+            if (_networkAnimator != null)
             {
-                _ownerNetworkAnimator.BindRuntimeAnimator(_animator);
-            }
-            else
-            {
-                _networkAnimator.Animator = _animator;
-            }
-
-            if (_networkAnimator.Animator != _animator)
-            {
-                Debug.LogError("PlayerModelManager: Failed to bind the active model animator to OwnerPlayerNetworkAnimator.");
+                if (_ownerNetworkAnimator != null)
+                {
+                    _ownerNetworkAnimator.BindRuntimeAnimator(_animator);
+                }
+                else
+                {
+                    _networkAnimator.Animator = _animator;
+                }
             }
         }
-        
+
         // caches attachment point transforms from the current model's ModelData
         private void CacheAttachmentPoints()
         {

@@ -123,9 +123,11 @@ namespace Category5.UI
         private void RefreshCardStates()
         {
             if (_cards.Count == 0 || _availableClasses == null) return;
-            if (LobbyManager.Instance == null || NetworkManager.Singleton == null) return;
+            if (LobbyManager.Instance == null) return;
             
-            ulong localId = NetworkManager.Singleton.LocalClientId;
+            ulong localId = (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening) 
+                ? NetworkManager.Singleton.LocalClientId : 0;
+            
             var players = LobbyManager.Instance.GetLobbyPlayers();
             
             // collect classes taken by other players
@@ -179,21 +181,27 @@ namespace Category5.UI
             ClassSelectionManager.SetClass(selectedClass.classId);
             
             // send to server via lobby manager
-            if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsClient)
+            if (LobbyManager.Instance != null)
             {
-                if (NetworkManager.Singleton.IsServer)
+                if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
                 {
-                    if (LobbyManager.Instance != null)
+                    if (NetworkManager.Singleton.IsServer)
+                    {
                         LobbyManager.Instance.SetHostPlayerClassId(selectedClass.classId);
+                    }
+                    else
+                    {
+                        LobbyManager.Instance.SendLocalPlayerClassId(selectedClass.classId);
+                    }
                 }
                 else
                 {
-                    if (LobbyManager.Instance != null)
-                        LobbyManager.Instance.SendLocalPlayerClassId(selectedClass.classId);
+                    // offline mode
+                    LobbyManager.Instance.SendLocalPlayerClassId(selectedClass.classId);
                 }
             }
         }
-        
+
         private void OnCardHoverEnter(LobbyClassCard card)
         {
             if (characterViewPanel == null) return;

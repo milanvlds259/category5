@@ -39,7 +39,7 @@ namespace Category5.UI
             // the player controller will call Initialize() after OnNetworkSpawn
         }
         
-        // called by PlayerController after OnNetworkSpawn
+        // called by PlayerController after OnNetworkSpawn or Start (offline)
         public void Initialize()
         {
             if (_isInitialized) return;
@@ -47,7 +47,7 @@ namespace Category5.UI
             _playerController = GetComponentInParent<PlayerController>();
             if (_playerController == null) return;
             
-            _isLocalPlayer = _playerController.IsOwner;
+            _isLocalPlayer = _playerController.IsLocalPlayer;
             
             // subscribe to name changes
             _playerController.PlayerName.OnValueChanged += OnNameChanged;
@@ -63,7 +63,7 @@ namespace Category5.UI
             
             _isInitialized = true;
         }
-        
+
         private void OnDestroy()
         {
             if (_playerController != null)
