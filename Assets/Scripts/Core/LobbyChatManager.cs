@@ -71,6 +71,13 @@ namespace Category5.Core
             if (_isInitialized) return;
             if (NetworkManager.Singleton == null) return;
             
+            // CustomMessagingManager is only available when the network manager is listening
+            if (NetworkManager.Singleton.CustomMessagingManager == null)
+            {
+                // Debug.LogWarning("LobbyChatManager: Cannot initialize handlers because CustomMessagingManager is null (NetworkManager not listening).");
+                return;
+            }
+            
             _messageBuffer.Clear();
             
             // register message handlers
@@ -89,7 +96,7 @@ namespace Category5.Core
             
             // Debug.Log("LobbyChatManager: Initialized");
         }
-        
+
         // call this when leaving the lobby
         public void Cleanup()
         {

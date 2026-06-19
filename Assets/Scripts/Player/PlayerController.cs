@@ -368,9 +368,17 @@ namespace Category5.Player
                 return;
             }
 
-            // lock and hide cursor for gameplay
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
+            // lock and hide cursor for gameplay (only if no menus are open)
+            if (!Category5.UI.HubUI.IsAnyMenuOpen)
+            {
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
+            }
+            else
+            {
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+            }
 
             // Assign camera target
             var camera = FindFirstObjectByType<Category5.ThirdPersonCamera>();

@@ -1058,6 +1058,7 @@ namespace Category5.UI
         {
             if (panel != null)
             {
+                panel.SetActive(false);
                 CanvasGroup canvasGroup = panel.GetComponent<CanvasGroup>();
                 if (canvasGroup != null)
                 {
@@ -1072,6 +1073,7 @@ namespace Category5.UI
         {
             if (panel != null)
             {
+                panel.SetActive(true);
                 CanvasGroup canvasGroup = panel.GetComponent<CanvasGroup>();
                 if (canvasGroup != null)
                 {

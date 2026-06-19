@@ -66,13 +66,22 @@ namespace Category5.Core
                 networkManager.NetworkConfig.PlayerPrefab = null;
             }
             
+            // if we are already in a gameplay scene when the server starts, spawn players for current clients
+            // this happens when hosting from the Homebase hub
+            string currentScene = SceneManager.GetActiveScene().name;
+            if (currentScene != menuSceneName)
+            {
+                // Debug.Log($"NetworkManagerBootstrap: Server started in gameplay scene '{currentScene}', spawning host player");
+                SpawnPlayerForClient(networkManager.LocalClientId);
+            }
+
             // now we can subscribe to scene events
             if (networkManager.SceneManager != null)
             {
                 networkManager.SceneManager.OnLoadEventCompleted += OnSceneLoadCompleted;
             }
         }
-        
+
         private void OnDestroy()
         {
             if (networkManager != null)
@@ -137,14 +146,14 @@ namespace Category5.Core
             if (networkObject != null)
             {
                 networkObject.SpawnAsPlayerObject(clientId);
-                // Debug.Log($"NetworkManagerBootstrap: Spawned player for client {clientId} at {spawnPos}");
+                Debug.Log("[NetworkManagerBootstrap] Successfully spawned networked player for client " + clientId);
             }
             else
             {
-                Debug.LogError("NetworkManagerBootstrap: Player prefab missing NetworkObject component");
+                Debug.LogError("[NetworkManagerBootstrap] Player prefab missing NetworkObject component");
                 Destroy(playerInstance);
             }
-        }
+}
         
         private void RepositionPlayer(NetworkObject playerObject)
         {
