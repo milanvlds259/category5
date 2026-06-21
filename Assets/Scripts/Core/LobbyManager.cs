@@ -112,9 +112,13 @@ namespace Category5.Core
             if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsListening || NetworkManager.Singleton.IsServer)
             {
                 ulong localId = (NetworkManager.Singleton != null) ? NetworkManager.Singleton.LocalClientId : 0;
-                AddPlayer(localId, PlayerNameManager.Instance?.GetDisplayName() ?? "Player", true, PlayerClass.NoClassId);
+                
+                // default to class 0 (Fighter) instead of NoClassId to ensure model loads
+                int initialClass = 0; 
+                
+                AddPlayer(localId, PlayerNameManager.Instance?.GetDisplayName() ?? "Player", true, initialClass);
             }
-            
+
             //// Debug.Log("LobbyManager: Initialized (Offline/Server status handled)");
         }
 

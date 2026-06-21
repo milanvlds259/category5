@@ -14,63 +14,72 @@ namespace Category5.Player
         private PlayerCombat playerCombat;
         private PlayerStats playerStats;
         
+        private int _offlineClassId = PlayerClass.NoClassId;
+        private bool _isOffline = false;
+
         private void Awake()
-        {
+{
             abilityManager = GetComponent<PlayerAbilityManager>();
             playerCombat = GetComponent<PlayerCombat>();
             playerStats = GetComponent<PlayerStats>();
         }
         
-        private bool _isOffline = false;
-        private int _offlineClassId = PlayerClass.NoClassId;
-
         private void Start()
         {
-            // if NetworkManager is missing or not running we are in offline mode
-            if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsListening)
+            // if we are the local player, subscribe to lobby changes to sync our class
+            // this handles both offline hub and networked lobby selection
+            LobbyManager.OnLobbyPlayersChanged += SyncWithLobby;
+            
+            // initial sync
+            if (LobbyManager.Instance != null)
             {
-                _isOffline = true;
-                
-                // subscribe to lobby manager changes in offline mode
-                LobbyManager.OnLobbyPlayersChanged += OnOfflineLobbyChanged;
-                
-                // load initial selection if any
-                if (LobbyManager.Instance != null)
-                {
-                    OnOfflineLobbyChanged();
-                }
+                SyncWithLobby();
             }
         }
 
-        private void OnDestroy()
+        public override void OnDestroy()
         {
-            if (_isOffline)
-            {
-                LobbyManager.OnLobbyPlayersChanged -= OnOfflineLobbyChanged;
-            }
+            base.OnDestroy();
+            
+            // always unsubscribe from static events to prevent memory leaks and MissingReferenceExceptions
+            LobbyManager.OnLobbyPlayersChanged -= SyncWithLobby;
         }
 
-        private void OnOfflineLobbyChanged()
+        private void SyncWithLobby()
         {
             if (LobbyManager.Instance == null) return;
             
-            // find the first player in the lobby (which is us in offline mode)
-            var players = LobbyManager.Instance.GetLobbyPlayers();
-            if (players.Length > 0)
+            // get our local ID (0 for offline if no network manager, otherwise LocalClientId)
+            ulong localId = (NetworkManager.Singleton != null) ? NetworkManager.Singleton.LocalClientId : 0;
+            
+            // only sync if we are either offline or the owner of this networked object
+            if (!IsSpawned || IsOwner)
             {
-                int classId = players[0].SelectedClassId;
-                if (classId != _offlineClassId)
+                int classId = LobbyManager.Instance.GetPlayerClassId(localId);
+                
+                if (IsSpawned && IsOwner)
                 {
-                    _offlineClassId = classId;
-                    LoadClassLocally(classId);
+                    // networked mode: update the NetworkVariable via RPC if it differs
+                    if (classId != SelectedClassId.Value && classId != PlayerClass.NoClassId)
+                    {
+                        RequestSetClassIdServerRpc(classId);
+                    }
+                }
+                else if (!IsSpawned)
+                {
+                    // offline hub mode: load locally
+                    if (classId != _offlineClassId)
+                    {
+                        _offlineClassId = classId;
+                        LoadClassLocally(classId);
+                    }
                 }
             }
         }
 
         public override void OnNetworkSpawn()
         {
-            _isOffline = false;
-// Debug.Log($"PlayerClassManager.OnNetworkSpawn: IsServer={IsServer}, IsOwner={IsOwner}, SelectedClass={SelectedClass.Value}, OwnerClientId={OwnerClientId}");
+            // Debug.Log($"PlayerClassManager.OnNetworkSpawn: IsServer={IsServer}, IsOwner={IsOwner}, SelectedClass={SelectedClass.Value}, OwnerClientId={OwnerClientId}");
 
             // subscribe to class changes
             SelectedClassId.OnValueChanged += OnSelectedClassChanged;
@@ -146,9 +155,16 @@ namespace Category5.Player
                 // no class selected yet (e.g. player spawned before selecting in lobby)
                 return;
             }
+
+            // tell model manager to load the 3D model for this class
+            var modelManager = GetComponent<PlayerModelManager>();
+            if (modelManager != null)
+            {
+                modelManager.LoadModel(classId);
+            }
             
             PlayerClass classData = GetClassData(classId);
-            if (classData == null)
+if (classData == null)
             {
                 Debug.LogError($"PlayerClassManager: No class data found for classId {classId}!");
                 return;
@@ -175,7 +191,7 @@ namespace Category5.Player
                 playerCombat.SetComboResetTime(classData.meleeComboResetTime);
             }
 
-            // all instances need the correct combat class for stat-dependent gameplay,
+            // all instances need the correct combat class and coefficients for stat-dependent gameplay,
             // but only the owner should spawn local ability objects.
             if (playerCombat != null)
             {
@@ -187,14 +203,14 @@ namespace Category5.Player
                 }
             }
 
+            // stop here for remote players - they don't need local ability objects or ability manager updates
             if (!IsOwner && !_isOffline)
             {
-                // Debug.Log($"PlayerClassManager: Applied non-owner class data for player {OwnerClientId}");
                 return;
             }
 
             // spawn new abilities locally
-            if (classData.ability1Prefab != null)
+if (classData.ability1Prefab != null)
             {
                 var abilityObj = Instantiate(classData.ability1Prefab, transform);
                 abilityObj.name = "Ability1";

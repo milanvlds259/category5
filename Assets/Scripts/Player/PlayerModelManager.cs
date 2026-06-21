@@ -69,73 +69,28 @@ namespace Category5.Player
             }
         }
         
-        private bool _isOffline = false;
-
         private void Start()
         {
-            // if NetworkManager is missing or not running we are in offline mode
-            if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsListening)
-            {
-                _isOffline = true;
-                
-                // subscribe to lobby manager changes in offline mode
-                LobbyManager.OnLobbyPlayersChanged += OnOfflineLobbyChanged;
-                
-                // load initial selection if any
-                if (LobbyManager.Instance != null)
-                {
-                    OnOfflineLobbyChanged();
-                }
-            }
+            // PlayerClassManager now handles all lobby synchronization and networked class changes.
+            // It calls LoadModel() on this component whenever the class needs to update.
         }
 
-        private void OnOfflineLobbyChanged()
+        public override void OnDestroy()
         {
-            if (LobbyManager.Instance == null) return;
-            
-            // find the first player in the lobby (which is us in offline mode)
-            var players = LobbyManager.Instance.GetLobbyPlayers();
-            if (players.Length > 0)
-            {
-                int classId = players[0].SelectedClassId;
-                if (classId != _currentLoadedClass)
-                {
-                    LoadModel(classId);
-                }
-            }
+            base.OnDestroy();
         }
 
         public override void OnNetworkSpawn()
         {
-            _isOffline = false;
-            
-            if (_classManager == null)
-{
-                _classManager = GetComponent<PlayerClassManager>();
-            }
-            
-            // subscribe to class changes so model swaps on all clients
-            _classManager.SelectedClassId.OnValueChanged += OnSelectedClassChanged;
-            
-            // load the initial model based on current class value
-            LoadModel(_classManager.SelectedClassId.Value);
+            // synchronization handled by PlayerClassManager
         }
-        
+
         public override void OnNetworkDespawn()
         {
-            if (_classManager != null)
-            {
-                _classManager.SelectedClassId.OnValueChanged -= OnSelectedClassChanged;
-            }
-        }
-        
-        private void OnSelectedClassChanged(int oldClass, int newClass)
-        {
-            LoadModel(newClass);
         }
         
         // loads the model prefab for the given class id
-        // runs on all clients independently
+// runs on all clients independently
         public void LoadModel(int classId)
         {
             // skip if already loaded this class

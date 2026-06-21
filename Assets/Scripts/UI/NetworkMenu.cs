@@ -1098,7 +1098,39 @@ namespace Category5.UI
         {
             InitializeLobbyPanels();
             HideAllPanels();
-            ShowUI(mainMenuPanel);
+
+            if (isInLobby && NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+            {
+                ShowUI(lobbyPanel);
+                
+                bool isHost = NetworkManager.Singleton.IsServer;
+                
+                // only the host can start the game
+                if (startGameButton != null)
+                {
+                    startGameButton.gameObject.SetActive(isHost);
+                }
+
+                // show ready button for all players
+                if (readyButton != null)
+                {
+                    readyButton.gameObject.SetActive(true);
+                    UpdateReadyButtonVisual();
+                }
+
+                // refresh join code for host
+                if (isHost && lobbyPartyPanel != null)
+                {
+                    lobbyPartyPanel.SetJoinCode(currentJoinCode ?? "");
+                }
+                
+                RefreshPlayerList();
+                UpdateStartButtonState();
+            }
+            else
+            {
+                ShowUI(mainMenuPanel);
+            }
             
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
