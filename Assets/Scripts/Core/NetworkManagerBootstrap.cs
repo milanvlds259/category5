@@ -53,6 +53,9 @@ namespace Category5.Core
             {
                 // subscribe when network starts
                 networkManager.OnServerStarted += OnServerStarted;
+                
+                // also subscribe to client connections on server to handle late joiners
+                networkManager.OnClientConnectedCallback += OnClientConnected;
             }
         }
         
@@ -82,11 +85,26 @@ namespace Category5.Core
             }
         }
 
+        private void OnClientConnected(ulong clientId)
+        {
+            // only the server handles spawning
+            if (!networkManager.IsServer) return;
+
+            // if we are in a gameplay scene, spawn the player for the new client immediately
+            string currentScene = SceneManager.GetActiveScene().name;
+            if (currentScene != menuSceneName)
+            {
+                // Debug.Log($"NetworkManagerBootstrap: Client {clientId} joined in gameplay scene '{currentScene}', spawning player");
+                SpawnPlayerForClient(clientId);
+            }
+        }
+
         private void OnDestroy()
         {
             if (networkManager != null)
             {
                 networkManager.OnServerStarted -= OnServerStarted;
+                networkManager.OnClientConnectedCallback -= OnClientConnected;
                 
                 if (networkManager.SceneManager != null)
                 {
@@ -94,7 +112,7 @@ namespace Category5.Core
                 }
             }
         }
-        
+
         private void OnSceneLoadCompleted(string sceneName, LoadSceneMode loadSceneMode, System.Collections.Generic.List<ulong> clientsCompleted, System.Collections.Generic.List<ulong> clientsTimedOut)
         {
             // only the server handles spawning

@@ -189,7 +189,31 @@ namespace Category5.UI
             }
             else
             {
-                CloseAllUI();
+                // if we are already connected, restore the lobby UI
+                if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+                {
+                    bool isHost = NetworkManager.Singleton.IsServer;
+                    isInLobby = true;
+                    
+                    InitializeLobbyPanels();
+                    HideAllPanels();
+                    ShowUI(lobbyPanel);
+                    
+                    if (startGameButton != null)
+                    {
+                        startGameButton.gameObject.SetActive(isHost);
+                    }
+                    
+                    UpdateStatus(isHost ? "Waiting for players to join..." : "Connected! Waiting for host to start game...");
+                    
+                    // subscribe to future changes
+                    LobbyManager.OnLobbyPlayersChanged += RefreshPlayerList;
+                    RefreshPlayerList();
+                }
+                else
+                {
+                    CloseAllUI();
+                }
             }
 
             //RYLAN CODE

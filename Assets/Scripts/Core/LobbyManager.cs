@@ -87,25 +87,40 @@ namespace Category5.Core
         // call this when hosting or joining to start listening for messages
         public void Initialize()
         {
-            if (_isInitialized) return;
-            
-            _lobbyPlayers.Clear();
-
             // If we have a network manager, set up networking
             if (NetworkManager.Singleton != null)
             {
-                // register custom message handlers
-                NetworkManager.Singleton.CustomMessagingManager?.RegisterNamedMessageHandler(MSG_PLAYER_NAME, OnPlayerNameReceived);
-                NetworkManager.Singleton.CustomMessagingManager?.RegisterNamedMessageHandler(MSG_PLAYER_CLASS, OnPlayerClassReceived);
-                NetworkManager.Singleton.CustomMessagingManager?.RegisterNamedMessageHandler(MSG_PLAYER_LIST, OnPlayerListReceived);
-                NetworkManager.Singleton.CustomMessagingManager?.RegisterNamedMessageHandler(MSG_PLAYER_LEFT, OnPlayerLeftReceived);
-                NetworkManager.Singleton.CustomMessagingManager?.RegisterNamedMessageHandler(MSG_PLAYER_READY, OnPlayerReadyReceived);
+                var messaging = NetworkManager.Singleton.CustomMessagingManager;
+                if (messaging != null)
+                {
+                    // register custom message handlers
+                    messaging.UnregisterNamedMessageHandler(MSG_PLAYER_NAME);
+                    messaging.RegisterNamedMessageHandler(MSG_PLAYER_NAME, OnPlayerNameReceived);
+
+                    messaging.UnregisterNamedMessageHandler(MSG_PLAYER_CLASS);
+                    messaging.RegisterNamedMessageHandler(MSG_PLAYER_CLASS, OnPlayerClassReceived);
+
+                    messaging.UnregisterNamedMessageHandler(MSG_PLAYER_LIST);
+                    messaging.RegisterNamedMessageHandler(MSG_PLAYER_LIST, OnPlayerListReceived);
+
+                    messaging.UnregisterNamedMessageHandler(MSG_PLAYER_LEFT);
+                    messaging.RegisterNamedMessageHandler(MSG_PLAYER_LEFT, OnPlayerLeftReceived);
+
+                    messaging.UnregisterNamedMessageHandler(MSG_PLAYER_READY);
+                    messaging.RegisterNamedMessageHandler(MSG_PLAYER_READY, OnPlayerReadyReceived);
+                }
                 
                 // subscribe to connection events
+                NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
                 NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+                
+                NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
                 NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
             }
+
+            if (_isInitialized) return;
             
+            _lobbyPlayers.Clear();
             _isInitialized = true;
             
             // Add local player immediately if we are offline or if we are the server
@@ -118,8 +133,6 @@ namespace Category5.Core
                 
                 AddPlayer(localId, PlayerNameManager.Instance?.GetDisplayName() ?? "Player", true, initialClass);
             }
-
-            //// Debug.Log("LobbyManager: Initialized (Offline/Server status handled)");
         }
 
         // call this when leaving the lobby
@@ -176,16 +189,18 @@ namespace Category5.Core
             OnLobbyPlayersChanged?.Invoke();
         }
         
-        // client sends their name to server
+        // client sends their name and selected class to server
         public void SendLocalPlayerName()
         {
             if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsClient) return;
             if (NetworkManager.Singleton.IsServer) return; // host already added
             
             string name = PlayerNameManager.Instance?.GetDisplayName() ?? "Player";
+            int classId = ClassSelectionManager.GetClassId();
             
-            using var writer = new FastBufferWriter(64, Allocator.Temp);
+            using var writer = new FastBufferWriter(128, Allocator.Temp);
             writer.WriteValueSafe(new FixedString64Bytes(name));
+            writer.WriteValueSafe(classId);
             
             NetworkManager.Singleton.CustomMessagingManager.SendNamedMessage(
                 MSG_PLAYER_NAME, 
@@ -193,22 +208,23 @@ namespace Category5.Core
                 writer
             );
             
-            //// Debug.Log($"LobbyManager: Sent name '{name}' to server");
+            //// Debug.Log($"LobbyManager: Sent name '{name}' and class {classId} to server");
         }
         
-        // server receives player name from client
+        // server receives player name and class from client
         private void OnPlayerNameReceived(ulong senderClientId, FastBufferReader reader)
         {
             if (!NetworkManager.Singleton.IsServer) return;
             
             reader.ReadValueSafe(out FixedString64Bytes playerName);
+            reader.ReadValueSafe(out int requestedClassId);
             
-            AddPlayer(senderClientId, playerName.ToString(), false);
+            AddPlayer(senderClientId, playerName.ToString(), false, requestedClassId);
             
             // send full player list to all clients
             BroadcastPlayerList();
         }
-        
+
         // server broadcasts full player list to all clients
         private void BroadcastPlayerList()
         {
@@ -308,6 +324,22 @@ namespace Category5.Core
             {
                 if (p.ClientId == clientId) return;
             }
+
+            // if character is already taken or invalid, find the first available one
+            if (selectedClassId == PlayerClass.NoClassId || IsClassTaken(selectedClassId, clientId))
+            {
+                if (ClassRegistry.Instance != null)
+                {
+                    foreach (var pc in ClassRegistry.Instance.GetAllClasses())
+                    {
+                        if (pc != null && !IsClassTaken(pc.classId, clientId))
+                        {
+                            selectedClassId = pc.classId;
+                            break;
+                        }
+                    }
+                }
+            }
             
             var player = new LobbyPlayerData
             {
@@ -319,11 +351,11 @@ namespace Category5.Core
             };
             
             _lobbyPlayers.Add(player);
-            //// Debug.Log($"LobbyManager: Added player '{playerName}' (client {clientId}, host: {isHost}, class: {selectedClass})");
+            //// Debug.Log($"LobbyManager: Added player '{playerName}' (client {clientId}, host: {isHost}, class: {selectedClassId})");
             
             OnLobbyPlayersChanged?.Invoke();
         }
-        
+
         // get the current lobby players (for UI)
         public LobbyPlayerData[] GetLobbyPlayers()
         {
