@@ -59,7 +59,7 @@ public class MapGenerator : NetworkBehaviour
     // Keep track of all path points to make sure they're not too close together
     private List<BezierKnot> pathMidpoints = new List<BezierKnot>();
 
-    [SerializeField] GameObject[] islandPrefabs;
+    private List<GameObject> spawners = new List<GameObject>();
 
     [Header("Materials")]
     [SerializeField] Material cloudMaterial;
@@ -76,7 +76,9 @@ public class MapGenerator : NetworkBehaviour
     
     // Spawner stuff
     [SerializeField] GameObject enemySpawnerPrefab;
-    private List<GameObject> spawners = new List<GameObject>();
+    [SerializeField] GameObject windLaunchPrefab;
+    [SerializeField] GameObject[] islandPrefabs;
+    
 
     [Header("MiniAndOverheadMap")]
     [SerializeField] Sprite arenaMapSprite;
@@ -238,24 +240,32 @@ public class MapGenerator : NetworkBehaviour
         // SpaceOutPaths();
 
         if (Application.isPlaying) {
-            // Add navmesh surfaces to all arenas
-            StartCoroutine(AddNavMeshSurfaceToArenas());
+            
             // Add the wind tunnel component and launch pads to each path
             AddWindTunnelToPaths();
             // Add a mesh to all paths
             StartCoroutine(CreatePathMeshes());
-        }
 
-        // Reposition the path entrances away from each
-        // other to reduce crowding
-        foreach (Arena arena in arenas)
-        {
-            RepositionEntrances(arena, 40f);
-            // Have the arena script generate the interior of the arena
-            arena.GenerateArena();
+            foreach (Arena arena in arenas)
+            {
+                // Reposition the path entrances away from each
+                // other to reduce crowding
+                RepositionEntrances(arena, 40f);
+                // Have the arena script generate the interior of the arena
+                arena.GenerateArena();
+            }
+            // Add navmesh surfaces to all arenas
+            // StartCoroutine(AddNavMeshSurfaceToArenas());
+            AddNavMeshSurfaceToArenas();
+            // After the arenas are created, add enemy spawners to them
+            AddEnemySpawnersToArenas();
+            
+            foreach (Arena arena in arenas)
+            {
+                // Connect islands with wind tunnels. This needs to be after navmesh bc the launchpads are generated with the navmesh
+                arena.ConnectAllIslands();
+            }
         }
-        // After the arenas are created, add enemy spawners to them
-        AddEnemySpawnersToArenas();
     }
 
 
@@ -264,7 +274,7 @@ public class MapGenerator : NetworkBehaviour
     Arena CreateArena(Vector3 inputPos, Transform parent, ArenaType arenaType, string numberforname = "", float scaleFactor=1f)
     {   
         // Check if the new arena is too close to a previous one
-        // Use an OverlapBox to detect collisions
+        // Use an OverlapCapsule to detect collisions
         // Do not let arenas spawn on top of each other
         // The radius is a little bigger than the arena's actual size to prevent them from being too close, 
         // since the paths will be generated from the edges of the arenas
@@ -321,6 +331,7 @@ public class MapGenerator : NetworkBehaviour
             }
             arenaScript.scaleFactor = scaleFactor;
             arenaScript.arenaMapSprite = arenaMapSprite;
+            arenaScript.windLaunchPrefab = windLaunchPrefab;
             arenaScript.islandPrefabs = islandPrefabs;
             // Make the arena an eye if we still need more eyes
             if (numberOfEyes > 0)
@@ -399,7 +410,7 @@ public class MapGenerator : NetworkBehaviour
 
                         spawnerObj.transform.position = spawnerData.spawnerMarker.position;
                         spawnerObj.transform.rotation = spawnerData.spawnerMarker.rotation;
-                        spawnerObj.transform.parent = island.transform;
+                        // spawnerObj.transform.parent = island.transform; // Doesn't work bc they can be children of non-network objects
                         // Add the spawner to the spawners list
                         spawners.Add(spawnerObj);
                     }
@@ -408,9 +419,9 @@ public class MapGenerator : NetworkBehaviour
         }
     }
 
-    private IEnumerator AddNavMeshSurfaceToArenas()
+    private void AddNavMeshSurfaceToArenas()
     {
-        yield return new WaitForEndOfFrame();
+        // yield return new WaitForEndOfFrame();
        
         NavMeshSurface surface = mapParent.AddComponent<NavMeshSurface>();
         surface.layerMask = LayerMask.GetMask("Default");
