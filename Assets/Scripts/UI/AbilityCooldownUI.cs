@@ -94,6 +94,15 @@ namespace Category5.UI
                     {
                         // Debug.Log($"[AbilityCooldownUI] Found local player ability manager on attempt {_retryCount + 1}");
                         InitializeSlots();
+
+                        // also subscribe to class changes so we re-initialize if the class changes later
+                        var classManager = player.GetComponent<PlayerClassManager>();
+                        if (classManager != null)
+                        {
+                            classManager.SelectedClassId.OnValueChanged -= OnClassChanged;
+                            classManager.SelectedClassId.OnValueChanged += OnClassChanged;
+                        }
+
                         _retryCount = 0;
                         return;
                     }
@@ -113,7 +122,13 @@ namespace Category5.UI
                 _retryCount = 0;
             }
         }
-        
+
+        private void OnClassChanged(int oldClass, int newClass)
+        {
+            // wait a frame for the ability manager to spawn new abilities before initializing slots
+            Invoke(nameof(InitializeSlots), 0.1f);
+        }
+
         private void InitializeSlots()
         {
             if (abilityManager == null) return;

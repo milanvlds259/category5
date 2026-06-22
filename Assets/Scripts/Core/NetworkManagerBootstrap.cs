@@ -206,6 +206,13 @@ if (playerPrefab == null)
                 playerObject.transform.rotation = spawnPoint.transform.rotation;
                 
                 if (controller != null) controller.enabled = true;
+
+                // important: sync position to the owner client since we dont use NetworkTransform
+                var playerController = playerObject.GetComponent<Category5.Player.PlayerController>();
+                if (playerController != null)
+                {
+                    playerController.SyncSpawnPositionClientRpc(spawnPoint.transform.position, spawnPoint.transform.rotation);
+                }
             }
         }
 

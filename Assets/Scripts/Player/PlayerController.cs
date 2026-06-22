@@ -1403,8 +1403,8 @@ Vector3 lookDirection = transform.forward;
         // syncs spawn position to owning client after network spawn
         // only the owner needs to teleport since server already has correct position
         [ClientRpc]
-        private void SyncSpawnPositionClientRpc(Vector3 position, Quaternion rotation)
-        {
+        public void SyncSpawnPositionClientRpc(Vector3 position, Quaternion rotation)
+{
             // only owner needs to sync position
             if (!IsOwner) return;
             
