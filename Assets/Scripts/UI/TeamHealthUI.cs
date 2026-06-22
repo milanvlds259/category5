@@ -21,18 +21,15 @@ namespace Category5.UI
 
         private void Start()
         {
-            // register all existing players EXCEPT the local player
-            if (UIManager.Instance != null)
+            // register all existing players in the scene
+            var players = Object.FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
+            foreach (var player in players)
             {
-                var allPlayers = UIManager.Instance.GetAllPlayers();
-                foreach (var player in allPlayers)
-                {
-                    // skip the local player - their health is shown in the main hud
-                    if (player.IsOwner)
-                        continue;
-                    
-                    RegisterPlayerEntry(player);
-                }
+                // skip the local player - their health is shown in the main hud
+                if (player.IsOwner)
+                    continue;
+                
+                RegisterPlayerEntry(player);
             }
 
             // subscribe to disconnect events to remove entries immediately

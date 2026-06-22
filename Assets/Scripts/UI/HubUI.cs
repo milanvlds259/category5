@@ -12,6 +12,14 @@ namespace Category5.UI
         private static void Init()
         {
             _openMenuCount = 0;
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
+        }
+
+        private static void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode)
+        {
+            // reset menu count when loading a new scene to prevent input locks
+            _openMenuCount = 0;
         }
 
         public static void OnMenuOpened()

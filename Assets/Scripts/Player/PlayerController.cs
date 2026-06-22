@@ -606,14 +606,21 @@ namespace Category5.Player
             for (int i = _nearbyInteractables.Count - 1; i >= 0; i--)
             {
                 var interactable = _nearbyInteractables[i];
-                if (interactable == null || (interactable is MonoBehaviour mb && !mb.gameObject.activeInHierarchy))
+                
+                // use Object check for interfaces to catch destroyed Unity objects
+                if (interactable == null || (interactable is MonoBehaviour mb && mb == null))
                 {
                     _nearbyInteractables.RemoveAt(i);
                     continue;
                 }
 
-                if (interactable.CanInteract(gameObject))
+                if (interactable is MonoBehaviour mono && !mono.gameObject.activeInHierarchy)
                 {
+                    continue;
+                }
+
+                if (interactable.CanInteract(gameObject))
+{
                     // Calculate score based on dot product (looking at it)
                     Vector3 directionToInteractable = (((MonoBehaviour)interactable).transform.position - transform.position).normalized;
                     float score = Vector3.Dot(transform.forward, directionToInteractable);

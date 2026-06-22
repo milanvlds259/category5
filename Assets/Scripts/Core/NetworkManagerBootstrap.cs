@@ -140,19 +140,34 @@ namespace Category5.Core
             {
                 if (client.PlayerObject != null)
                 {
-                    // Debug.Log($"NetworkManagerBootstrap: Player {clientId} already has a player object, repositioning");
+                    Debug.Log($"[NetworkManagerBootstrap] Client {clientId} already has a player object, repositioning");
                     RepositionPlayer(client.PlayerObject);
                     return;
                 }
             }
             
-            // get van spawn point for initial spawn
+            // get spawn point: try van first, then island fallback
             var spawnPoint = PlayerSpawnPoint.GetNextVanSpawnPoint();
+            if (spawnPoint == null)
+            {
+                Debug.LogWarning($"[NetworkManagerBootstrap] No Van spawn point found for client {clientId}, falling back to Island");
+                spawnPoint = PlayerSpawnPoint.GetNextIslandSpawnPoint();
+            }
+            
+            if (spawnPoint != null)
+            {
+                Debug.Log($"[NetworkManagerBootstrap] Selected {spawnPoint.Type} spawn point for client {clientId} at {spawnPoint.transform.position}");
+            }
+            else
+            {
+                Debug.LogError($"[NetworkManagerBootstrap] FAILED to find any spawn point for client {clientId}");
+            }
+
             Vector3 spawnPos = spawnPoint != null ? spawnPoint.transform.position : Vector3.zero;
             Quaternion spawnRot = spawnPoint != null ? spawnPoint.transform.rotation : Quaternion.identity;
             
             // spawn the player prefab
-            if (playerPrefab == null)
+if (playerPrefab == null)
             {
                 Debug.LogError("NetworkManagerBootstrap: No player prefab assigned");
                 return;
@@ -176,6 +191,11 @@ namespace Category5.Core
         private void RepositionPlayer(NetworkObject playerObject)
         {
             var spawnPoint = PlayerSpawnPoint.GetNextVanSpawnPoint();
+            if (spawnPoint == null)
+            {
+                spawnPoint = PlayerSpawnPoint.GetNextIslandSpawnPoint();
+            }
+
             if (spawnPoint != null)
             {
                 // disable character controller if present to allow position change
@@ -188,7 +208,7 @@ namespace Category5.Core
                 if (controller != null) controller.enabled = true;
             }
         }
-        
+
         private void OnApplicationQuit()
         {
             isInitialized = false;
