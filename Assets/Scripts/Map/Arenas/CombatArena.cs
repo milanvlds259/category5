@@ -28,7 +28,7 @@ public class CombatArena : Arena
                 knotIndex = path.spline.Count - 1;
             }
 
-            CreateIsland(entranceObj.transform.position - new Vector3(0, 25f, 0), new Vector3(20f, 2f, 20f));
+            CreateIsland(entranceObj.transform.position - new Vector3(0, 25f, 0), new Vector3(20f, 2f, 20f), null, true);
         }
 
         int numIslands = 1;

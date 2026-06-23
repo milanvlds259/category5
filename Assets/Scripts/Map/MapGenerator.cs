@@ -20,7 +20,6 @@ public class MapGenerator : NetworkBehaviour
 {
     // CURRENT ISSUES!
     /*
-        - Reposition Entrances not working
         - Paths can go over arenas
         - Path spacing not working
         - Want to make paths only move points side to side?

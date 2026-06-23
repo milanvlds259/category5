@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 2888139326216575352}
   - component: {fileID: 5211307438341124080}
   - component: {fileID: 2913353715087319528}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: windPathLaunch
   m_TagString: Untagged
   m_Icon: {fileID: 0}

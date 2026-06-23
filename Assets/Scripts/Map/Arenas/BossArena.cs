@@ -14,7 +14,7 @@ public class BossArena : Arena
         island.transform.position = transform.position;
         island.transform.localScale = new Vector3(
                                             radius,
-                                            2*scaleFactor,
+                                            10*scaleFactor,
                                             radius
                                             );
         

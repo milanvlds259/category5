@@ -3,6 +3,7 @@ using Category5.Enemies;
 using UnityEngine;
 using Category5.MapEnums;
 using UnityEngine.AI;
+using System.Linq;
 
 public class Island : MonoBehaviour
 {
@@ -17,14 +18,25 @@ public class Island : MonoBehaviour
 
     [SerializeField] public IslandTag[] islandTags;
 
-    [SerializeField] int numberOfEdgePoints = 10;
+    public int numberOfEdgePoints = 10;
     // List of the island's perimeter points, set in the inspector. These are used for pathfinding and wind tunnel generation
     public List<Transform> edgePoints = new List<Transform>();
 
 
     // Get the edge point on this island that is facing the other island
-    public Vector3 GetPointFacing(Island other)
+    public Vector3[] GetPointsClosestToIsland(Island other)
     {
+        // Get an array of the edgepoint positions
+        Vector3[] points = new Vector3[edgePoints.Count];
+        for (int i = 0; i < edgePoints.Count; i++)
+        {
+            points[i] = edgePoints[i].position;
+        }
+
+        // Sort the points by closest to the island
+        Vector3[] closeToFarPoints = points.OrderBy(p => Vector3.Distance(p, other.transform.position)).ToArray();
+                            
+/*
         // Get the direction from this island to the other island
         Vector3 dir =
             (other.transform.position -
@@ -56,6 +68,8 @@ public class Island : MonoBehaviour
         }
         // If the navmesh didn't work, return the best point for now (MAKE THIS BETTER LATER)
         return best.position;
+        */
+        return closeToFarPoints;
     }
 
      private void OnDrawGizmos()

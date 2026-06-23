@@ -161,7 +161,7 @@ public class Arena : NetworkBehaviour
         }
     }
 
-    protected Island CreateIsland(Vector3 position, Vector3 scale, IslandTag[] tags=null)
+    protected Island CreateIsland(Vector3 position, Vector3 scale, IslandTag[] tags=null, bool forceCreation=false)
     {
         GameObject selectedPrefab = islandPrefabs[Random.Range(0, islandPrefabs.Length)];
         Vector3 islandBounds = selectedPrefab.GetComponentInChildren<MeshRenderer>().bounds.extents;
@@ -177,14 +177,13 @@ public class Arena : NetworkBehaviour
         int islandColliders = 0;
         foreach (Collider c in colliders)
         {
-            Debug.Log(c.gameObject.name);
             if (c.transform.IsChildOf(transform.parent))
             {
                 islandColliders++;
             }
                 
         }
-        if (islandColliders > 0) // overlap
+        if (islandColliders > 0 && !forceCreation) // overlap
         {
             // Return null, the island wasn't created
             return null;
@@ -225,11 +224,51 @@ public class Arena : NetworkBehaviour
                 return false; // Do not create a duplicate path
             }
         }
-
+        LayerMask launchPadMask = LayerMask.GetMask("CloudSurface");
+        // LayerMask launchPadMask = Physics.AllLayers;
         // Get the edge points on each island that are facing each other and spawn a wind launch prefab on each of those points
-        // Edge points are created in the editor PROBLEM IF TWO USE THE SAME CLOSEST THEY'RE ON TOP OF EACH OTHER
-        Vector3 spawnPointA = islandA.GetPointFacing(islandB);
-        Vector3 spawnPointB = islandB.GetPointFacing(islandA);
+        // Edge points are created in the editor
+
+        // Get the closest unoccupied point for island a
+        Vector3[] islandAPermieterPoints = islandA.GetPointsClosestToIsland(islandB);
+        Vector3 spawnPointA = islandAPermieterPoints[islandAPermieterPoints.Length-1];
+        foreach (Vector3 point in islandAPermieterPoints)
+        {
+            Collider[] colliders = Physics.OverlapSphere(point, 10, launchPadMask, QueryTriggerInteraction.Collide);
+            foreach(var coll in colliders)
+            {
+                Debug.Log(coll.transform.position + " ISLANDA " + islandA);
+            }
+            
+            if (colliders.Length > 0) {
+                continue;
+            }
+            else
+            {
+                spawnPointA = point;
+                break;
+            }
+        }
+        // Do the same for island b
+        Vector3[] islandBPermieterPoints = islandB.GetPointsClosestToIsland(islandA);
+        Vector3 spawnPointB = islandBPermieterPoints[islandBPermieterPoints.Length-1];
+        foreach (Vector3 point in islandBPermieterPoints)
+        {
+            Collider[] colliders = Physics.OverlapSphere(point, 10, launchPadMask, QueryTriggerInteraction.Collide);
+            foreach(var coll in colliders)
+            {
+                Debug.Log(coll.transform.position + " ISLANDB " + islandB);
+            }
+            if (colliders.Length > 0) {
+                continue;
+            }
+            else
+            {
+                spawnPointB = point;
+                break;
+            }
+        }
+        // Create the launch pads for each island
         GameObject launchPadA = Instantiate(windLaunchPrefab,
                     spawnPointA,
                     Quaternion.identity);
@@ -252,15 +291,15 @@ public class Arena : NetworkBehaviour
         spline.Add(Aknot, TangentMode.AutoSmooth); // Start pos
         spline.Add(Bknot, TangentMode.AutoSmooth); // End pos
         // Save points to be added later after random curves
-        Vector3 pointBeforeA = splineContainer.EvaluatePosition(spline, .13f);
-        Vector3 pointBeforeB = splineContainer.EvaluatePosition(spline, .87f);
+        // Vector3 pointBeforeA = splineContainer.EvaluatePosition(spline, .13f);
+        // Vector3 pointBeforeB = splineContainer.EvaluatePosition(spline, .87f);
 
         // Add points to the spline before the end points to point the entrances to the
         // path at the islands
-        BezierKnot beforeAknot = new BezierKnot(pointBeforeA);
-        BezierKnot beforeBknot = new BezierKnot(pointBeforeB);
-        spline.Insert(1, beforeAknot, TangentMode.AutoSmooth); // Start pos
-        spline.Insert(spline.Count-1, beforeBknot, TangentMode.AutoSmooth); // End pos
+        // BezierKnot beforeAknot = new BezierKnot(pointBeforeA);
+        // BezierKnot beforeBknot = new BezierKnot(pointBeforeB);
+        // spline.Insert(1, beforeAknot, TangentMode.AutoSmooth); // Start pos
+        // spline.Insert(spline.Count-1, beforeBknot, TangentMode.AutoSmooth); // End pos
 
         // Create the TestWindTunnelSetup component and set its variables to the spline and launch pads
         // This is the part that actually moves the player along the path when they enter the launch pad trigger
