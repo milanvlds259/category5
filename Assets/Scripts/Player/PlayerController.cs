@@ -1006,9 +1006,12 @@ Vector3 lookDirection = transform.forward;
             if (IsDead.Value) return;
             if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying) return;
             if (IsWindRiding) return;
-            
+
+            // prevent dodge in Homebase hub
+            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "Homebase") return;
+
             // block dodge while charging ranged attack
-            if (_playerCombat != null && _playerCombat.IsCharging) return;
+if (_playerCombat != null && _playerCombat.IsCharging) return;
             
             if (_isDodging) return;
 

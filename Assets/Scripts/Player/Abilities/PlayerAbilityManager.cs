@@ -316,8 +316,14 @@ namespace Category5
                 // Debug.Log("  -> Blocked: Game paused");
                 return;
             }
-            if (Category5.Core.GameFlowManager.Instance != null && Category5.Core.GameFlowManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection)
+
+            // disable ability usage in homebase
+            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "Homebase")
             {
+                return; 
+            }
+            if (Category5.Core.GameFlowManager.Instance != null && Category5.Core.GameFlowManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection)
+{
                 // Debug.Log("  -> Blocked: Power-up selection phase");
                 return;
             }

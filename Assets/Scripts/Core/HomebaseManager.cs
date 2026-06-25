@@ -4,10 +4,8 @@ using Category5.Core;
 
 namespace Category5.Core
 {
-    /// <summary>
-    /// Manages the Homebase hub world logic.
-    /// Handles local player spawning when offline and transitions to networking.
-    /// </summary>
+    // Manages the Homebase hub world logic.
+    // Handles local player spawning when offline and transitions to networking.
     public class HomebaseManager : MonoBehaviour
     {
         public static HomebaseManager Instance { get; private set; }
@@ -33,15 +31,14 @@ namespace Category5.Core
 
         private void Start()
         {
-            // If NetworkManager is already running (e.g. we returned from a game), 
-            // NetworkManagerBootstrap will handle spawning.
-            // If not, we spawn a local "offline" player.
+            // if NetworkManager is already running (e.g. we returned from a game) NetworkManagerBootstrap will handle spawning
+            // if not we spawn a local "offline" player
             if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsListening)
             {
                 SpawnLocalPlayer();
             }
             
-            // Subscribe to network start to cleanup local player if we host/join while in Homebase
+            // subscribe to network start to cleanup local player if we host/join while in Homebase
             if (NetworkManager.Singleton != null)
             {
                 NetworkManager.Singleton.OnClientStarted += HandleNetworkStarted;
