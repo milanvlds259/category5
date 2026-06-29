@@ -1118,46 +1118,63 @@ namespace Category5.UI
 
         // --- EXTERNAL HUB ACCESS ---
 
-        public void OpenNetworkTerminal()
+        public void OpenHostJoinScreen()
+        {
+            InitializeLobbyPanels();
+            HideAllPanels();
+            ShowUI(mainMenuPanel);
+            
+            // if we are already in a lobby, we should probably disable host/join buttons 
+            // or let the user see the current status
+            bool canNetwork = NetworkManager.Singleton == null || !NetworkManager.Singleton.IsListening;
+            if (hostButton != null) hostButton.interactable = canNetwork;
+            if (joinButton != null) joinButton.interactable = canNetwork;
+            
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+
+        public void OpenPartyScreen()
         {
             InitializeLobbyPanels();
             HideAllPanels();
 
-            if (isInLobby && NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+            // always show lobby panel for party management
+            ShowUI(lobbyPanel);
+            
+            bool isHost = NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer;
+            bool isListening = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+            
+            // only the host can start the game
+            if (startGameButton != null)
             {
-                ShowUI(lobbyPanel);
-                
-                bool isHost = NetworkManager.Singleton.IsServer;
-                
-                // only the host can start the game
-                if (startGameButton != null)
-                {
-                    startGameButton.gameObject.SetActive(isHost);
-                }
-
-                // show ready button for all players
-                if (readyButton != null)
-                {
-                    readyButton.gameObject.SetActive(true);
-                    UpdateReadyButtonVisual();
-                }
-
-                // refresh join code for host
-                if (isHost && lobbyPartyPanel != null)
-                {
-                    lobbyPartyPanel.SetJoinCode(currentJoinCode ?? "");
-                }
-                
-                RefreshPlayerList();
-                UpdateStartButtonState();
+                startGameButton.gameObject.SetActive(isHost);
             }
-            else
+
+            // show ready button for all players
+            if (readyButton != null)
             {
-                ShowUI(mainMenuPanel);
+                readyButton.gameObject.SetActive(true);
+                UpdateReadyButtonVisual();
             }
+
+            // refresh join code for host
+            if (isHost && lobbyPartyPanel != null)
+            {
+                lobbyPartyPanel.SetJoinCode(currentJoinCode ?? "");
+            }
+            
+            RefreshPlayerList();
+            UpdateStartButtonState();
             
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
+        }
+
+        public void OpenNetworkTerminal()
+        {
+            // Deprecated: use OpenHostJoinScreen or OpenPartyScreen
+            OpenHostJoinScreen();
         }
 
         public void OpenCharacterSelect()

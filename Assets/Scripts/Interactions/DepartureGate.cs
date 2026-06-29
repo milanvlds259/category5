@@ -8,35 +8,23 @@ namespace Category5.Interactions
     {
         public override void Interact(GameObject player)
         {
-            var lobbyManager = LobbyManager.Instance;
-            if (lobbyManager == null) return;
-
-            if (lobbyManager.AreAllPlayersReady())
+            if (StandaloneLobbyUI.Instance != null)
+            {
+                StandaloneLobbyUI.Instance.OpenParty();
+            }
+            else
             {
                 var menu = FindFirstObjectByType<NetworkMenu>();
                 if (menu != null)
                 {
-                    menu.OnStartGameClicked();
+                    menu.OpenPartyScreen();
                 }
-            }
-            else
-            {
-                Debug.Log("DepartureGate: Not all players are ready!");
-                // Could show a UI message here
             }
         }
 
         public override string GetInteractPrompt()
         {
-            var lobbyManager = LobbyManager.Instance;
-            string basePrompt = "Wait for Players";
-            
-            if (lobbyManager != null && lobbyManager.AreAllPlayersReady())
-            {
-                basePrompt = "Start Run";
-            }
-            
-            return $"[F] {basePrompt}";
+            return "[F] Party Management";
         }
 }
 }

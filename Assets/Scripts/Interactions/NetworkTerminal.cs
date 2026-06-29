@@ -9,7 +9,7 @@ namespace Category5.Interactions
         {
             if (StandaloneLobbyUI.Instance != null)
             {
-                StandaloneLobbyUI.Instance.Open();
+                StandaloneLobbyUI.Instance.OpenHostJoin();
             }
             else
             {
@@ -17,7 +17,7 @@ namespace Category5.Interactions
                 var menu = FindFirstObjectByType<NetworkMenu>();
                 if (menu != null)
                 {
-                    menu.OpenNetworkTerminal();
+                    menu.OpenHostJoinScreen();
                 }
                 else
                 {
@@ -25,5 +25,5 @@ namespace Category5.Interactions
                 }
             }
         }
-    }
+}
 }

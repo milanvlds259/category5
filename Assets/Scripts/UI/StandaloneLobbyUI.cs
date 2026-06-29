@@ -36,7 +36,7 @@ namespace Category5.UI
             }
         }
 
-        public void Open()
+        public void OpenHostJoin()
         {
             if (_isOpen) return;
             _isOpen = true;
@@ -51,11 +51,39 @@ namespace Category5.UI
 
             if (networkMenu != null)
             {
-                networkMenu.OpenNetworkTerminal();
+                networkMenu.OpenHostJoinScreen();
             }
 
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
+        }
+
+        public void OpenParty()
+        {
+            if (_isOpen) return;
+            _isOpen = true;
+            HubUI.OnMenuOpened();
+
+            if (rootCanvasGroup != null)
+            {
+                rootCanvasGroup.alpha = 1f;
+                rootCanvasGroup.interactable = true;
+                rootCanvasGroup.blocksRaycasts = true;
+            }
+
+            if (networkMenu != null)
+            {
+                networkMenu.OpenPartyScreen();
+            }
+
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+
+        public void Open()
+        {
+            // Default to Host/Join if using generic Open
+            OpenHostJoin();
         }
 
         public void Close()
