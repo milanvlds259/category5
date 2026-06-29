@@ -203,15 +203,10 @@ plugin architecture guide.
 To contribute to the framework itself — adding agents, skills, commands, rules,
 or plugins — see `docs/CONTRIBUTING.md`.
 <!-- UNITY CODE ASSIST INSTRUCTIONS START -->
-- Project name: Category5
+- Project name: category5
 - Unity version: Unity 6000.3.0f1
-- Active scene:
-  - Tags:
-    - Untagged, Respawn, Finish, EditorOnly, MainCamera, Player, GameController
-  - Layers:
-    - Default, TransparentFX, Ignore Raycast, Water, UI
 - Active game object:
-  - Name: EnemySpawner
+  - Name: RangedEnemy
   - Tag: Untagged
-  - Layer: Default
+  - Layer: Enemy
 <!-- UNITY CODE ASSIST INSTRUCTIONS END -->
