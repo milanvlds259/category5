@@ -59,11 +59,15 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _NoiseScale: 6.52
     - _QueueControl: 0
     - _QueueOffset: 0
+    - _WarpStrength: 0.65
     m_Colors:
     - _BaseColor: {r: 0.46540874, g: 0.40095055, b: 0.23270431, a: 1}
-    - _DistortionSpeed: {r: 0, g: 0, b: 0, a: 0}
+    - _DistortionSpeed: {r: 0.1, g: 0.1, b: 0, a: 0}
+    - _Light_Dark: {r: 0.654088, g: 0.654088, b: 0.654088, a: 1}
     - _ScrollSpeed: {r: 0.1, g: 0.1, b: 0, a: 0}
+    - _Tint: {r: 0.6792453, g: 0.6792453, b: 0.6792453, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
