@@ -13,9 +13,9 @@ public class BossArena : Arena
         // Set transform
         island.transform.position = transform.position;
         island.transform.localScale = new Vector3(
-                                            radius,
-                                            10*scaleFactor,
-                                            radius
+                                            radius*2,
+                                            5*scaleFactor,
+                                            radius*2
                                             );
         
         // Add a Rigidbody to make it interact with physics

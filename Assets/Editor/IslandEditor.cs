@@ -5,7 +5,6 @@ using System;
 [CustomEditor(typeof(Island))]
 public class IslandEditor : Editor
 {
-
     public override void OnInspectorGUI()
     {
         DrawDefaultInspector();
@@ -41,7 +40,7 @@ public class IslandEditor : Editor
         float radius = Mathf.Max(bounds.extents.x, bounds.extents.z) * 1.5f;
 
         // Number of points that will be generated around the perimeter
-        int samples = 10;
+        int samples = island.numberOfEdgePoints;
         // Loop through each point, get the direction from the center
         for (int i = 0; i < samples; i++)
         {

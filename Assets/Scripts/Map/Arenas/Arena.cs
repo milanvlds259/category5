@@ -8,6 +8,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Splines;
+using UnityEngine.UI;
 
 public class Arena : NetworkBehaviour
 {
@@ -235,10 +236,6 @@ public class Arena : NetworkBehaviour
         foreach (Vector3 point in islandAPermieterPoints)
         {
             Collider[] colliders = Physics.OverlapSphere(point, 10, launchPadMask, QueryTriggerInteraction.Collide);
-            foreach(var coll in colliders)
-            {
-                Debug.Log(coll.transform.position + " ISLANDA " + islandA);
-            }
             
             if (colliders.Length > 0) {
                 continue;
@@ -255,10 +252,7 @@ public class Arena : NetworkBehaviour
         foreach (Vector3 point in islandBPermieterPoints)
         {
             Collider[] colliders = Physics.OverlapSphere(point, 10, launchPadMask, QueryTriggerInteraction.Collide);
-            foreach(var coll in colliders)
-            {
-                Debug.Log(coll.transform.position + " ISLANDB " + islandB);
-            }
+          
             if (colliders.Length > 0) {
                 continue;
             }
@@ -290,16 +284,22 @@ public class Arena : NetworkBehaviour
         // Add points to the spline at the positions of the two islands
         spline.Add(Aknot, TangentMode.AutoSmooth); // Start pos
         spline.Add(Bknot, TangentMode.AutoSmooth); // End pos
-        // Save points to be added later after random curves
+
+        // These points make the path curve outward from the island's land
         // Vector3 pointBeforeA = splineContainer.EvaluatePosition(spline, .13f);
         // Vector3 pointBeforeB = splineContainer.EvaluatePosition(spline, .87f);
+        Vector3 islandADir = (spawnPointA - islandA.transform.position).normalized;
+        Vector3 pointBeforeA = spawnPointA + islandADir * 10f;
+
+        Vector3 islandBDir = (spawnPointB - islandB.transform.position).normalized;
+        Vector3 pointBeforeB = spawnPointB + islandBDir * 10f;
 
         // Add points to the spline before the end points to point the entrances to the
         // path at the islands
-        // BezierKnot beforeAknot = new BezierKnot(pointBeforeA);
-        // BezierKnot beforeBknot = new BezierKnot(pointBeforeB);
-        // spline.Insert(1, beforeAknot, TangentMode.AutoSmooth); // Start pos
-        // spline.Insert(spline.Count-1, beforeBknot, TangentMode.AutoSmooth); // End pos
+        BezierKnot beforeAknot = new BezierKnot(pointBeforeA);
+        BezierKnot beforeBknot = new BezierKnot(pointBeforeB);
+        spline.Insert(1, beforeAknot, TangentMode.AutoSmooth); // Start pos
+        spline.Insert(spline.Count-1, beforeBknot, TangentMode.AutoSmooth); // End pos
 
         // Create the TestWindTunnelSetup component and set its variables to the spline and launch pads
         // This is the part that actually moves the player along the path when they enter the launch pad trigger
@@ -315,5 +315,55 @@ public class Arena : NetworkBehaviour
         windPaths.Add(pathData); // Store reference to the created path
 
         return true;
+    }
+
+    // Loops through each path and checks for overlaps with objects along the
+    // spline's position. If there are overlaps, make a new knot and make it move away from the object that was overlapped
+    public void AvoidWindPathObstacles()
+    {
+        foreach (WindPath path in windPaths)
+        {
+            int numberOfNewKnots = 0;
+            for (int i = 2; i < 8; i++)
+            {
+                (bool isOverlapping, Vector3 position, Collider collider) result = CheckWindPathCollision(path, i/10f);
+                if (result.isOverlapping)
+                {
+                    Vector3 dirFromObstacle = (result.position - result.collider.bounds.center).normalized;
+                    Vector3 newPos = result.position + (dirFromObstacle * 10f);
+
+                    SplineContainer splineContainer = path.windTunnel.GetComponent<SplineContainer>();
+                    Spline spline = splineContainer.Spline;
+
+                    BezierKnot newKnot = new BezierKnot(newPos);
+                    spline.Insert(numberOfNewKnots + 2, newKnot, TangentMode.AutoSmooth);
+                    numberOfNewKnots++;
+                }
+            }
+        }
+    }
+
+    // Gets a place along the spline and checks if it's colliding with anything
+    // If yes, then return true with the pos, else false w the pos
+    (bool, Vector3, Collider) CheckWindPathCollision(WindPath path, float splinePercentage)
+    {
+        SplineContainer splineContainer = path.windTunnel.GetComponent<SplineContainer>();
+        Spline spline = splineContainer.Spline;
+
+        Vector3 pos = splineContainer.EvaluatePosition(spline, splinePercentage);
+        Collider[] colliders = Physics.OverlapSphere(pos, 5, islandMask, QueryTriggerInteraction.Ignore);
+            
+        (bool, Vector3, Collider) result;
+
+        if (colliders.Length > 0) {
+            result = (true, pos, colliders[0]);
+            Debug.Log(path + " PATH, POS " + pos + " POS, PERCENTAGE " + splinePercentage);
+            return result;
+        }
+        else
+        {
+            result = (false, pos, null);
+            return result;
+        }
     }
 }

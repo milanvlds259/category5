@@ -263,6 +263,8 @@ public class MapGenerator : NetworkBehaviour
             {
                 // Connect islands with wind tunnels. This needs to be after navmesh bc the launchpads are generated with the navmesh
                 arena.ConnectAllIslands();
+                // Make it so the wind paths curve around obstacles
+                arena.AvoidWindPathObstacles();
             }
         }
     }
