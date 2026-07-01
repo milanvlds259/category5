@@ -68,17 +68,27 @@ namespace Category5.Core
         // call this when entering the lobby
         public void Initialize()
         {
-            if (_isInitialized) return;
             if (NetworkManager.Singleton == null) return;
             
+            var messaging = NetworkManager.Singleton.CustomMessagingManager;
+            if (messaging != null)
+            {
+                // register message handlers
+                messaging.UnregisterNamedMessageHandler(MSG_CHAT_SEND);
+                messaging.RegisterNamedMessageHandler(MSG_CHAT_SEND, OnChatSendReceived);
+                
+                messaging.UnregisterNamedMessageHandler(MSG_CHAT_BROADCAST);
+                messaging.RegisterNamedMessageHandler(MSG_CHAT_BROADCAST, OnChatBroadcastReceived);
+                
+                messaging.UnregisterNamedMessageHandler(MSG_CHAT_HISTORY);
+                messaging.RegisterNamedMessageHandler(MSG_CHAT_HISTORY, OnChatHistoryReceived);
+                
+                messaging.UnregisterNamedMessageHandler(MSG_CHAT_REQUEST_HISTORY);
+                messaging.RegisterNamedMessageHandler(MSG_CHAT_REQUEST_HISTORY, OnChatHistoryRequested);
+            }
+
+            if (_isInitialized) return;
             _messageBuffer.Clear();
-            
-            // register message handlers
-            NetworkManager.Singleton.CustomMessagingManager.RegisterNamedMessageHandler(MSG_CHAT_SEND, OnChatSendReceived);
-            NetworkManager.Singleton.CustomMessagingManager.RegisterNamedMessageHandler(MSG_CHAT_BROADCAST, OnChatBroadcastReceived);
-            NetworkManager.Singleton.CustomMessagingManager.RegisterNamedMessageHandler(MSG_CHAT_HISTORY, OnChatHistoryReceived);
-            NetworkManager.Singleton.CustomMessagingManager.RegisterNamedMessageHandler(MSG_CHAT_REQUEST_HISTORY, OnChatHistoryRequested);
-            
             _isInitialized = true;
             
             // if we're a client (not host), request chat history (so clients that join late can get recent messages)
@@ -89,7 +99,7 @@ namespace Category5.Core
             
             // Debug.Log("LobbyChatManager: Initialized");
         }
-        
+
         // call this when leaving the lobby
         public void Cleanup()
         {

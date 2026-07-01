@@ -40,7 +40,7 @@ namespace Category5.Core
             var list = type == SpawnType.Van ? vanSpawnPoints : islandSpawnPoints;
             if (list.Count == 0)
             {
-                PlayerSpawnPoint[] found = FindObjectsByType<PlayerSpawnPoint>(FindObjectsSortMode.None);
+                PlayerSpawnPoint[] found = Object.FindObjectsByType<PlayerSpawnPoint>(FindObjectsSortMode.None);
                 foreach (var sp in found)
                 {
                     if (sp.spawnType == type && !list.Contains(sp))
@@ -57,14 +57,13 @@ namespace Category5.Core
             EnsurePopulated(SpawnType.Van);
             if (vanSpawnPoints.Count == 0)
             {
-                Debug.LogWarning("PlayerSpawnPoint: No van spawn points found in scene");
                 return null;
             }
             PlayerSpawnPoint point = vanSpawnPoints[nextVanIndex % vanSpawnPoints.Count];
             nextVanIndex++;
             return point;
         }
-        
+
         public static PlayerSpawnPoint GetNextIslandSpawnPoint()
         {
             EnsurePopulated(SpawnType.Island);
@@ -82,8 +81,10 @@ namespace Category5.Core
         {
             nextVanIndex = 0;
             nextIslandIndex = 0;
+            vanSpawnPoints.Clear();
+            islandSpawnPoints.Clear();
         }
-        
+
         public static PlayerSpawnPoint GetVanSpawnPoint(int index)
         {
             EnsurePopulated(SpawnType.Van);

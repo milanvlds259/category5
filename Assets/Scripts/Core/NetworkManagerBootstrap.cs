@@ -53,6 +53,9 @@ namespace Category5.Core
             {
                 // subscribe when network starts
                 networkManager.OnServerStarted += OnServerStarted;
+                
+                // also subscribe to client connections on server to handle late joiners
+                networkManager.OnClientConnectedCallback += OnClientConnected;
             }
         }
         
@@ -66,18 +69,42 @@ namespace Category5.Core
                 networkManager.NetworkConfig.PlayerPrefab = null;
             }
             
+            // if we are already in a gameplay scene when the server starts, spawn players for current clients
+            // this happens when hosting from the Homebase hub
+            string currentScene = SceneManager.GetActiveScene().name;
+            if (currentScene != menuSceneName)
+            {
+                // Debug.Log($"NetworkManagerBootstrap: Server started in gameplay scene '{currentScene}', spawning host player");
+                SpawnPlayerForClient(networkManager.LocalClientId);
+            }
+
             // now we can subscribe to scene events
             if (networkManager.SceneManager != null)
             {
                 networkManager.SceneManager.OnLoadEventCompleted += OnSceneLoadCompleted;
             }
         }
-        
+
+        private void OnClientConnected(ulong clientId)
+        {
+            // only the server handles spawning
+            if (!networkManager.IsServer) return;
+
+            // if we are in a gameplay scene, spawn the player for the new client immediately
+            string currentScene = SceneManager.GetActiveScene().name;
+            if (currentScene != menuSceneName)
+            {
+                // Debug.Log($"NetworkManagerBootstrap: Client {clientId} joined in gameplay scene '{currentScene}', spawning player");
+                SpawnPlayerForClient(clientId);
+            }
+        }
+
         private void OnDestroy()
         {
             if (networkManager != null)
             {
                 networkManager.OnServerStarted -= OnServerStarted;
+                networkManager.OnClientConnectedCallback -= OnClientConnected;
                 
                 if (networkManager.SceneManager != null)
                 {
@@ -85,7 +112,7 @@ namespace Category5.Core
                 }
             }
         }
-        
+
         private void OnSceneLoadCompleted(string sceneName, LoadSceneMode loadSceneMode, System.Collections.Generic.List<ulong> clientsCompleted, System.Collections.Generic.List<ulong> clientsTimedOut)
         {
             // only the server handles spawning
@@ -113,19 +140,34 @@ namespace Category5.Core
             {
                 if (client.PlayerObject != null)
                 {
-                    // Debug.Log($"NetworkManagerBootstrap: Player {clientId} already has a player object, repositioning");
+                    Debug.Log($"[NetworkManagerBootstrap] Client {clientId} already has a player object, repositioning");
                     RepositionPlayer(client.PlayerObject);
                     return;
                 }
             }
             
-            // get van spawn point for initial spawn
+            // get spawn point: try van first, then island fallback
             var spawnPoint = PlayerSpawnPoint.GetNextVanSpawnPoint();
+            if (spawnPoint == null)
+            {
+                Debug.LogWarning($"[NetworkManagerBootstrap] No Van spawn point found for client {clientId}, falling back to Island");
+                spawnPoint = PlayerSpawnPoint.GetNextIslandSpawnPoint();
+            }
+            
+            if (spawnPoint != null)
+            {
+                Debug.Log($"[NetworkManagerBootstrap] Selected {spawnPoint.Type} spawn point for client {clientId} at {spawnPoint.transform.position}");
+            }
+            else
+            {
+                Debug.LogError($"[NetworkManagerBootstrap] FAILED to find any spawn point for client {clientId}");
+            }
+
             Vector3 spawnPos = spawnPoint != null ? spawnPoint.transform.position : Vector3.zero;
             Quaternion spawnRot = spawnPoint != null ? spawnPoint.transform.rotation : Quaternion.identity;
             
             // spawn the player prefab
-            if (playerPrefab == null)
+if (playerPrefab == null)
             {
                 Debug.LogError("NetworkManagerBootstrap: No player prefab assigned");
                 return;
@@ -137,18 +179,23 @@ namespace Category5.Core
             if (networkObject != null)
             {
                 networkObject.SpawnAsPlayerObject(clientId);
-                // Debug.Log($"NetworkManagerBootstrap: Spawned player for client {clientId} at {spawnPos}");
+                Debug.Log("[NetworkManagerBootstrap] Successfully spawned networked player for client " + clientId);
             }
             else
             {
-                Debug.LogError("NetworkManagerBootstrap: Player prefab missing NetworkObject component");
+                Debug.LogError("[NetworkManagerBootstrap] Player prefab missing NetworkObject component");
                 Destroy(playerInstance);
             }
-        }
+}
         
         private void RepositionPlayer(NetworkObject playerObject)
         {
             var spawnPoint = PlayerSpawnPoint.GetNextVanSpawnPoint();
+            if (spawnPoint == null)
+            {
+                spawnPoint = PlayerSpawnPoint.GetNextIslandSpawnPoint();
+            }
+
             if (spawnPoint != null)
             {
                 // disable character controller if present to allow position change
@@ -159,9 +206,16 @@ namespace Category5.Core
                 playerObject.transform.rotation = spawnPoint.transform.rotation;
                 
                 if (controller != null) controller.enabled = true;
+
+                // important: sync position to the owner client since we dont use NetworkTransform
+                var playerController = playerObject.GetComponent<Category5.Player.PlayerController>();
+                if (playerController != null)
+                {
+                    playerController.SyncSpawnPositionClientRpc(spawnPoint.transform.position, spawnPoint.transform.rotation);
+                }
             }
         }
-        
+
         private void OnApplicationQuit()
         {
             isInitialized = false;

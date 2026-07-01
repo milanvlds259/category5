@@ -42,6 +42,9 @@ namespace Category5.UI
             
             // find and register any bosses that spawned before UIManager was ready
             FindAndRegisterBoss();
+
+            // Find and register the local player if they already exist (e.g. persisted from hub)
+            FindAndRegisterLocalPlayer();
             
             // subscribe to round changes
             if (Category5.Core.GameFlowManager.Instance != null)
@@ -50,7 +53,22 @@ namespace Category5.UI
                 UpdateRoundDisplay(Category5.Core.GameFlowManager.Instance.CurrentRound.Value);
             }
         }
-        
+
+        private void FindAndRegisterLocalPlayer()
+        {
+            // find the local player controller
+            var players = Object.FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
+            foreach (var player in players)
+            {
+                if (player.IsOwner)
+                {
+                    // Debug.Log("UIManager: Found existing local player, registering");
+                    RegisterPlayer(player);
+                    break;
+                }
+            }
+        }
+
         private void OnDestroy()
         {
             if (Category5.Core.GameFlowManager.Instance != null)

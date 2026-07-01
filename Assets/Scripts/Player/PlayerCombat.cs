@@ -372,8 +372,11 @@ namespace Category5.Player
             if (_isAttacking) return false;
             if (Category5.UI.PauseMenu.GameIsPaused) return false;
             
+            // prevent attack input in Homebase hub
+            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "Homebase") return false;
+
             // prevent attack input during power-up selection
-            if (Category5.Core.GameFlowManager.Instance != null && 
+if (Category5.Core.GameFlowManager.Instance != null && 
                 Category5.Core.GameFlowManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection) return false;
 
             // prevent attack input during boss intro

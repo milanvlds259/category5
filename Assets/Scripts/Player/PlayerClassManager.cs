@@ -14,17 +14,73 @@ namespace Category5.Player
         private PlayerCombat playerCombat;
         private PlayerStats playerStats;
         
+        private int _offlineClassId = PlayerClass.NoClassId;
+        private bool _isOffline = false;
+
         private void Awake()
-        {
+{
             abilityManager = GetComponent<PlayerAbilityManager>();
             playerCombat = GetComponent<PlayerCombat>();
             playerStats = GetComponent<PlayerStats>();
         }
         
+        private void Start()
+        {
+            // if we are the local player, subscribe to lobby changes to sync our class
+            // this handles both offline hub and networked lobby selection
+            LobbyManager.OnLobbyPlayersChanged += SyncWithLobby;
+            
+            // initial sync
+            if (LobbyManager.Instance != null)
+            {
+                SyncWithLobby();
+            }
+        }
+
+        public override void OnDestroy()
+        {
+            base.OnDestroy();
+            
+            // always unsubscribe from static events to prevent memory leaks and MissingReferenceExceptions
+            LobbyManager.OnLobbyPlayersChanged -= SyncWithLobby;
+        }
+
+        private void SyncWithLobby()
+        {
+            if (LobbyManager.Instance == null) return;
+            
+            // get our local ID (0 for offline if no network manager, otherwise LocalClientId)
+            ulong localId = (NetworkManager.Singleton != null) ? NetworkManager.Singleton.LocalClientId : 0;
+            
+            // only sync if we are either offline or the owner of this networked object
+            if (!IsSpawned || IsOwner)
+            {
+                int classId = LobbyManager.Instance.GetPlayerClassId(localId);
+                
+                if (IsSpawned && IsOwner)
+                {
+                    // networked mode: update the NetworkVariable via RPC if it differs
+                    if (classId != SelectedClassId.Value && classId != PlayerClass.NoClassId)
+                    {
+                        RequestSetClassIdServerRpc(classId);
+                    }
+                }
+                else if (!IsSpawned)
+                {
+                    // offline hub mode: load locally
+                    if (classId != _offlineClassId)
+                    {
+                        _offlineClassId = classId;
+                        LoadClassLocally(classId);
+                    }
+                }
+            }
+        }
+
         public override void OnNetworkSpawn()
         {
             // Debug.Log($"PlayerClassManager.OnNetworkSpawn: IsServer={IsServer}, IsOwner={IsOwner}, SelectedClass={SelectedClass.Value}, OwnerClientId={OwnerClientId}");
-            
+
             // subscribe to class changes
             SelectedClassId.OnValueChanged += OnSelectedClassChanged;
             
@@ -99,9 +155,16 @@ namespace Category5.Player
                 // no class selected yet (e.g. player spawned before selecting in lobby)
                 return;
             }
+
+            // tell model manager to load the 3D model for this class
+            var modelManager = GetComponent<PlayerModelManager>();
+            if (modelManager != null)
+            {
+                modelManager.LoadModel(classId);
+            }
             
             PlayerClass classData = GetClassData(classId);
-            if (classData == null)
+if (classData == null)
             {
                 Debug.LogError($"PlayerClassManager: No class data found for classId {classId}!");
                 return;
@@ -128,7 +191,7 @@ namespace Category5.Player
                 playerCombat.SetComboResetTime(classData.meleeComboResetTime);
             }
 
-            // all instances need the correct combat class for stat-dependent gameplay,
+            // all instances need the correct combat class and coefficients for stat-dependent gameplay,
             // but only the owner should spawn local ability objects.
             if (playerCombat != null)
             {
@@ -140,14 +203,14 @@ namespace Category5.Player
                 }
             }
 
-            if (!IsOwner)
+            // stop here for remote players - they don't need local ability objects or ability manager updates
+            if (!IsOwner && !_isOffline)
             {
-                // Debug.Log($"PlayerClassManager: Applied non-owner class data for player {OwnerClientId}");
                 return;
             }
-            
+
             // spawn new abilities locally
-            if (classData.ability1Prefab != null)
+if (classData.ability1Prefab != null)
             {
                 var abilityObj = Instantiate(classData.ability1Prefab, transform);
                 abilityObj.name = "Ability1";

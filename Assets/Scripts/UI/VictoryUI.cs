@@ -140,7 +140,7 @@ namespace Category5.UI
         
         private void OnReturnToMenuClicked()
         {
-            // Debug.Log("VictoryUI: Returning to menu");
+            // Debug.Log("VictoryUI: Returning to hub");
             
             // ensure cursor is unlocked before scene transition
             Cursor.lockState = CursorLockMode.None;
@@ -149,16 +149,16 @@ namespace Category5.UI
             // route through SceneTransitionManager for loading screen
             if (SceneTransitionManager.Instance != null)
             {
-                SceneTransitionManager.Instance.LoadMainMenu();
+                SceneTransitionManager.Instance.LoadHomebase();
             }
             else
             {
                 if (NetworkManager.Singleton != null)
                     NetworkManager.Singleton.Shutdown();
-                SceneManager.LoadScene(menuSceneName);
+                SceneManager.LoadScene("Homebase");
             }
         }
-        
+
         private void OnPlayAgainClicked()
         {
             // Debug.Log("VictoryUI: Playing again");

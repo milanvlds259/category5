@@ -146,12 +146,12 @@ namespace Category5.UI
         
         public void Disconnect()
         {
-            // Debug.Log("PauseMenu: Disconnecting and returning to main menu");
+            // Debug.Log("PauseMenu: Disconnecting and returning to hub");
             
             // use scene transition manager if available
             if (SceneTransitionManager.Instance != null)
             {
-                SceneTransitionManager.Instance.LoadMainMenu();
+                SceneTransitionManager.Instance.LoadHomebase();
             }
             else
             {
@@ -160,10 +160,10 @@ namespace Category5.UI
                 {
                     NetworkManager.Singleton.Shutdown();
                 }
-                UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
+                UnityEngine.SceneManagement.SceneManager.LoadScene("Homebase");
             }
         }
-        
+
         public void QuitGame()
         {
             // Debug.Log("PauseMenu: Quitting game");

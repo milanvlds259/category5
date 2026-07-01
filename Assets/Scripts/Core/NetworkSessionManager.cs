@@ -254,14 +254,14 @@ namespace Category5.Core
             // route through SceneTransitionManager for loading screen
             if (SceneTransitionManager.Instance != null)
             {
-                SceneTransitionManager.Instance.LoadMainMenu();
+                SceneTransitionManager.Instance.LoadHomebase();
             }
             else
             {
-                SceneManager.LoadScene(menuSceneName);
+                SceneManager.LoadScene("Homebase");
             }
         }
-        
+
         // =====================================
         // rpcs
         // =====================================
