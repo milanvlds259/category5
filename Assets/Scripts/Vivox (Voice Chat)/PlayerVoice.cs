@@ -60,6 +60,9 @@ public class PlayerVoice : NetworkBehaviour
             await VivoxService.Instance.LoginAsync(options);
 
             Join3DChannelAsync();
+
+            // Used for testing your own voice
+            // JoinEchoChannelAsync();
         }
     }
 
@@ -67,8 +70,18 @@ public class PlayerVoice : NetworkBehaviour
     public async void Join3DChannelAsync()
     {
         await VivoxService.Instance.JoinPositionalChannelAsync(channelName, ChatCapability.AudioOnly, properties);
+        VivoxService.Instance.SetChannelVolumeAsync(channelName, 12);
         inChannel = true;
         Debug.Log("Joined 3D positional channel.");
+    }
+
+    // Puts you into a testing channel
+    public async void JoinEchoChannelAsync()
+    {
+        await VivoxService.Instance.JoinEchoChannelAsync(channelName, ChatCapability.AudioOnly);
+        VivoxService.Instance.SetChannelVolumeAsync(channelName, 12);
+        inChannel = true;
+        Debug.Log("Joined Echo channel.");
     }
 
     // Update is called once per frame
