@@ -15,10 +15,10 @@ MonoBehaviour:
   enemyName: Spawner
   elementType: 0
   maxHealth: 50
-  moveSpeed: 5.5
+  moveSpeed: 3.9
   rotationSpeed: 450
   damage: 12
-  attackRange: 12
+  attackRange: 7.9
   attackCooldown: 2
   staggerDuration: 0.3
   attacks:
@@ -30,7 +30,7 @@ MonoBehaviour:
   wanderInterval: 3
   deathLingerDuration: 1.5
   combatMode: 1
-  preferredRangedDistance: 10
+  preferredRangedDistance: 12.2
   minGroupSize: 1
   maxGroupSize: 1
   enemyPrefab: {fileID: 8760921033380370291, guid: 51ec55137339768409bef891635f018d, type: 3}
