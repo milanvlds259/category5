@@ -42,7 +42,7 @@
                     "interactions": "",
                     "initialStateCheck": false
                 },
-{
+                {
                     "name": "Crouch",
                     "type": "Button",
                     "id": "27c5f898-bc57-4ee1-8800-db469aca5fe3",
@@ -1137,6 +1137,34 @@
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "Chat",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        },
+        {
+            "name": "Debug",
+            "id": "86face5e-57d4-4b84-ac95-1f45659d0eb7",
+            "actions": [
+                {
+                    "name": "ToggleMenu",
+                    "type": "Button",
+                    "id": "9e30e821-8c06-4066-a2d0-13bfa9da253f",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "a68df57f-0202-4a0d-8955-718cab2013ff",
+                    "path": "<Keyboard>/backquote",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "ToggleMenu",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

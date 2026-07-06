@@ -206,12 +206,13 @@ or plugins — see `docs/CONTRIBUTING.md`.
 - Project name: Category5
 - Unity version: Unity 6000.3.0f1
 - Active scene:
+  - Name: DebugMap
   - Tags:
     - Untagged, Respawn, Finish, EditorOnly, MainCamera, Player, GameController, Path
   - Layers:
     - Default, TransparentFX, Ignore Raycast, Player, Water, UI, Enemy, Projectile, CloudSurface, PlayerInTunnel
 - Active game object:
-  - Name: StandaloneCharacterSelectUI
+  - Name: HUDCanvas
   - Tag: Untagged
-  - Layer: Default
+  - Layer: UI
 <!-- UNITY CODE ASSIST INSTRUCTIONS END -->

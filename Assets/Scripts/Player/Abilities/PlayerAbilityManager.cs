@@ -308,12 +308,12 @@ namespace Category5
         {
             if (!IsOwner) return;
             
-            // Debug.Log($"TryUseAbility called for slot {slot}");
+            Debug.Log($"[DebugAbility] TryUseAbility called for slot {slot}");
 
             // check input blocking conditions
-            if (PauseMenu.GameIsPaused)
+            if (PauseMenu.GameIsPaused || Category5.DebugTools.DebugMenuUI.IsMenuOpen)
             {
-                // Debug.Log("  -> Blocked: Game paused");
+                Debug.Log($"[DebugAbility] Blocked: Menu open. GamePaused={PauseMenu.GameIsPaused}, MenuOpen={Category5.DebugTools.DebugMenuUI.IsMenuOpen}");
                 return;
             }
 
@@ -324,26 +324,27 @@ namespace Category5
             }
             if (Category5.Core.GameFlowManager.Instance != null && Category5.Core.GameFlowManager.Instance.CurrentPhase.Value == Category5.Core.GamePhase.PowerUpSelection)
 {
-                // Debug.Log("  -> Blocked: Power-up selection phase");
+                Debug.Log("[DebugAbility] Blocked: Power-up selection phase");
                 return;
             }
             if (Category5.UI.BossIntroUI.IntroIsPlaying)
             {
-                // Debug.Log("  -> Blocked: Boss intro playing");
+                Debug.Log("[DebugAbility] Blocked: Boss intro playing");
                 return;
             }
             if (Category5.UI.ItemSelectionUI.IsSelectionUIActive)
             {
+                Debug.Log("[DebugAbility] Blocked: Item selection active");
                 return;
             }
             if (playerController.IsDead.Value)
             {
-                // Debug.Log("  -> Blocked: Player dead");
+                Debug.Log("[DebugAbility] Blocked: Player dead");
                 return;
             }
             if (playerController.IsWindRiding)
             {
-                // Debug.Log("  -> Blocked: Wind riding");
+                Debug.Log("[DebugAbility] Blocked: Wind riding");
                 return;
             }
             if (playerController.IsRecallChanneling)
@@ -355,12 +356,12 @@ namespace Category5
             }
             if (playerCombat.IsCharging)
             {
-                // Debug.Log("  -> Blocked: Currently charging");
+                Debug.Log("[DebugAbility] Blocked: Currently charging");
                 return;
             }
             if (IsExecutingAbility)
             {
-                // Debug.Log("  -> Blocked: Already executing ability");
+                Debug.Log("[DebugAbility] Blocked: Already executing ability");
                 return;
             }
             
@@ -370,7 +371,7 @@ namespace Category5
 
             if (ability == null)
             {
-                Debug.LogWarning($"PlayerAbilityManager: No ability assigned for slot {slot}!");
+                Debug.LogWarning($"[DebugAbility] No ability assigned for slot {slot}!");
                 return;
             }
 
@@ -378,16 +379,18 @@ namespace Category5
             NetworkVariable<float> cooldown = GetCooldown(slot);
             if (ability.UsesManagerCooldownGate && cooldown.Value > 0f)
             {
-                // Debug.Log($"  -> Blocked: Ability on cooldown for {cooldown.Value}s more");
+                Debug.Log($"[DebugAbility] Blocked: Ability on cooldown for {cooldown.Value}s more");
                 return;
             }
             
             if (!ability.CanUse())
             {
-                // Debug.Log($"  -> Blocked: Ability CanUse check failed");
+                Debug.Log($"[DebugAbility] Blocked: Ability CanUse check failed. Mana={playerController.CurrentMana.Value}/{playerController.MaxMana}");
                 return;
             }
             
+            Debug.Log($"[DebugAbility] Executing ability {slot}!");
+
             // cancel sprint before executing ability
             if (playerController != null)
             {

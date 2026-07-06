@@ -11,7 +11,8 @@ namespace Category5.Core
         public static ClassRegistry Instance { get; private set; }
         
         [SerializeField] private PlayerClass[] availableClasses = new PlayerClass[0];
-        
+        public PlayerClass[] AvailableClasses { get => availableClasses; set => availableClasses = value; }
+
         private void Awake()
         {
             if (Instance != null && Instance != this)

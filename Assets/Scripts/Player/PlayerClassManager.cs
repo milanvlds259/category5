@@ -177,7 +177,11 @@ if (classData == null)
             
             // clear existing abilities and reset ability manager references
             ClearAbilities();
-            
+            if (abilityManager != null)
+            {
+                abilityManager.ClearAbilityReferences();
+            }
+
             // push class data to stats system so all base stats update
             if (playerStats != null)
             {

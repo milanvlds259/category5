@@ -13,7 +13,8 @@ namespace Category5.Core
         
         [SerializeField] private string menuSceneName = "MainMenu";
         [SerializeField] private GameObject playerPrefab; // assign player prefab here instead of NetworkManager
-        
+        public GameObject PlayerPrefab { get => playerPrefab; set => playerPrefab = value; }
+
         private NetworkManager networkManager;
         
         private void Awake()

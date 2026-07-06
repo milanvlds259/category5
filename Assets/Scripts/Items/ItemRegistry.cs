@@ -12,6 +12,7 @@ namespace Category5.Items
 
         [Header("available items")]
         [SerializeField] private List<ItemData> allItems = new List<ItemData>();
+        public List<ItemData> AllItemsList { get => allItems; set => allItems = value; }
 
         [Header("item pool settings")]
         [SerializeField] private bool useWeightedSelection = false; // future feature

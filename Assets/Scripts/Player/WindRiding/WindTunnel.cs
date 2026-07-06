@@ -69,6 +69,9 @@ namespace Category5.Player.WindRiding
         // evaluate world position at normalized t (0-1) along the spline
         public Vector3 EvaluatePosition(float t)
         {
+            if (_splineContainer == null) _splineContainer = GetComponent<SplineContainer>();
+            if (_splineContainer == null || _splineContainer.Spline == null) return transform.position;
+
             t = Mathf.Clamp01(t);
             var localPos = SplineUtility.EvaluatePosition(_splineContainer.Spline, t);
             return transform.TransformPoint((Vector3)(float3)localPos);

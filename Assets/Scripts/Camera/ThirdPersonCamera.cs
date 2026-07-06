@@ -134,14 +134,19 @@ namespace Category5
                 UpdateSpectateTargets();
             }
             
-            // don't process camera input if game is paused, in hub menus, in power-up selection, game over, or boss intro
-            if (Category5.UI.PauseMenu.GameIsPaused || Category5.UI.HubUI.IsAnyMenuOpen || IsInPowerUpSelection() || IsGameOver() || Category5.UI.BossIntroUI.IntroIsPlaying)
-{
+            // don't process camera input if game is paused, in hub menus, in power-up selection, game over, boss intro, or debug menu
+            if (Category5.UI.PauseMenu.GameIsPaused || 
+                Category5.UI.HubUI.IsAnyMenuOpen || 
+                IsInPowerUpSelection() || 
+                IsGameOver() || 
+                Category5.UI.BossIntroUI.IntroIsPlaying ||
+                Category5.DebugTools.DebugMenuUI.IsMenuOpen)
+            {
                 // still update camera position to follow target, but don't read input
                 HandleCameraPosition();
                 return;
             }
-            
+
             // in spectator mode, always allow camera input
             // when alive, normal gameplay applies
             if (IsWindRiding() && !_windRider.IsRidingGlide)
