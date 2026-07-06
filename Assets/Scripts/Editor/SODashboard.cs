@@ -4,6 +4,7 @@ using UnityEditor;
 using UnityEngine;
 using Category5.Items;
 using Category5.Player;
+using Category5.Player.WindRiding;
 using Category5.Boss;
 using Category5.Enemies;
 using Category5.Core;
@@ -16,11 +17,11 @@ namespace Category5.Editor
     {
         // tab/type definitions
 
-        enum SOType { ItemData, PlayerClass, AbilityData, BossAttackData, EnemyData, ProjectileData, SoundData }
+        enum SOType { ItemData, PlayerClass, AbilityData, BossAttackData, EnemyData, ProjectileData, SoundData, WindDraftData }
 
         static readonly string[] TypeLabels =
         {
-            "ItemData", "PlayerClass", "AbilityData", "BossAttackData", "EnemyData", "ProjectileData", "SoundData"
+            "ItemData", "PlayerClass", "AbilityData", "BossAttackData", "EnemyData", "ProjectileData", "SoundData", "WindDraftData"
         };
 
         // state
@@ -148,6 +149,22 @@ namespace Category5.Editor
             new ColumnDef { label = "Loop",       width = 40,  editable = true,  propName = "loop"            },
         };
 
+        static readonly ColumnDef[] WindDraftDataColumns =
+        {
+            new ColumnDef { label = "Name",         width = 130, editable = true,  propName = "draftName"           },
+            new ColumnDef { label = "Push Accel",   width = 70,  editable = true,  propName = "pushAcceleration"    },
+            new ColumnDef { label = "Max Speed",    width = 70,  editable = true,  propName = "maxDraftSpeed"       },
+            new ColumnDef { label = "Launch Up",    width = 70,  editable = true,  propName = "groundLaunchUpForce" },
+            new ColumnDef { label = "Clear Thresh", width = 75,  editable = true,  propName = "launchClearThreshold"},
+            new ColumnDef { label = "Falloff",      width = 55,  editable = true,  propName = "endFalloffRatio"     },
+            new ColumnDef { label = "Radius",       width = 55,  editable = true,  propName = "cylinderRadius"      },
+            new ColumnDef { label = "Length",       width = 55,  editable = true,  propName = "cylinderLength"      },
+            new ColumnDef { label = "VFX",          width = 38,  editable = false, propName = null,
+                            getDisplayValue = o => { var so = new SerializedObject(o); var p = so.FindProperty("vfxPrefab"); return (p != null && p.objectReferenceValue != null) ? "✓" : "✗"; }},
+            new ColumnDef { label = "SFX",          width = 38,  editable = false, propName = null,
+                            getDisplayValue = o => { var so = new SerializedObject(o); var p = so.FindProperty("sfxClip"); return (p != null && p.objectReferenceValue != null) ? "✓" : "✗"; }},
+        };
+
         ColumnDef[] GetColumns(SOType t) => t switch
         {
             SOType.ItemData       => ItemDataColumns,
@@ -157,6 +174,7 @@ namespace Category5.Editor
             SOType.EnemyData      => EnemyDataColumns,
             SOType.ProjectileData => ProjectileDataColumns,
             SOType.SoundData      => SoundDataColumns,
+            SOType.WindDraftData  => WindDraftDataColumns,
             _                     => Array.Empty<ColumnDef>()
         };
 
@@ -209,6 +227,7 @@ namespace Category5.Editor
                 SOType.EnemyData      => "EnemyData",
                 SOType.ProjectileData => "ProjectileData",
                 SOType.SoundData      => "SoundData",
+                SOType.WindDraftData  => "WindDraftData",
                 _                     => ""
             };
 

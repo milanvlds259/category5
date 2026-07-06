@@ -15,6 +15,10 @@ namespace Category5.Player.WindRiding
         [Header("Riding Settings")]
         [SerializeField] private WindRideSettings settings = new WindRideSettings();
 
+        [Header("Drafting")]
+        [Tooltip("per-player accumulator that collects wind draft contributions each physics tick; assign from the Player prefab")]
+        [SerializeField] private WindDraftAccumulator draftAccumulator;
+
         // public state
         public bool IsWindRiding { get; set; }
 
@@ -67,6 +71,8 @@ namespace Category5.Player.WindRiding
         private float _swayVelocity;
         private Vector3 _ridingVelocity;
         private ThirdPersonCamera _camera;
+        private float _draftEntryLockTimer;
+        private bool _wasDraftActive;
 
         // expose settings for camera or other systems that need to read them
         public WindRideSettings Settings => settings;
@@ -202,6 +208,11 @@ namespace Category5.Player.WindRiding
 
         private void Update()
         {
+            // handle draft launch for grounded players BEFORE the IsWindRiding gate
+            // a grounded player walking into a draft needs StartGliding() called here
+            // so that the next frame, UpdateGliding() runs and ApplyDraft applies forces
+            HandleDraftLaunch();
+
             if (!IsWindRiding) return;
 
             // only the owner (or offline player) drives the riding logic
@@ -212,7 +223,10 @@ namespace Category5.Player.WindRiding
             if (Category5.UI.PauseMenu.GameIsPaused) return;
 
             HandleSwayInput();
-            HandleSpeedInput();
+            if (_currentMode != RidingMode.Gliding)
+            {
+                HandleSpeedInput();
+            }
 
             if (_currentMode == RidingMode.Tunnel)
             {
@@ -231,6 +245,20 @@ namespace Category5.Player.WindRiding
             {
                 UpdateGliding();
             }
+        }
+
+        // runs every frame regardless of IsWindRiding state so grounded players
+        // can be launched into gliding when they walk into a draft zone
+        private void HandleDraftLaunch()
+        {
+            if (draftAccumulator == null || !draftAccumulator.Active) return;
+            if (!draftAccumulator.WantsLaunch) return;
+            if (_currentMode != RidingMode.None) return;
+            if (_playerController == null || _playerController.IsPlayerDead) return;
+            if (Category5.UI.PauseMenu.GameIsPaused) return;
+
+            StartGliding();
+            Debug.Log("[WindRide] Draft launched grounded player into gliding");
         }
 
         private void UpdateGliding()
@@ -254,29 +282,72 @@ namespace Category5.Player.WindRiding
 
             float diveFactor = Mathf.Clamp(pitch / settings.glideMaxDiveAngle, -1f, 1f);
 
-            // Speed logic: acceleration when diving, deceleration when leveling out
-            if (diveFactor > 0.1f)
-            {
-                _currentSpeed += diveFactor * settings.glideAcceleration * Time.deltaTime;
-            }
-            else
-            {
-                _currentSpeed -= settings.glideDeceleration * Time.deltaTime;
-            }
-            _currentSpeed = Mathf.Clamp(_currentSpeed, settings.glideMinSpeed, settings.glideMaxSpeed);
+            // Check forward input (W) and draft state to decide gliding behavior
+            Vector2 moveInput = _inputActions.Player.Move.ReadValue<Vector2>();
+            bool pressingForward = moveInput.y > 0.1f;
+            bool inDraft = draftAccumulator != null && draftAccumulator.Active;
 
-            // Vertical velocity logic: gravity + lift
-            // Lift is strongest when diveFactor is negative (looking up)
-            float verticalVelocity = settings.glideGravity;
-            if (diveFactor < 0)
+            // Draft entry lock: when entering a draft, lock into draft-idle mode for a short period
+            // so the draft can push the player (e.g. upward) even if W is still held from walking in
+            if (inDraft && !_wasDraftActive)
             {
-                // Looking up reduces falling speed
-                verticalVelocity *= (1f - (Mathf.Abs(diveFactor) * settings.glidePitchLift));
+                _draftEntryLockTimer = settings.draftEntryLockDuration;
+            }
+            _wasDraftActive = inDraft;
+
+            if (_draftEntryLockTimer > 0f)
+            {
+                _draftEntryLockTimer -= Time.deltaTime;
+                pressingForward = false; // force draft-idle during the lock
+            }
+
+            if (pressingForward)
+            {
+                // Active glide: accelerate when diving, decelerate when leveling out
+                if (diveFactor > 0.1f)
+                {
+                    _currentSpeed += diveFactor * settings.glideAcceleration * Time.deltaTime;
+                }
+                else
+                {
+                    _currentSpeed -= settings.glideDeceleration * Time.deltaTime;
+                }
+                _currentSpeed = Mathf.Clamp(_currentSpeed, settings.glideMinSpeed, settings.glideMaxSpeed);
+            }
+            else if (inDraft)
+            {
+                // In a draft but not pressing W: let the draft control speed (no decay)
+                // ApplyDraft will add DeltaSpeed and cap it; just keep speed non-negative
+                _currentSpeed = Mathf.Max(0f, _currentSpeed);
             }
             else
             {
-                // Diving increases falling speed
-                verticalVelocity += diveFactor * settings.glideGravity * 2f; // Fall faster when diving
+                // Slow fall: rapid decay toward zero horizontal speed
+                _currentSpeed -= settings.glideDeceleration * 3f * Time.deltaTime;
+                _currentSpeed = Mathf.Max(0f, _currentSpeed);
+            }
+
+            // Vertical velocity logic
+            float verticalVelocity;
+            if (pressingForward)
+            {
+                // Active glide: gravity + lift based on pitch
+                verticalVelocity = settings.glideGravity;
+                if (diveFactor < 0)
+                {
+                    // Looking up reduces falling speed
+                    verticalVelocity *= (1f - (Mathf.Abs(diveFactor) * settings.glidePitchLift));
+                }
+                else
+                {
+                    // Diving increases falling speed
+                    verticalVelocity += diveFactor * settings.glideGravity * 2f;
+                }
+            }
+            else
+            {
+                // Slow fall / draft idle: gentle gravity, no pitch influence
+                verticalVelocity = settings.glideGravity * 0.5f;
             }
 
             // Apply movement
@@ -289,6 +360,20 @@ namespace Category5.Player.WindRiding
             right.y = 0;
             right.Normalize();
 
+            // wind draft contribution: accelerate and bias forward toward the draft direction
+            if (draftAccumulator != null)
+            {
+                ApplyDraft(ref forward);
+            }
+
+            // when not pressing forward and in a draft, override forward with the draft direction directly
+            // this ensures the draft pushes the player along its axis instead of the slow Slerp leaving
+            // a horizontal component that exits the draft prematurely
+            if (!pressingForward && inDraft && draftAccumulator.BlendedForward.sqrMagnitude > 0.001f)
+            {
+                forward = draftAccumulator.BlendedForward;
+            }
+
             Vector3 moveDir = forward * _currentSpeed + right * _swayVelocity + Vector3.up * verticalVelocity;
             _characterController.Move(moveDir * Time.deltaTime);
             _ridingVelocity = moveDir;
@@ -300,6 +385,43 @@ namespace Category5.Player.WindRiding
             if (_characterController.isGrounded)
             {
                 EndGliding();
+            }
+        }
+
+        // applies the current wind draft accumulator state to the glider
+        // handles launching a grounded player into gliding, then accelerates and steers the glider
+        // forwardByRef is the glider's current forward (camera-forward on the XZ plane); it is ref-biased
+        // toward the draft direction in place so the caller's subsequent move computation uses it
+        private void ApplyDraft(ref Vector3 forwardByRef)
+        {
+            if (!draftAccumulator.Active) return;
+
+            // launch phase: a grounded/near-ground player gets a sustained upward push until clear of the ground
+            if (draftAccumulator.WantsLaunch && _currentMode != RidingMode.Gliding)
+            {
+                StartGliding();
+            }
+
+            if (draftAccumulator.WantsLaunch && draftAccumulator.LaunchVelocityAdd.sqrMagnitude > 0.001f)
+            {
+                // sustained upward push while still near the ground (zone gates this on launchClearThreshold)
+                _ridingVelocity += draftAccumulator.LaunchVelocityAdd;
+            }
+
+            // accelerate the glider along the draft, capped by the tightest contributor's maxDraftSpeed
+            if (_currentMode == RidingMode.Gliding)
+            {
+                float cap = Mathf.Min(
+                    settings.glideMaxSpeed + settings.draftMaxSpeedBonus,
+                    draftAccumulator.MaxDraftSpeedCap);
+                _currentSpeed = Mathf.Min(_currentSpeed + draftAccumulator.DeltaSpeed, cap);
+
+                // bias the glider forward toward the draft direction
+                if (draftAccumulator.BlendWeight > 0.001f && draftAccumulator.BlendedForward.sqrMagnitude > 0.001f)
+                {
+                    float blend = Mathf.Clamp01(draftAccumulator.BlendWeight * settings.draftForwardBlendRate * Time.deltaTime);
+                    forwardByRef = Vector3.Slerp(forwardByRef, draftAccumulator.BlendedForward, blend).normalized;
+                }
             }
         }
 
