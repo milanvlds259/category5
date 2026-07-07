@@ -6,6 +6,7 @@ using UnityEngine;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Vivox;
+using TMPro;
 
 public class PlayerVoice : NetworkBehaviour
 {
@@ -21,6 +22,9 @@ public class PlayerVoice : NetworkBehaviour
     private int clientId;
 
     private float _nextPosUpdate;
+
+    public TMP_Dropdown inputDropdown;
+    private List<VivoxInputDevice> availableDevices = new List<VivoxInputDevice>();
 
     void Start()
     {
@@ -59,6 +63,8 @@ public class PlayerVoice : NetworkBehaviour
             options.EnableTTS = true;
             await VivoxService.Instance.LoginAsync(options);
 
+            PopulateInputDropdown();
+
             Join3DChannelAsync();
 
             // Used for testing your own voice
@@ -70,7 +76,7 @@ public class PlayerVoice : NetworkBehaviour
     public async void Join3DChannelAsync()
     {
         await VivoxService.Instance.JoinPositionalChannelAsync(channelName, ChatCapability.AudioOnly, properties);
-        VivoxService.Instance.SetChannelVolumeAsync(channelName, 12);
+        VivoxService.Instance.SetOutputDeviceVolume(15);
         inChannel = true;
         Debug.Log("Joined 3D positional channel.");
     }
@@ -79,7 +85,7 @@ public class PlayerVoice : NetworkBehaviour
     public async void JoinEchoChannelAsync()
     {
         await VivoxService.Instance.JoinEchoChannelAsync(channelName, ChatCapability.AudioOnly);
-        VivoxService.Instance.SetChannelVolumeAsync(channelName, 12);
+        VivoxService.Instance.SetOutputDeviceVolume(15);
         inChannel = true;
         Debug.Log("Joined Echo channel.");
     }
@@ -136,5 +142,45 @@ public class PlayerVoice : NetworkBehaviour
         Debug.Log("Left all VC channels.");
         VivoxService.Instance.LogoutAsync();
         Debug.Log("Logged out.");
+    }
+
+    // Populates lists of the input devices for each player, adds the options to the dropdown, and checks for a change
+    public void PopulateInputDropdown()
+    {
+        if (inputDropdown == null) return;
+
+        inputDropdown.ClearOptions();
+
+        if (VivoxService.Instance == null || VivoxService.Instance.AvailableInputDevices == null) return;
+
+        List<string> deviceNames = new List<string>();
+        foreach (var device in VivoxService.Instance.AvailableInputDevices)
+        {
+            availableDevices.Add(device);
+            deviceNames.Add(device.DeviceName);
+        }
+
+        inputDropdown.AddOptions(deviceNames);
+        Debug.Log("Input devices connected.");
+
+        inputDropdown.onValueChanged.AddListener(OnDeviceSelected);
+    }
+
+    // Handles changing an option on the dropdown
+    private void OnDeviceSelected(int index)
+    {
+        if (index >= 0 && index < availableDevices.Count)
+        {
+            VivoxInputDevice selectedDevice = availableDevices[index];
+            SetVivoxInputDeviceAsync(selectedDevice);
+            Debug.Log("Device selected.");
+        }
+    }
+
+    // Sets the input device to whatever was chosen
+    async void SetVivoxInputDeviceAsync(VivoxInputDevice device)
+    {
+        await VivoxService.Instance.SetActiveInputDeviceAsync(device);
+        Debug.Log("Set new input device.");
     }
 }

@@ -4,6 +4,7 @@ using Unity.Services.Vivox;
 #if AUTH_PACKAGE_PRESENT
 using Unity.Services.Authentication;
 #endif
+using TMPro;
 
 public class VCManager : MonoBehaviour
 {
@@ -22,6 +23,10 @@ public class VCManager : MonoBehaviour
     string _domain;
     [SerializeField]
     string _server;
+
+    // I added this part
+    [SerializeField] private GameObject playerPrefab;
+    [SerializeField] private TMP_Dropdown inputDeviceDropdown;
 
     public static VCManager Instance
     {
@@ -59,6 +64,13 @@ public class VCManager : MonoBehaviour
         if (CheckManualCredentials())
         {
             options.SetVivoxCredentials(_server, _domain, _issuer, _key);
+        }
+
+        // This attaches the dropdown in the pause menu to the player prefab in order to get input devices
+        PlayerVoice playerVoiceScript = playerPrefab.GetComponent<PlayerVoice>();
+        if (playerVoiceScript != null)
+        {
+            playerVoiceScript.inputDropdown = inputDeviceDropdown;
         }
 
         await UnityServices.InitializeAsync(options);
