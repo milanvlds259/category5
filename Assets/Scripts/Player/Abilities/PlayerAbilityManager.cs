@@ -14,6 +14,7 @@ using Category5.Enemies;
 using Category5.Core;
 using Category5.Boss;
 using Category5.Player.Van;
+using Category5.SkillTree;
 
 namespace Category5
 {
@@ -52,6 +53,7 @@ namespace Category5
         private PlayerStats playerStats;
         private PlayerCombat playerCombat;
         private InputSystem_Actions inputActions;
+        private UltimateLockManager _ultimateLockManager;
 
         // prevents multiple abilities from executing simultaneously
         public bool IsExecutingAbility { get; private set; }
@@ -68,6 +70,7 @@ namespace Category5
             playerStats = GetComponent<PlayerStats>();
             playerCombat = GetComponent<PlayerCombat>();
             inputActions = new InputSystem_Actions();
+            _ultimateLockManager = GetComponent<UltimateLockManager>();
         }
 
         public override void OnNetworkSpawn()
@@ -362,6 +365,13 @@ namespace Category5
             if (IsExecutingAbility)
             {
                 Debug.Log("[DebugAbility] Blocked: Already executing ability");
+                return;
+            }
+
+            // skill tree ultimate lock: block R ability if not unlocked
+            if (slot == AbilitySlot.Ability3 && _ultimateLockManager != null && !_ultimateLockManager.IsUnlocked)
+            {
+                Debug.Log("[DebugAbility] Blocked: Ultimate not unlocked in skill tree");
                 return;
             }
             

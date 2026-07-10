@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.WindRiding.WindDraftData
   draftName: Updraft
   description: launches u up
-  pushAcceleration: 4
-  maxDraftSpeed: 25
-  groundLaunchUpForce: 5
+  pushAcceleration: 3
+  maxDraftSpeed: 20
+  groundLaunchUpForce: 3
   launchClearThreshold: 2
   endFalloffRatio: 0.3
   invertFalloff: 0

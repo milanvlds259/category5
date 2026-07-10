@@ -2125,6 +2125,7 @@ MonoBehaviour:
   statsText: {fileID: 478435547}
   returnToMenuButton: {fileID: 736021775}
   playAgainButton: {fileID: 0}
+  skillPointsEarnedText: {fileID: 0}
   menuSceneName: MainMenu
   gameSceneName: SampleScene
   titleColor: {r: 0.8784314, g: 0.7501231, b: 0.40784314, a: 1}
@@ -3060,6 +3061,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 968047916474798458, guid: 3afede7b58a50f347896b2ffb7557dab, type: 3}
+      propertyPath: InitialModule.startSizeY.minMaxState
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 968047916474798458, guid: 3afede7b58a50f347896b2ffb7557dab, type: 3}
+      propertyPath: InitialModule.startSizeZ.minMaxState
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 4955606964108532215, guid: 3afede7b58a50f347896b2ffb7557dab, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 2903460677
@@ -8558,6 +8567,7 @@ Transform:
   - {fileID: 1229565043}
   - {fileID: 2086941159}
   - {fileID: 1094675654}
+  - {fileID: 1571454235}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1171123873
@@ -9657,6 +9667,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 968047916474798458, guid: 3afede7b58a50f347896b2ffb7557dab, type: 3}
+      propertyPath: InitialModule.startSizeY.minMaxState
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 968047916474798458, guid: 3afede7b58a50f347896b2ffb7557dab, type: 3}
+      propertyPath: InitialModule.startSizeZ.minMaxState
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 3353742943128999912, guid: 3afede7b58a50f347896b2ffb7557dab, type: 3}
       propertyPath: m_LocalScale.x
       value: 2.5
@@ -12380,6 +12398,50 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1560327238}
   m_CullTransparentMesh: 1
+--- !u!1 &1571454234
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1571454235}
+  - component: {fileID: 1571454236}
+  m_Layer: 0
+  m_Name: RunStatisticsTracker
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1571454235
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1571454234}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1133678354}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1571454236
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1571454234}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ae86f161dc6b1942ad8f13ca54ed5ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.SkillTree.RunStatisticsTracker
 --- !u!1 &1572513510
 GameObject:
   m_ObjectHideFlags: 0
@@ -14460,6 +14522,56 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1847241805}
   m_CullTransparentMesh: 1
+--- !u!1 &1850363408
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1850363410}
+  - component: {fileID: 1850363409}
+  m_Layer: 0
+  m_Name: SkillTreeManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1850363409
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1850363408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3eff508cda503b647a1f3a27d193fef5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.SkillTree.SkillTreeManager
+  skillTreeData:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+--- !u!4 &1850363410
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1850363408}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1855446169
 GameObject:
   m_ObjectHideFlags: 0
@@ -15078,6 +15190,57 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1941368471}
   m_CullTransparentMesh: 1
+--- !u!1 &1942241792
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1942241794}
+  - component: {fileID: 1942241793}
+  m_Layer: 0
+  m_Name: SkillPointManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1942241793
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1942241792}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c291f9748d9b27043b4455e415cb1b56, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Core.SkillPointManager
+  pointsPerEnemyKilled: 1
+  pointsPerBossKilled: 25
+  pointsPerRoundBase: 10
+  runCompletionBonus: 50
+  runGameOverBonus: 20
+  baseRespecCost: 50
+  startingFreeRespecs: 1
+--- !u!4 &1942241794
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1942241792}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1947576702
 GameObject:
   m_ObjectHideFlags: 0
@@ -16258,6 +16421,7 @@ MonoBehaviour:
   roundReachedText: {fileID: 1941368473}
   statsText: {fileID: 1796011201}
   returnToMenuButton: {fileID: 857163818}
+  skillPointsEarnedText: {fileID: 0}
   menuSceneName: MainMenu
 --- !u!1 &2042313708
 GameObject:
@@ -17002,3 +17166,5 @@ SceneRoots:
   - {fileID: 1364246860}
   - {fileID: 474207724}
   - {fileID: 1277917707}
+  - {fileID: 1850363410}
+  - {fileID: 1942241794}

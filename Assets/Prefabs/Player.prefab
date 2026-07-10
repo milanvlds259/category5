@@ -286,6 +286,7 @@ GameObject:
   - component: {fileID: 3848571735681686035}
   - component: {fileID: 1282701835035934778}
   - component: {fileID: 5150649689631028786}
+  - component: {fileID: 2093420206199278676}
   m_Layer: 3
   m_Name: Player
   m_TagString: Player
@@ -702,6 +703,7 @@ MonoBehaviour:
     glideMaxDiveAngle: 45
     draftMaxSpeedBonus: 10
     draftForwardBlendRate: 2
+    draftEntryLockDuration: 0.7
   draftAccumulator: {fileID: 5150649689631028786}
 --- !u!114 &3848571735681686035
 MonoBehaviour:
@@ -742,6 +744,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 06db78d300d3b95498cc8e7f430bcd70, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.WindRiding.WindDraftAccumulator
+--- !u!114 &2093420206199278676
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7487642310209406333}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d914658b9d4574740908bb01ff2881d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.SkillTree.UltimateLockManager
 --- !u!1 &8085112078672293956
 GameObject:
   m_ObjectHideFlags: 0

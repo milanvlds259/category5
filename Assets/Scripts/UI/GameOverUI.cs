@@ -4,6 +4,7 @@ using TMPro;
 using Unity.Netcode;
 using UnityEngine.SceneManagement;
 using Category5.Core;
+using Category5.SkillTree;
 
 namespace Category5.UI
 {
@@ -16,6 +17,10 @@ namespace Category5.UI
         [SerializeField] private TextMeshProUGUI roundReachedText;
         [SerializeField] private TextMeshProUGUI statsText; // optional for future stats display
         [SerializeField] private Button returnToMenuButton;
+        
+        [Header("Skill Points")]
+        [Tooltip("Text displaying skill points earned this run. Optional - leave null to hide.")]
+        [SerializeField] private TextMeshProUGUI skillPointsEarnedText;
         
         [Header("settings")]
         [SerializeField] private string menuSceneName = "MainMenu";
@@ -105,6 +110,18 @@ namespace Category5.UI
             if (statsText != null)
             {
                 statsText.text = "All players were eliminated!";
+            }
+            
+            // skill points earned display
+            if (skillPointsEarnedText != null)
+            {
+                int earned = 0;
+                if (RunStatisticsTracker.Instance != null)
+                {
+                    earned = RunStatisticsTracker.Instance.LastRunReward;
+                }
+                skillPointsEarnedText.text = $"+{earned} Skill Points";
+                skillPointsEarnedText.gameObject.SetActive(true);
             }
         }
         

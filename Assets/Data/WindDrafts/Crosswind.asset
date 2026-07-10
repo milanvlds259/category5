@@ -13,15 +13,15 @@ MonoBehaviour:
   m_Name: Crosswind
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.WindRiding.WindDraftData
   draftName: Crosswind
-  description: Angled horizontal wind draft that accelerates gliders in its forward
-    direction.
-  pushAcceleration: 16
-  maxDraftSpeed: 50
-  groundLaunchUpForce: 18
+  description: wind but at n angle
+  pushAcceleration: 4
+  maxDraftSpeed: 15
+  groundLaunchUpForce: 6
   launchClearThreshold: 1.5
   endFalloffRatio: 0.2
-  cylinderRadius: 2.5
-  cylinderLength: 16
+  invertFalloff: 0
+  cylinderRadius: 5.48
+  cylinderLength: 56.4
   vfxPrefab: {fileID: 0}
   vfxSpeedMultiplier: 1
   sfxClip: {fileID: 0}
