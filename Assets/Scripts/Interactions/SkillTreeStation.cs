@@ -11,20 +11,24 @@ namespace Category5.Interactions
     /// </summary>
     public class SkillTreeStation : HubInteractable
     {
-        [SerializeField] private string interactPrompt = "Skill Tree";
-
-        public override string GetInteractPrompt() => $"[F] {interactPrompt}";
+        public override string GetInteractPrompt() => "[F] Skill Tree";
 
         public override void Interact(GameObject player)
         {
-            // Get the player's selected class
+            Debug.Log("SkillTreeStation: Interact called");
+
             int classId = ClassSelectionManager.GetClassId();
+            Debug.Log($"SkillTreeStation: classId = {classId} (NoClassId = {PlayerClass.NoClassId})");
 
             if (classId == PlayerClass.NoClassId)
             {
                 Debug.LogWarning("SkillTreeStation: No class selected! Select a class first.");
                 return;
             }
+
+            Debug.Log($"SkillTreeStation: SkillTreeUI.Instance = {(SkillTreeUI.Instance != null ? "found" : "NULL")}");
+            Debug.Log($"SkillTreeStation: SkillTreeManager.Instance = {(SkillTreeManager.Instance != null ? "found" : "NULL")}");
+            Debug.Log($"SkillTreeStation: SkillPointManager.Instance = {(SkillPointManager.Instance != null ? "found" : "NULL")}");
 
             if (SkillTreeUI.Instance != null)
             {

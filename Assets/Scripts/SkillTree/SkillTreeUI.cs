@@ -119,6 +119,7 @@ namespace Category5.SkillTree
         /// </summary>
         public void Open(int classId)
         {
+            Debug.Log($"SkillTreeUI.Open called with classId={classId}, _isOpen={_isOpen}");
             if (_isOpen) return;
             _isOpen = true;
             _currentClassId = classId;
@@ -208,6 +209,8 @@ namespace Category5.SkillTree
                 Debug.LogWarning($"SkillTreeUI: No skill tree data for classId {classId}");
                 return;
             }
+
+            Debug.Log($"SkillTreeUI: Found tree data for classId {classId}, nodes={treeData.nodes?.Length ?? 0}");
 
             if (treeData.nodes == null || treeData.nodes.Length == 0)
             {
@@ -313,12 +316,14 @@ namespace Category5.SkillTree
 
             if (characterNameText != null)
             {
-                characterNameText.text = classData.className;
+                characterNameText.text = !string.IsNullOrEmpty(classData.characterName)
+                    ? classData.characterName
+                    : classData.className;
             }
 
             if (titleText != null)
             {
-                titleText.text = "Skill Evolution";
+                titleText.text = "Skill Tree - " + (classData != null ? classData.className : "Unknown Class");
             }
         }
 
