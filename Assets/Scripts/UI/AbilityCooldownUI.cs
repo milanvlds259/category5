@@ -4,6 +4,7 @@ using TMPro;
 using System;
 using Category5;
 using Category5.Player;
+using Category5.SkillTree;
 
 namespace Category5.UI
 {
@@ -23,11 +24,14 @@ namespace Category5.UI
         [SerializeField] private TextMeshProUGUI enchanterChargeText;
         
         private PlayerAbilityManager abilityManager;
+        private UltimateLockManager _ultimateLockManager;
         private int _retryCount = 0;
         private int _maxRetries = 5;
         private bool _isEnchanter;
         private bool _isAssassin;
         private AssassinQ _assassinQ;
+        
+        private static readonly Color LockedColor = new Color(0.25f, 0.25f, 0.25f, 0.8f);
         
         private void Start()
         {
@@ -62,6 +66,11 @@ namespace Category5.UI
             PlayerAbilityManager.OnEnchanterChargesChanged -= HandleEnchanterChargesChanged;
             AssassinQ.OnBuffStateChanged -= HandleAssassinBuffStateChanged;
             AssassinQ.OnChargesChanged -= HandleAssassinChargesChanged;
+
+            if (_ultimateLockManager != null)
+            {
+                _ultimateLockManager.OnUltimateLockStateChanged -= HandleUltimateLockStateChanged;
+            }
         }
         
         private void Update()
@@ -93,6 +102,15 @@ namespace Category5.UI
                     if (abilityManager != null)
                     {
                         // Debug.Log($"[AbilityCooldownUI] Found local player ability manager on attempt {_retryCount + 1}");
+
+                        // Subscribe to ultimate lock state
+                        _ultimateLockManager = player.GetComponent<UltimateLockManager>();
+                        if (_ultimateLockManager != null)
+                        {
+                            _ultimateLockManager.OnUltimateLockStateChanged -= HandleUltimateLockStateChanged;
+                            _ultimateLockManager.OnUltimateLockStateChanged += HandleUltimateLockStateChanged;
+                        }
+
                         InitializeSlots();
 
                         // also subscribe to class changes so we re-initialize if the class changes later
@@ -179,6 +197,12 @@ namespace Category5.UI
             if (ability3 != null && ability3Slot != null)
             {
                 ability3Slot.Initialize(ability3.Data, "R");
+
+                // Apply initial ultimate lock state
+                if (_ultimateLockManager != null)
+                {
+                    ability3Slot.SetLocked(!_ultimateLockManager.IsUnlocked);
+                }
             }
         }
         
@@ -280,6 +304,20 @@ namespace Category5.UI
             if (!_isAssassin) return;
 
             UpdateAbility1Charges(current, max);
+        }
+
+        private void HandleUltimateLockStateChanged(bool isUnlocked)
+        {
+            if (ability3Slot == null) return;
+
+            if (isUnlocked)
+            {
+                ability3Slot.SetLocked(false);
+            }
+            else
+            {
+                ability3Slot.SetLocked(true);
+            }
         }
         
         // public method for abilities to show/hide buff indicator
@@ -404,7 +442,7 @@ namespace Category5.UI
             }
             
             // dim icon while on cooldown
-            if (iconImage != null)
+            if (iconImage != null && !_isLocked)
             {
                 iconImage.color = isReady ? Color.white : new Color(0.5f, 0.5f, 0.5f, 1f);
             }
@@ -472,6 +510,31 @@ namespace Category5.UI
                     iconImage.sprite = null;
                     iconImage.color = placeholderColor;
                 }
+            }
+        }
+
+        private bool _isLocked = false;
+        private static readonly Color LockedSlotColor = new Color(0.25f, 0.25f, 0.25f, 0.8f);
+
+        public void SetLocked(bool locked)
+        {
+            _isLocked = locked;
+
+            if (iconImage != null)
+            {
+                if (locked)
+                {
+                    iconImage.color = LockedSlotColor;
+                }
+                else
+                {
+                    iconImage.color = remainingCooldown <= 0f ? Color.white : new Color(0.5f, 0.5f, 0.5f, 1f);
+                }
+            }
+
+            if (readyGlow != null)
+            {
+                readyGlow.SetActive(!locked && remainingCooldown <= 0f);
             }
         }
     }

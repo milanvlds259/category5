@@ -695,7 +695,13 @@ if (IsWindRiding)
             }
             
             // check if input should be blocked (pause menu, hub menus, power-up selection, boss intro, island item selection, or recall channeling)
-            bool inputBlocked = Category5.UI.PauseMenu.GameIsPaused || Category5.UI.HubUI.IsAnyMenuOpen || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying || Category5.UI.ItemSelectionUI.IsSelectionUIActive || IsRecallChanneling;
+            bool inputBlocked = Category5.UI.PauseMenu.GameIsPaused || 
+                               Category5.UI.HubUI.IsAnyMenuOpen || 
+                               IsInPowerUpSelection() || 
+                               Category5.UI.BossIntroUI.IntroIsPlaying || 
+                               Category5.UI.ItemSelectionUI.IsSelectionUIActive || 
+                               IsRecallChanneling ||
+                               Category5.DebugTools.DebugMenuUI.IsMenuOpen;
 
             // ensure we have a camera reference
             if (_cameraTransform == null)
@@ -1004,7 +1010,10 @@ Vector3 lookDirection = transform.forward;
         {
             // don't accept input if dead or blocked
             if (IsDead.Value) return;
-            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying) return;
+            if (Category5.UI.PauseMenu.GameIsPaused || 
+                IsInPowerUpSelection() || 
+                Category5.UI.BossIntroUI.IntroIsPlaying ||
+                Category5.DebugTools.DebugMenuUI.IsMenuOpen) return;
             if (IsWindRiding) return;
 
             // prevent dodge in Homebase hub

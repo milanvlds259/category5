@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0baefc1d7134f924cb68ce3f73b145f4, type: 3}
+  m_Name: Crosswind
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.WindRiding.WindDraftData
+  draftName: Crosswind
+  description: wind but at n angle
+  pushAcceleration: 4
+  maxDraftSpeed: 15
+  groundLaunchUpForce: 6
+  launchClearThreshold: 1.5
+  endFalloffRatio: 0.2
+  invertFalloff: 0
+  cylinderRadius: 5.48
+  cylinderLength: 56.4
+  vfxPrefab: {fileID: 0}
+  vfxSpeedMultiplier: 1
+  sfxClip: {fileID: 0}

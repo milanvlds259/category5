@@ -355,9 +355,9 @@ namespace Category5.Player
 
             // queue next combo hit while in an attack animation
             // UpdateMeleeComboState() in Update picks it up as soon as the current attack state ends
-            if (_isAttacking && !Category5.UI.PauseMenu.GameIsPaused &&
+            if (_isAttacking && !Category5.UI.PauseMenu.GameIsPaused && !Category5.DebugTools.DebugMenuUI.IsMenuOpen &&
                 (_playerController == null || !_playerController.IsDead.Value))
-            {
+{
                 _meleeComboQueued = true;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -370,7 +370,7 @@ namespace Category5.Player
         private bool CanAttack()
         {
             if (_isAttacking) return false;
-            if (Category5.UI.PauseMenu.GameIsPaused) return false;
+            if (Category5.UI.PauseMenu.GameIsPaused || Category5.DebugTools.DebugMenuUI.IsMenuOpen) return false;
             
             // prevent attack input in Homebase hub
             if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "Homebase") return false;

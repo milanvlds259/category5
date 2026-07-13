@@ -92,5 +92,17 @@ namespace Category5.Player.WindRiding
 
         [Tooltip("maximum pitch angle (diving) for full acceleration")]
         public float glideMaxDiveAngle = 45f;
+
+        [Header("Drafting")]
+        [Tooltip("extra speed a wind draft can push the glider past glideMaxSpeed (m/s)")]
+        public float draftMaxSpeedBonus = 10f;
+
+        [Tooltip("how fast the glider's forward direction blends toward the draft direction (0-1 per second)")]
+        [Range(0f, 5f)]
+        public float draftForwardBlendRate = 2f;
+
+        [Tooltip("when entering a draft, how long the glider is locked into draft-idle mode (ignoring W input) so the draft can push the player before forward gliding resumes (seconds)")]
+        [Range(0f, 3f)]
+        public float draftEntryLockDuration = 0.7f;
     }
 }
