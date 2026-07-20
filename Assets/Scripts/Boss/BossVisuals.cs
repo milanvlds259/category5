@@ -65,6 +65,19 @@ namespace Category5.Boss
             // sync to current state in case we joined mid-game
             if (_animator != null)
                 _animator.SetInteger(_stateHash, (int)_boss.CurrentBossState.Value);
+
+            // add animation event relay on the animator for weak point activation
+            SetupAnimationEventRelay();
+        }
+
+        private void SetupAnimationEventRelay()
+        {
+            if (_animator == null) return;
+
+            var relay = _animator.GetComponent<Category5.WeakPoints.BossAnimationEventRelay>();
+            if (relay == null)
+                relay = _animator.gameObject.AddComponent<Category5.WeakPoints.BossAnimationEventRelay>();
+            relay.Configure(_boss);
         }
 
         private void OnDestroy()

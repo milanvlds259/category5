@@ -5,6 +5,7 @@ using Category5.Core;
 using Category5.Player;
 using Category5.Audio;
 using Category5.UI;
+using Category5.WeakPoints;
 using System.Collections.Generic;
 
 namespace Category5.Boss
@@ -27,7 +28,7 @@ namespace Category5.Boss
     [RequireComponent(typeof(NetworkObject))]
     [RequireComponent(typeof(NetworkTransform))]
     [RequireComponent(typeof(Rigidbody))]
-    public abstract class BossBase : NetworkBehaviour, IDamageable
+    public abstract class BossBase : NetworkBehaviour, IDamageable, IWeakPointHost
     {
         [Header("data")]
         [Tooltip("scriptable object defining all stats, attacks, and visuals for this boss")]
@@ -41,6 +42,9 @@ namespace Category5.Boss
 
         // read-only access to the SO driving this boss — used by GameFlowManager for swap detection
         public BossData BossData => bossData;
+
+        // check if this boss is dead
+        public bool IsDead => _isDead;
 
         [Header("state timings")]
         [SerializeField] protected float idleDuration = 2f;
@@ -579,6 +583,34 @@ namespace Category5.Boss
             }
         }
 
+        // =====================================
+        // iweakpointhost
+        // =====================================
+
+        // called by weak points after applying their damage multiplier
+        public void TakeDamageFromWeakPoint(int damage, ulong attackerClientId)
+        {
+            if (!IsServer) return;
+            TakeDamage(damage);
+        }
+
+        // called when one of this boss's weak points breaks
+        public void OnWeakPointBroken(WeakPoint weakPoint, ulong attackerClientId)
+        {
+            // boss stun is deferred to a future implementation
+            // break effects that try to stun a boss will log a warning instead
+        }
+
+        // resets all child weak points to full health (called during round transition)
+        public void ResetAllWeakPoints()
+        {
+            var weakPoints = GetComponentsInChildren<WeakPoint>(true);
+            for (int i = 0; i < weakPoints.Length; i++)
+            {
+                weakPoints[i].ResetWeakPoint();
+            }
+        }
+
         protected virtual void OnHealthChanged(int oldHealth, int newHealth)
         {
             // update ui or play hit effects
@@ -712,6 +744,9 @@ namespace Category5.Boss
             // show boss again and notify clients about the reset
             ShowBossClientRpc();
             ResetBossClientRpc(newMaxHealth);
+
+            // reset all weak points to full health
+            ResetAllWeakPoints();
 
             // freeze boss ai and trigger the intro card on all clients
             _introDormancyTimer = bossData != null ? bossData.introDuration : 0f;

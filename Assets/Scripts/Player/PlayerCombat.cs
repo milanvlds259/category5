@@ -7,6 +7,7 @@ using UnityEngine.InputSystem;
 using Category5.Core;
 using Category5.Items;
 using Category5.Audio;
+using Category5.WeakPoints;
 
 namespace Category5.Player
 {
@@ -1057,7 +1058,14 @@ if (Category5.Core.GameFlowManager.Instance != null &&
                     enemyBase.LastDamagerClientId = OwnerClientId;
                 }
 
-                damageable.TakeDamage(modifiedDamage);
+                // check for melee zone weak points before applying normal damage
+                bool weakPointIntercepted = WeakPointHelper.TryRouteMeleeDamage(
+                    enemy, modifiedDamage, OwnerClientId, transform.position);
+
+                if (!weakPointIntercepted)
+                {
+                    damageable.TakeDamage(modifiedDamage);
+                }
                 
                 // apply lifesteal healing
                 if (lifestealAmount > 0)

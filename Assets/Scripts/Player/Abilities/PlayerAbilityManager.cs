@@ -13,6 +13,7 @@ using Category5.Audio;
 using Category5.Enemies;
 using Category5.Core;
 using Category5.Boss;
+using Category5.WeakPoints;
 using Category5.Player.Van;
 using Category5.SkillTree;
 
@@ -586,6 +587,39 @@ namespace Category5
             return consumed;
         }
 
+        // =====================================
+        // weak point damage routing helper
+        // =====================================
+
+        // checks if a hit collider is a weak point and routes damage through it
+        // returns true if a weak point intercepted (caller should skip normal damage)
+        // also marks the parent entity as processed to prevent double-damage from overlapping colliders
+        private bool TryDealDamageWithWeakPoint(Collider col, int damage, Vector3 attackerPosition, HashSet<int> processed)
+        {
+            // type 1 (ranged): check if collider itself is a weak point
+            if (WeakPointHelper.TryRouteRangedDamage(col, damage, OwnerClientId))
+            {
+                // mark parent enemy/boss as processed to skip normal damage
+                var parentEnemy = col.GetComponentInParent<Category5.Enemies.EnemyBase>();
+                if (parentEnemy != null) processed.Add(parentEnemy.GetInstanceID());
+                var parentBoss = col.GetComponentInParent<BossBase>();
+                if (parentBoss != null) processed.Add(parentBoss.GetInstanceID());
+                return true;
+            }
+
+            // type 2 (melee zone): check if attacker is inside a melee zone on this target
+            if (WeakPointHelper.TryRouteMeleeDamage(col, damage, OwnerClientId, attackerPosition))
+            {
+                var parentEnemy = col.GetComponentInParent<Category5.Enemies.EnemyBase>();
+                if (parentEnemy != null) processed.Add(parentEnemy.GetInstanceID());
+                var parentBoss = col.GetComponentInParent<BossBase>();
+                if (parentBoss != null) processed.Add(parentBoss.GetInstanceID());
+                return true;
+            }
+
+            return false;
+        }
+
         // public getters for ui
         public AbilityBase GetAbility1() => ability1;
         public AbilityBase GetAbility2() => ability2;
@@ -701,6 +735,9 @@ namespace Category5
 
             foreach (Collider col in hits)
             {
+                // check for weak points first
+                if (TryDealDamageWithWeakPoint(col, adjustedDamage, playerPos, processed)) continue;
+
                 EnemyBase enemy = col.GetComponentInParent<EnemyBase>();
                 if (enemy != null && !enemy.IsDead)
                 {
@@ -743,6 +780,9 @@ namespace Category5
 
             foreach (Collider col in hits)
             {
+                // check for weak points first
+                if (TryDealDamageWithWeakPoint(col, adjustedDamage, playerPos, processed)) continue;
+
                 EnemyBase enemy = col.GetComponentInParent<EnemyBase>();
                 if (enemy != null && !enemy.IsDead)
                 {
@@ -960,6 +1000,9 @@ namespace Category5
 
             foreach (Collider col in hits)
             {
+                // check for weak points first
+                if (TryDealDamageWithWeakPoint(col, adjustedDamage, playerPos, processed)) continue;
+
                 EnemyBase enemy = col.GetComponentInParent<EnemyBase>();
                 if (enemy != null && !enemy.IsDead)
                 {
@@ -1048,6 +1091,9 @@ namespace Category5
 
             foreach (Collider collider in hitColliders)
             {
+                // check for weak points first
+                if (TryDealDamageWithWeakPoint(collider, adjustedDamage, startPosition, hitTargets)) continue;
+
                 EnemyBase enemy = collider.GetComponentInParent<EnemyBase>();
                 if (enemy != null && !enemy.IsDead)
                 {
@@ -1139,6 +1185,9 @@ namespace Category5
 
             foreach (Collider collider in hitColliders)
             {
+                // check for weak points first
+                if (TryDealDamageWithWeakPoint(collider, adjustedDamage, startPosition, hitTargets)) continue;
+
                 EnemyBase enemy = collider.GetComponentInParent<EnemyBase>();
                 if (enemy != null && !enemy.IsDead)
                 {
@@ -1261,6 +1310,9 @@ namespace Category5
 
             foreach (Collider collider in hitColliders)
             {
+                // check for weak points first
+                if (TryDealDamageWithWeakPoint(collider, adjustedDamage, startPosition, hitTargets)) continue;
+
                 EnemyBase enemy = collider.GetComponentInParent<EnemyBase>();
                 if (enemy != null && !enemy.IsDead)
                 {
@@ -1344,6 +1396,9 @@ namespace Category5
 
             foreach (Collider collider in dashColliders)
             {
+                // check for weak points first
+                if (TryDealDamageWithWeakPoint(collider, adjustedDamage, startPosition, hitTargets)) continue;
+
                 EnemyBase enemy = collider.GetComponentInParent<EnemyBase>();
                 if (enemy != null && !enemy.IsDead)
                 {
@@ -1376,6 +1431,9 @@ namespace Category5
 
             foreach (Collider collider in explosionColliders)
             {
+                // check for weak points first
+                if (TryDealDamageWithWeakPoint(collider, adjustedDamage, hitPosition, hitTargets)) continue;
+
                 EnemyBase enemy = collider.GetComponentInParent<EnemyBase>();
                 if (enemy != null && !enemy.IsDead)
                 {
@@ -1632,7 +1690,11 @@ namespace Category5
                 // try enemy
                 if (collider.TryGetComponent<EnemyBase>(out var enemy) && !enemy.IsDead)
                 {
-                    enemy.TakeDamage(adjustedDamage);
+                    // check for weak points first
+                    if (!TryDealDamageWithWeakPoint(collider, adjustedDamage, position, new HashSet<int>()))
+                    {
+                        enemy.TakeDamage(adjustedDamage);
+                    }
 
                     // knockback away from player
                     Vector3 knockback = dirToTarget * knockbackForce;
@@ -1660,7 +1722,11 @@ namespace Category5
                 // try boss
                 else if (collider.TryGetComponent<BossBase>(out var boss))
                 {
-                    boss.TakeDamage(adjustedDamage);
+                    // check for weak points first
+                    if (!TryDealDamageWithWeakPoint(collider, adjustedDamage, position, new HashSet<int>()))
+                    {
+                        boss.TakeDamage(adjustedDamage);
+                    }
                     // bosses don't get stunned or knocked back by thunder arc
 
                     ShowThunderDamageNumberClientRpc(adjustedDamage, boss.transform.position, new ClientRpcParams
