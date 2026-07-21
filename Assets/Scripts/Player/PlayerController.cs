@@ -1156,6 +1156,9 @@ if (_playerCombat != null && _playerCombat.IsCharging) return;
             
             // can't take damage if already dead
             if (IsDead.Value) return;
+
+            // debug god mode — skip all damage
+            if (DebugTools.DebugMenuUI.IsGodModeActive) return;
             
             // i-frame check
             if (_isDodging || _isInvulnerable)
