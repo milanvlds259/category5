@@ -287,6 +287,7 @@ GameObject:
   - component: {fileID: 1282701835035934778}
   - component: {fileID: 5150649689631028786}
   - component: {fileID: 2093420206199278676}
+  - component: {fileID: -1302537631993679842}
   m_Layer: 3
   m_Name: Player
   m_TagString: Player
@@ -756,6 +757,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d914658b9d4574740908bb01ff2881d8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Category5.SkillTree.UltimateLockManager
+--- !u!114 &-1302537631993679842
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7487642310209406333}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7de3c2bfcbfa3964b8982ef825461ad2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.WeakPoints.PlayerStackManager
+  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!1 &8085112078672293956
 GameObject:
   m_ObjectHideFlags: 0

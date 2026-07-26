@@ -112,6 +112,19 @@ namespace Category5.Enemies
                     ? meshRenderer.sharedMaterial.color
                     : Color.white;
             }
+
+            // add animation event relay on the animator for weak point activation
+            SetupAnimationEventRelay();
+        }
+
+        private void SetupAnimationEventRelay()
+        {
+            if (_animator == null) return;
+
+            var relay = _animator.GetComponent<Category5.WeakPoints.EnemyAnimationEventRelay>();
+            if (relay == null)
+                relay = _animator.gameObject.AddComponent<Category5.WeakPoints.EnemyAnimationEventRelay>();
+            relay.Configure(_enemy);
         }
 
         // =====================================

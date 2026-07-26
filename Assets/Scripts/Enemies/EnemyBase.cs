@@ -6,6 +6,7 @@ using Category5.Core;
 using Category5.Audio;
 using Category5.Player;
 using Category5.UI;
+using Category5.WeakPoints;
 using System.Collections.Generic;
 
 namespace Category5.Enemies
@@ -40,7 +41,7 @@ namespace Category5.Enemies
     // handles health, targeting, state machine, movement, and networking
     [RequireComponent(typeof(NetworkObject))]
     [RequireComponent(typeof(Rigidbody))]
-    public abstract class EnemyBase : NetworkBehaviour, IDamageable
+    public abstract class EnemyBase : NetworkBehaviour, IDamageable, IWeakPointHost
     {
         [Header("enemy data")]
         [SerializeField] protected EnemyData enemyData;
@@ -1003,6 +1004,36 @@ if (currentTargetController == null) return;
             if (TryGetComponent<Rigidbody>(out var rb))
             {
                 rb.linearVelocity += knockbackForce;
+            }
+        }
+        
+        // =====================================
+        // iweakpointhost
+        // =====================================
+
+        // called by weak points after applying their damage multiplier
+        public void TakeDamageFromWeakPoint(int damage, ulong attackerClientId)
+        {
+            if (!IsServer) return;
+            if (_isDead) return;
+
+            LastDamagerClientId = attackerClientId;
+            TakeDamage(damage);
+        }
+
+        // called when one of this enemy's weak points breaks
+        public void OnWeakPointBroken(WeakPoint weakPoint, ulong attackerClientId)
+        {
+            // base implementation does nothing — subclasses or break effects handle stun etc
+        }
+
+        // resets all child weak points to full health (called on round transitions)
+        public void ResetAllWeakPoints()
+        {
+            var weakPoints = GetComponentsInChildren<WeakPoint>(true);
+            for (int i = 0; i < weakPoints.Length; i++)
+            {
+                weakPoints[i].ResetWeakPoint();
             }
         }
         
