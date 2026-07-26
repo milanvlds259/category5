@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 using Category5.Core;
@@ -148,8 +149,6 @@ namespace Category5.Player
         // load class and spawn its abilities (for the owner of this player)
         private void LoadClassLocally(int classId)
         {
-            // Debug.Log($"PlayerClassManager.LoadClassLocally: Applying classId {classId} for player {OwnerClientId} (IsOwner={IsOwner}, IsServer={IsServer})");
-            
             if (classId == PlayerClass.NoClassId)
             {
                 // no class selected yet (e.g. player spawned before selecting in lobby)
@@ -158,13 +157,10 @@ namespace Category5.Player
 
             // tell model manager to load the 3D model for this class
             var modelManager = GetComponent<PlayerModelManager>();
-            if (modelManager != null)
-            {
                 modelManager.LoadModel(classId);
-            }
             
             PlayerClass classData = GetClassData(classId);
-if (classData == null)
+            if (classData == null)
             {
                 Debug.LogError($"PlayerClassManager: No class data found for classId {classId}!");
                 return;
@@ -214,51 +210,46 @@ if (classData == null)
             }
 
             // spawn new abilities locally
-if (classData.ability1Prefab != null)
+            if (classData.ability1Prefab != null)
             {
                 var abilityObj = Instantiate(classData.ability1Prefab, transform);
                 abilityObj.name = "Ability1";
-                // Debug.Log($"PlayerClassManager: Instantiated Ability1");
             }
             
             if (classData.ability2Prefab != null)
             {
                 var abilityObj = Instantiate(classData.ability2Prefab, transform);
                 abilityObj.name = "Ability2";
-                // Debug.Log($"PlayerClassManager: Instantiated Ability2");
             }
             
             if (classData.ability3Prefab != null)
             {
                 var abilityObj = Instantiate(classData.ability3Prefab, transform);
                 abilityObj.name = "Ability3";
-                // Debug.Log($"PlayerClassManager: Instantiated Ability3");
             }
             
             // notify ability manager that abilities have been loaded
-            // Debug.Log($"PlayerClassManager: Calling FindAbilitiesAfterClassLoad");
             abilityManager.FindAbilitiesAfterClassLoad();
-            
-            // Debug.Log($"Loaded class: {classData.className}");
         }        
         
         private void ClearAbilities()
         {
             // destroy existing ability children immediately so they don't conflict with new instantiation
-            // use DestroyImmediate since this is in gameplay and we need immediate cleanup
+            // must use DestroyImmediate — Destroy defers to end of frame, leaving old abilities
+            // in the hierarchy where FindAbilityBySlotName can find them instead of the new ones
+            // collect into a list first to avoid skipping children during forward iteration
+            // (destroying shifts indices which causes foreach to skip the middle child)
+            var toDestroy = new List<Transform>();
             foreach (Transform child in transform)
             {
                 if (child.name.StartsWith("Ability"))
                 {
-                    if (Application.isPlaying)
-                    {
-                        Destroy(child.gameObject);
-                    }
-                    else
-                    {
-                        DestroyImmediate(child.gameObject);
-                    }
+                    toDestroy.Add(child);
                 }
+            }
+            foreach (var child in toDestroy)
+            {
+                if (child != null) DestroyImmediate(child.gameObject);
             }
         }
         

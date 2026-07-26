@@ -403,22 +403,16 @@ namespace Category5.DebugTools
             Debug.Log($"[DebugMenu] God mode: {(IsGodModeActive ? "ON" : "OFF")}");
         }
 
-        // ────────────────────────────────────────────────────────
         // Existing utility methods (unchanged)
-        // ────────────────────────────────────────────────────────
 
         private void SwitchClass(int classId)
         {
             var localPlayer = NetworkManager.Singleton.LocalClient.PlayerObject;
-            if (localPlayer != null)
-            {
-                var classManager = localPlayer.GetComponent<PlayerClassManager>();
-                if (classManager != null)
-                {
-                    classManager.RequestSetClassIdServerRpc(classId);
-                    Debug.Log($"[DebugMenu] Requested class switch to ID: {classId}");
-                }
-            }
+            var classManager = localPlayer.GetComponent<PlayerClassManager>();
+
+            classManager.RequestSetClassIdServerRpc(classId);
+            Debug.Log($"[DebugMenu] Requested class switch to ID: {classId}");
+
         }
 
         private void AddItem(string itemId)

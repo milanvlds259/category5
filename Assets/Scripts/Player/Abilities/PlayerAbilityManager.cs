@@ -62,6 +62,7 @@ namespace Category5
         // events for ui updates - includes reference to source PlayerAbilityManager so UI can filter
         public static event Action<PlayerAbilityManager, AbilitySlot, float, float> OnCooldownChanged; // source, slot, current, max
         public static event Action<PlayerAbilityManager, int, int> OnEnchanterChargesChanged; // source, current, max
+        public static event Action<PlayerAbilityManager> OnAbilitiesLoaded; // fires after abilities are found and initialized
 
         private float _enchanterChargeTimer;
 
@@ -105,7 +106,7 @@ namespace Category5
         public void FindAbilitiesAfterClassLoad()
         {
             AttemptToFindAbilities();
-            
+
             // initialize them if we just found them
             if (ability1 != null && ability1.gameObject.activeSelf && ability1.enabled)
             {
@@ -119,6 +120,9 @@ namespace Category5
             {
                 ability3.Initialize(playerController, playerStats, this);
             }
+
+            // notify ui systems that abilities are ready (replaces unreliable Invoke delays)
+            OnAbilitiesLoaded?.Invoke(this);
         }
         
         private void AttemptToFindAbilities()

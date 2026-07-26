@@ -53,15 +53,17 @@ namespace Category5.UI
         private void OnEnable()
         {
             PlayerAbilityManager.OnCooldownChanged += HandleCooldownChanged;
+            PlayerAbilityManager.OnAbilitiesLoaded += HandleAbilitiesLoaded;
             ElementalistQ.OnElementChanged += HandleElementChanged;
             PlayerAbilityManager.OnEnchanterChargesChanged += HandleEnchanterChargesChanged;
             AssassinQ.OnBuffStateChanged += HandleAssassinBuffStateChanged;
             AssassinQ.OnChargesChanged += HandleAssassinChargesChanged;
         }
-        
+
         private void OnDisable()
         {
             PlayerAbilityManager.OnCooldownChanged -= HandleCooldownChanged;
+            PlayerAbilityManager.OnAbilitiesLoaded -= HandleAbilitiesLoaded;
             ElementalistQ.OnElementChanged -= HandleElementChanged;
             PlayerAbilityManager.OnEnchanterChargesChanged -= HandleEnchanterChargesChanged;
             AssassinQ.OnBuffStateChanged -= HandleAssassinBuffStateChanged;
@@ -143,8 +145,17 @@ namespace Category5.UI
 
         private void OnClassChanged(int oldClass, int newClass)
         {
-            // wait a frame for the ability manager to spawn new abilities before initializing slots
-            Invoke(nameof(InitializeSlots), 0.1f);
+            // abilities will be re-initialized via OnAbilitiesLoaded event — no fixed delay needed
+        }
+
+        private void HandleAbilitiesLoaded(PlayerAbilityManager source)
+        {
+            // only handle events from our local player's ability manager
+            if (source != abilityManager) 
+            {
+                return;
+            }
+            InitializeSlots();
         }
 
         private void InitializeSlots()
@@ -186,7 +197,8 @@ namespace Category5.UI
             {
                 if (ability2 is ElementalistE_Dispatcher dispatcher)
                 {
-                    ability2Slot.Initialize(dispatcher.ActiveAbilityData, "E");
+                    var activeData = dispatcher.ActiveAbilityData;
+                    ability2Slot.Initialize(activeData, "E");
                 }
                 else
                 {
