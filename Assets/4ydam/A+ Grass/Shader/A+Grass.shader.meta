@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: ae9806dc2f32e344686a90a327208098
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 369444
+  packageName: A+ Grass
+  packageVersion: 1.1.1
+  assetPath: Assets/4ydam/A+ Grass/Shader/A+Grass.shader
+  uploadId: 944972
