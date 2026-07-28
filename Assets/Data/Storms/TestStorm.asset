@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b23b57751bec0ac4188aee33632d9672, type: 3}
+  m_Name: TestStorm
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Core.StormData
+  stormName: Test Storm
+  eyewallCount: 3
+  roomsPerEyewall: 080000000500000003000000
+  inwardPathsPerRing: 020000000200000001000000
+  enemyCountMultiplier: 1.2
+  enemyHealthMultiplier: 1.15
+  innerRingDifficultyRamp: 0.1
+  bossForEye: {fileID: 11400000, guid: eb9428b2495be4c40957ecaf05a88de8, type: 2}
+  outerRoomPool: {fileID: 11400000, guid: 35a8e95bfff50a841b7bb14e808e6c89, type: 2}
+  innerRoomPools:
+  - {fileID: 11400000, guid: fb69551ad57f254468a301bc217c6128, type: 2}
+  - {fileID: 11400000, guid: fb69551ad57f254468a301bc217c6128, type: 2}
+  eyeRoomPool: {fileID: 11400000, guid: 409c160b8bc089f41847b9ea0b7f862d, type: 2}

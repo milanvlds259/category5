@@ -1,11 +1,12 @@
 using System.Collections;
 using UnityEngine;
 using Category5.Core;
+using Category5.Map;
 
 namespace Category5.Items
 {
-    // backup plan: intercepts death once per round, revives the player and grants brief invulnerability
-    // resets at the start of every new round so it's always ready
+    // backup plan: intercepts death once per room, revives the player and grants brief invulnerability
+    // resets at the start of every new room so it's always ready
     public class BackupPlanBehaviour : ItemBehaviour
     {
         // invulnerability window after proc, per tier
@@ -14,20 +15,20 @@ namespace Category5.Items
         // fraction of max HP to restore on proc per tier
         [SerializeField] private float[] reviveHealthFraction = { 0.40f, 0.45f, 0.50f, 0.55f, 0.60f };
 
-        private bool _usedThisRound;
+        private bool _usedThisRoom;
 
         protected override void OnInitialize()
         {
             if (!IsServer) return;
-            _usedThisRound = false;
+            _usedThisRoom = false;
             PlayerController.OnPlayerAboutToDie += OnAboutToDie;
-            GameFlowManager.OnRoundStarted += OnRoundChanged;
+            RoomTransitionManager.OnRoomEntered += OnRoomEntered;
         }
 
         protected override void OnTierChanged(int oldTier, int newTier)
         {
-            // upgrading while used mid-round resets it immediately
-            _usedThisRound = false;
+            // upgrading while used mid-room resets it immediately
+            _usedThisRoom = false;
         }
 
         public override void OnRemoved()
@@ -35,20 +36,20 @@ namespace Category5.Items
             if (PlayerController != null)
                 PlayerController.OnPlayerAboutToDie -= OnAboutToDie;
 
-            GameFlowManager.OnRoundStarted -= OnRoundChanged;
+            RoomTransitionManager.OnRoomEntered -= OnRoomEntered;
         }
 
-        private void OnRoundChanged(int round)
+        private void OnRoomEntered(StormRoom room)
         {
-            _usedThisRound = false;
+            _usedThisRoom = false;
         }
 
         private void OnAboutToDie(Player.PlayerController player, ref bool preventDeath)
         {
-            if (_usedThisRound) return;
+            if (_usedThisRoom) return;
             if (player != PlayerController) return;
 
-            _usedThisRound = true;
+            _usedThisRoom = true;
             preventDeath = true;
 
             int idx = Mathf.Clamp(CurrentTier - 1, 0, 4);

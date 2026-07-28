@@ -3,6 +3,8 @@ using UnityEngine.InputSystem;
 using System.Collections.Generic;
 using Category5.Player;
 using Category5.Audio;
+using Category5.Map;
+using Category5.Core;
 
 namespace Category5.Player.WindRiding
 {
@@ -18,6 +20,12 @@ namespace Category5.Player.WindRiding
 
         [Header("Launch Settings")]
         [SerializeField] private float launchUpwardForce = 15f;
+
+        [Header("Room Context (set by MapGenerator)")]
+        [Tooltip("the room this pad is in (source room)")]
+        [SerializeField] private StormRoom sourceRoom;
+        [Tooltip("the room this pad leads to (destination room)")]
+        [SerializeField] private StormRoom destinationRoom;
 
         // players currently standing on this pad (only tracked locally)
         private HashSet<PlayerController> _playersOnPad = new HashSet<PlayerController>();
@@ -69,6 +77,12 @@ namespace Category5.Player.WindRiding
             // only track the local player
             if (!player.IsOwner && !IsOffline(player)) return;
 
+            // block launch if destination room is hidden
+            if (!IsDestinationAccessible())
+            {
+                return;
+            }
+
             _playersOnPad.Add(player);
 
             WindRiderController rider = player.GetComponent<WindRiderController>();
@@ -83,7 +97,7 @@ namespace Category5.Player.WindRiding
                 // remove from pad tracking since they are now airborne
                 _playersOnPad.Remove(player);
             }
-            
+
         }
 
         private void OnTriggerExit(Collider other)
@@ -105,6 +119,12 @@ namespace Category5.Player.WindRiding
             if (targetTunnel.riders.Contains(player))
             {
                 notYetOut = true;
+
+                // notify RoomTransitionManager that player arrived at destination room
+                if (destinationRoom != null && RoomTransitionManager.Instance != null)
+                {
+                    RoomTransitionManager.Instance.OnPlayersArrived(destinationRoom);
+                }
             }
         }
 
@@ -143,6 +163,35 @@ namespace Category5.Player.WindRiding
         {
             targetTunnel = tunnel;
             launchForward = forward;
+        }
+
+        /// <summary>
+        /// sets the source and destination rooms for this launch pad (called by MapGenerator)
+        /// </summary>
+        public void ConfigureRooms(StormRoom source, StormRoom destination)
+        {
+            sourceRoom = source;
+            destinationRoom = destination;
+        }
+
+        /// <summary>
+        /// returns the destination room for this pad
+        /// </summary>
+        public StormRoom GetDestinationRoom() => destinationRoom;
+
+        /// <summary>
+        /// returns the source room for this pad
+        /// </summary>
+        public StormRoom GetSourceRoom() => sourceRoom;
+
+        /// <summary>
+        /// checks if the destination room is accessible (Visible or Cleared)
+        /// </summary>
+        public bool IsDestinationAccessible()
+        {
+            if (destinationRoom == null) return true; // no room context = always accessible
+            return destinationRoom.CurrentState == StormRoomState.Visible ||
+                   destinationRoom.CurrentState == StormRoomState.Cleared;
         }
 
         // simple offline check matching PlayerController's pattern

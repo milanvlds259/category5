@@ -1378,6 +1378,17 @@ if (_playerCombat != null && _playerCombat.IsCharging) return;
             }
         }
         
+        /// <summary>
+        /// teleports the player to a new position without resetting health or state
+        /// server-only — used by GameFlowManager to move players to the starting room
+        /// </summary>
+        public void RepositionPlayer(Vector3 position, Quaternion rotation)
+        {
+            if (!IsServer) return;
+            
+            RespawnAtPositionClientRpc(position, rotation);
+        }
+        
         // consume mana (server rpc)
         [Rpc(SendTo.Server)]
         public void RequestConsumeManaServerRpc(int amount)

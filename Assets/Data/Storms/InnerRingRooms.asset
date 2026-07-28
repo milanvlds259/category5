@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6aed4b9b4a7785846bd4b52a1c1329b7, type: 3}
+  m_Name: InnerRingRooms
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Core.RoomPrefabPool
+  poolName: InnerRingRooms
+  roomPrefabs:
+  - {fileID: 5144351397433187210, guid: 0e4868fa742d68745bf8734683af6387, type: 3}
+  - {fileID: 3533224077559491170, guid: 2b97d922ad1a0d1479af8c01e37351ee, type: 3}
+  - {fileID: 6957120574451744677, guid: a82dfd19e6d532a40893e0db95f76469, type: 3}
