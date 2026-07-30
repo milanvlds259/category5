@@ -1,0 +1,56 @@
+
+// A+ Grass Shader
+
+Thank you for acquiring the A+ Grass asset!
+It is a highly customizable solution for grass with texture sampling, 
+allowing you to input any 2D sprite to render as your grass!
+
+If you like this asset and found it useful consider leaving a review 
+on the store page, and help it reach more people!
+
+
+// Documentation
+
+To get started, check out the website with full breakdown of the asset:
+
+	# https://4ydam.com/assets/a+grass/getting-started/
+
+
+// Contact
+
+If you need anything in regards of the asset, feel free to reach out at:
+
+	# support@4ydam.com
+
+(First, please do ensure that you have read the documentation in full, 
+avoiding unnecessary communication on content already covered on the website)
+
+In the email include the invoice number, asset you are incquiring about and 
+if dealing with any issues, images/videos to help with solving your request.
+
+
+// License
+
+As the license owner (the person that purchased this asset) you are permitted to:
+
+	# Use this asset (A+ Grass) in your product
+	# Distribute and make profit from your product with use of this asset
+	# Remix, adapt or build upon to use within your project
+
+However, you are NOT allowed to:
+
+	# Distribute this asset (A+ Grass) anywhere or with anybody
+	# Remix, adapt or build upon to share or sell this asset as your own
+
+(You are not required to give credit to the creator of this asset within your project, 
+and can do so if you want to)
+
+
+Thanks again, and I hope this asset helps with building some amazing, stunning games!
+
+A+ Grass asset made and distributed by 4ydam
+
+		# https://4ydam.com/
+		# https://x.com/4ydam
+		# https://www.youtube.com/@4ydam
+		# https://store.steampowered.com/developer/4ydam

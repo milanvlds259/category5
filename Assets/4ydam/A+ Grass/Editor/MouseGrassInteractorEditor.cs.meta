@@ -1,0 +1,20 @@
+fileFormatVersion: 2
+guid: c69b852760496194d9fcc00b142c1f49
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - visualTreeAsset: {fileID: 9197481963319205126, guid: 730f99390de149c4c86e473ac4ebff86,
+      type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 369444
+  packageName: A+ Grass
+  packageVersion: 1.1.1
+  assetPath: Assets/4ydam/A+ Grass/Editor/MouseGrassInteractorEditor.cs
+  uploadId: 944972

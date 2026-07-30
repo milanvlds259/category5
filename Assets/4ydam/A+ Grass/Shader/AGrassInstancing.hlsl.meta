@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: f85b09e7a2e2f9a4bb430d5b9813999e
+ShaderIncludeImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 369444
+  packageName: A+ Grass
+  packageVersion: 1.1.1
+  assetPath: Assets/4ydam/A+ Grass/Shader/AGrassInstancing.hlsl
+  uploadId: 944972

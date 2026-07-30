@@ -1,0 +1,20 @@
+fileFormatVersion: 2
+guid: d42bac8838b49ba40b62b3699d1d860f
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - visualTreeAsset: {fileID: 9197481963319205126, guid: 9c8e5a7fc8393ad42a0f104feb2be4eb,
+      type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 369444
+  packageName: A+ Grass
+  packageVersion: 1.1.1
+  assetPath: Assets/4ydam/A+ Grass/Editor/GrassManagerEditor.cs
+  uploadId: 944972
