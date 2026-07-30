@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: GrassShader
+  m_Name: GrassShader2
   m_Shader: {fileID: 4800000, guid: ae9806dc2f32e344686a90a327208098, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -136,8 +136,8 @@ Material:
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
-    - _GradientContrast: 1.97
-    - _GradientOffset: -0.1
+    - _GradientContrast: 3
+    - _GradientOffset: -0.03
     - _InteractionMultiplier: 1
     - _InteractionStrength: 0.2
     - _Metallic: 0
@@ -178,7 +178,7 @@ Material:
     - _ColorTint: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _GradientBottomColor: {r: 0.33191586, g: 0.36477977, b: 0.16862458, a: 1}
-    - _GradientTopColor: {r: 0.75886774, g: 0.8238993, b: 0.3342232, a: 1}
+    - _GradientTopColor: {r: 0.92231447, g: 1, b: 0.39308167, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _TrailTintColor: {r: 0, g: 0, b: 0, a: 1}
     - _TrailTintTopColor: {r: 0, g: 0, b: 0, a: 1}
