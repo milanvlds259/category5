@@ -33,8 +33,8 @@ namespace Category5.Core
         public NetworkVariable<GamePhase> CurrentPhase = new NetworkVariable<GamePhase>(GamePhase.Fighting);
 
         // current storm layout — set by MapGenerator after generating the room graph
-        private StormMapLayout _currentLayout;
-        public StormMapLayout CurrentLayout => _currentLayout;
+        private MapLayout _currentLayout;
+        public MapLayout CurrentLayout => _currentLayout;
 
         // current room tracked server-side
         private StormRoom _currentRoom;
@@ -42,9 +42,6 @@ namespace Category5.Core
         // current boss reference
         private BossBase _currentBoss;
 
-        // spawner tracking for the current room
-        private EnemySpawner[] _roomSpawners;
-        private HashSet<EnemySpawner> _completedSpawners = new HashSet<EnemySpawner>();
         private bool _serverInitialized = false;
         private bool _bossEntranceTriggered = false;
 
@@ -97,11 +94,7 @@ namespace Category5.Core
             if (!IsServerAuthority) return;
             if (!_serverInitialized) return;
 
-            // fallback polling path in case spawner completion event subscription did not fire
-            if (!_bossEntranceTriggered && CurrentPhase.Value == GamePhase.Fighting && AreAllRoomSpawnersComplete())
-            {
-                OnAllRoomSpawnersCleared();
-            }
+            // fallback polling path removed — RoomManager handles room clearing now
         }
 
         private void TryInitializeServerFlow()
@@ -130,9 +123,9 @@ namespace Category5.Core
 
         /// <summary>
         /// called by MapGenerator after building the room graph
-        /// starts the storm from the outermost ring
+        /// delegates room progression to RoomManager
         /// </summary>
-        public void SetLayout(StormMapLayout layout)
+        public void SetLayout(MapLayout layout)
         {
             _currentLayout = layout;
             if (!_serverInitialized && IsServerAuthority)
@@ -151,58 +144,38 @@ namespace Category5.Core
                 return;
             }
 
-            // subscribe to spawner completion events
-            EnemySpawner.OnAllEnemiesDefeated += OnSpawnerCompleted;
+            // subscribe to room events from RoomManager
+            RoomManager.OnRoomEntered += HandleRoomEntered;
+            RoomManager.OnRoomCleared += HandleRoomCleared;
 
-            // find the starting room and activate it
-            int startIdx = _currentLayout.StartingRoomIndex;
-            var startRoom = FindRoomByIndex(startIdx);
-            if (startRoom == null)
-            {
-                Debug.LogError($"[GameFlowManager] starting room index {startIdx} not found in scene");
-                return;
-            }
-
-            _currentRoom = startRoom;
-            startRoom.SetActive();
+            ExploreState.SetValue();
             _bossEntranceTriggered = false;
 
-            RefreshRoomSpawners();
-            ExploreState.SetValue();
-
-            // reposition all players to the starting room's spawn points
-            // players spawn before the map generates, so we need to move them after
-            StartCoroutine(TeleportPlayersToRoom(startRoom));
+            // RoomManager handles starting room instantiation and player positioning
+            // (MapGenerator already called RoomManager.StartAtRoom)
         }
 
         public override void OnNetworkDespawn()
         {
             if (IsServerAuthority)
             {
-                EnemySpawner.OnAllEnemiesDefeated -= OnSpawnerCompleted;
+                RoomManager.OnRoomEntered -= HandleRoomEntered;
+                RoomManager.OnRoomCleared -= HandleRoomCleared;
             }
 
             _serverInitialized = false;
-            RoomTransitionManager.OnRoomEntered -= HandleRoomEntered;
         }
 
         // =====================================
-        // room progression
+        // room progression (delegated to RoomManager)
         // =====================================
 
         /// <summary>
-        /// called by RoomTransitionManager when players enter a new room
+        /// called by RoomManager when players enter a new room
         /// </summary>
         private void HandleRoomEntered(StormRoom newRoom)
         {
             if (!IsServerAuthority) return;
-
-            // deactivate old room
-            if (_currentRoom != null && _currentRoom != newRoom)
-            {
-                _currentRoom.SetCleared();
-                OnRoomCleared?.Invoke(_currentRoom);
-            }
 
             _currentRoom = newRoom;
 
@@ -216,81 +189,32 @@ namespace Category5.Core
                 ExploreState.SetValue();
             }
 
-            // refresh spawner tracking for the new room
-            RefreshRoomSpawners();
             _bossEntranceTriggered = false;
-
             OnRoomEntered?.Invoke(newRoom);
         }
 
         /// <summary>
-        /// called when an enemy spawner completes all waves and enemies are defeated
+        /// called by RoomManager when a room is cleared
         /// </summary>
-        private void OnSpawnerCompleted(EnemySpawner spawner)
+        private void HandleRoomCleared(StormRoom room)
         {
             if (!IsServerAuthority) return;
-            if (spawner == null) return;
 
-            _completedSpawners.Add(spawner);
+            OnRoomCleared?.Invoke(room);
 
-            if (AreAllRoomSpawnersComplete())
+            // if the eye room was cleared, trigger boss entrance
+            if (_currentLayout != null && room.RoomIndex == _currentLayout.EyeRoomIndex)
             {
-                OnAllRoomSpawnersCleared();
+                StartCoroutine(BossEntranceSequence());
             }
-        }
-
-        private void RefreshRoomSpawners()
-        {
-            _completedSpawners.Clear();
-            _roomSpawners = FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
-        }
-
-        private bool AreAllRoomSpawnersComplete()
-        {
-            var spawners = FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
-            if (spawners == null || spawners.Length == 0) return false;
-
-            bool hasActiveSpawner = false;
-            foreach (var spawner in spawners)
-            {
-                if (spawner == null) continue;
-                hasActiveSpawner = true;
-
-                bool completed = spawner.CurrentWave >= spawner.TotalWaves && spawner.AliveEnemyCount == 0 && !spawner.IsSpawning;
-                if (!completed)
-                {
-                    return false;
-                }
-            }
-
-            return hasActiveSpawner;
         }
 
         // =====================================
         // boss entrance sequence
         // =====================================
 
-        private void OnAllRoomSpawnersCleared()
-        {
-            if (_bossEntranceTriggered) return;
-
-            // only trigger boss in the eye room
-            bool isEyeRoom = _currentLayout != null && _currentRoom != null
-                             && _currentRoom.RoomIndex == _currentLayout.EyeRoomIndex;
-
-            if (!isEyeRoom)
-            {
-                // room cleared — reveal adjacent rooms, players move on
-                OnAllEnemiesCleared?.Invoke();
-                return;
-            }
-
-            // eye room cleared — boss entrance
-            _bossEntranceTriggered = true;
-            OnAllEnemiesCleared?.Invoke();
-            StartCoroutine(BossEntranceSequence());
-            CombatState.SetValue();
-        }
+        // boss entrance is triggered by HandleRoomCleared when the eye room is cleared
+        // (see StartStorm subscription to RoomManager.OnRoomCleared)
 
         private IEnumerator BossEntranceSequence()
         {
@@ -548,20 +472,6 @@ namespace Category5.Core
         // =====================================
 
         /// <summary>
-        /// finds a StormRoom by its room index in the scene
-        /// </summary>
-        private StormRoom FindRoomByIndex(int roomIndex)
-        {
-            var allRooms = FindObjectsByType<StormRoom>(FindObjectsSortMode.None);
-            foreach (var room in allRooms)
-            {
-                if (room.RoomIndex == roomIndex)
-                    return room;
-            }
-            return null;
-        }
-
-        /// <summary>
         /// returns the current storm data
         /// </summary>
         public StormData GetCurrentStorm() => currentStorm;
@@ -570,62 +480,5 @@ namespace Category5.Core
         /// returns the current room index
         /// </summary>
         public int GetCurrentRoomIndex() => _currentRoom != null ? _currentRoom.RoomIndex : -1;
-
-        /// <summary>
-        /// teleports all connected players to a room's spawn points
-        /// polls until players actually exist — OnSceneLoadCompleted may fire after us
-        /// </summary>
-        private IEnumerator TeleportPlayersToRoom(StormRoom room)
-        {
-            if (!IsServerAuthority) yield break;
-            if (room == null) yield break;
-
-            // wait until at least one player has a spawned object (up to 5 seconds)
-            float timeout = 5f;
-            bool anyPlayerReady = false;
-            while (!anyPlayerReady && timeout > 0f)
-            {
-                yield return null;
-                timeout -= Time.deltaTime;
-
-                foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
-                {
-                    if (NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out var client)
-                        && client.PlayerObject != null)
-                    {
-                        anyPlayerReady = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!anyPlayerReady)
-            {
-                Debug.LogError("[GameFlowManager] TeleportPlayersToRoom timed out — no players found after 5s");
-                yield break;
-            }
-
-            // small extra wait to let player components finish OnNetworkSpawn
-            yield return null;
-
-            int spawnIndex = 0;
-            foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
-            {
-                if (NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out var client))
-                {
-                    var player = client.PlayerObject?.GetComponent<Category5.Player.PlayerController>();
-                    if (player != null)
-                    {
-                        Transform spawnPoint = room.GetSpawnPoint(spawnIndex);
-                        if (spawnPoint != null)
-                        {
-                            player.RepositionPlayer(spawnPoint.position, spawnPoint.rotation);
-                            Debug.Log($"[GameFlowManager] teleported player {clientId} to room {room.RoomIndex} at {spawnPoint.position}");
-                        }
-                        spawnIndex++;
-                    }
-                }
-            }
-        }
     }
 }

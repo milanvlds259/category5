@@ -33,7 +33,7 @@ namespace Category5.Map
 
         // server-authoritative state
         private NetworkVariable<StormRoomState> _currentState = new NetworkVariable<StormRoomState>(
-            StormRoomState.Hidden,
+            StormRoomState.Active,
             NetworkVariableReadPermission.Everyone,
             NetworkVariableWritePermission.Server
         );
@@ -116,16 +116,6 @@ namespace Category5.Map
         // state management (server only)
         // =====================================
 
-        // marks room as visible — called when adjacent room is cleared
-        public void SetVisible()
-        {
-            if (!IsServer) return;
-            if (_currentState.Value == StormRoomState.Cleared) return;
-            if (_currentState.Value == StormRoomState.Visible) return;
-
-            _currentState.Value = StormRoomState.Visible;
-        }
-
         // marks room as active — called when players enter
         public void SetActive()
         {
@@ -190,10 +180,9 @@ namespace Category5.Map
         {
             if (!IsServer) return;
 
-            // only activate if room is Visible (not already active or cleared)
-            if (_currentState.Value == StormRoomState.Visible)
+            // activate the room when players enter
+            if (_currentState.Value == StormRoomState.Active)
             {
-                SetActive();
                 OnRoomActivated?.Invoke(this);
             }
         }
@@ -209,14 +198,9 @@ namespace Category5.Map
 
         private void HandleStateVisuals(StormRoomState state)
         {
-            // reveal/hide room visuals based on state
-            // Hidden = everything off, Visible = geometry on but no spawner, Active = full active, Cleared = dimmed
-            gameObject.SetActive(state != StormRoomState.Hidden);
-
-            if (state == StormRoomState.Visible)
-            {
-                OnRoomDiscovered?.Invoke(this);
-            }
+            // room is always active in the new flow — only the current room is instantiated
+            // cleared rooms are despawned, so we don't need to dim them
+            gameObject.SetActive(true);
         }
 
         // =====================================

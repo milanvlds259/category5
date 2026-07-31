@@ -45,6 +45,13 @@ namespace Category5.Core
         [Tooltip("prefab pool for the eye room (boss arena)")]
         public RoomPrefabPool eyeRoomPool;
 
+        [Header("transition timers")]
+        [Tooltip("seconds after room clear before players are recalled to the van")]
+        public float recallTimer = 5f;
+
+        [Tooltip("seconds players wait in the van before the next room spawns")]
+        public float prepTimer = 30f;
+
 	    // returns the prefab pool for a given eyewall index
         // 0 = outermost, increases inward. null pool = eye.
         public RoomPrefabPool GetPoolForRing(int ringIndex)

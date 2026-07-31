@@ -185,12 +185,12 @@ namespace Category5.Player.WindRiding
         public StormRoom GetSourceRoom() => sourceRoom;
 
         /// <summary>
-        /// checks if the destination room is accessible (Visible or Cleared)
+        /// checks if the destination room is accessible (Active or Cleared)
         /// </summary>
         public bool IsDestinationAccessible()
         {
             if (destinationRoom == null) return true; // no room context = always accessible
-            return destinationRoom.CurrentState == StormRoomState.Visible ||
+            return destinationRoom.CurrentState == StormRoomState.Active ||
                    destinationRoom.CurrentState == StormRoomState.Cleared;
         }
 

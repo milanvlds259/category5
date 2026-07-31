@@ -1,12 +1,11 @@
 namespace Category5.Core
 {
-    // tracks discovery and completion state for each room in the storm
+    // tracks state for each room in the storm
     // server-authoritative via NetworkVariable on StormRoom
+    // simplified to two states — only the current room is instantiated
     public enum StormRoomState
     {
-        Hidden,      // not yet discovered — invisible on map, can't enter
-        Visible,     // discovered — shown on map, wind tunnel access unlocked
         Active,      // players are currently inside — spawner running
-        Cleared      // task completed — can backtrack to, item drop spawned
+        Cleared      // task completed — can backtrack to via vote
     }
 }

@@ -34,7 +34,7 @@ namespace Category5.UI
         [SerializeField] private float worldToUIScale = 0.5f;
 
         // runtime state
-        private StormMapLayout _layout;
+        private MapLayout _layout;
         private Dictionary<int, Image> _roomIcons = new Dictionary<int, Image>();
         private Image _eyeIcon;
         private RectTransform _playerIcon;
@@ -218,11 +218,9 @@ namespace Category5.UI
         {
             switch (state)
             {
-                case StormRoomState.Hidden: return hiddenColor;
-                case StormRoomState.Visible: return visibleColor;
                 case StormRoomState.Active: return activeColor;
                 case StormRoomState.Cleared: return clearedColor;
-                default: return hiddenColor;
+                default: return activeColor;
             }
         }
 

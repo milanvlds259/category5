@@ -37,7 +37,7 @@ namespace Category5.Map
         // room entry (called by StormRoom when players enter)
         // =====================================
 
-        /// <summary>
+                /// <summary>
         /// called when all players have arrived in a new room
         /// server only — activates the room and locks exits
         /// </summary>
@@ -56,14 +56,6 @@ namespace Category5.Map
             // set new room as active
             _currentRoom = newRoom;
 
-            if (newRoom.CurrentState == StormRoomState.Visible)
-            {
-                newRoom.SetActive();
-            }
-
-            // reveal adjacent rooms
-            RevealAdjacentRooms(newRoom);
-
             OnRoomEntered?.Invoke(newRoom);
         }
 
@@ -73,68 +65,29 @@ namespace Category5.Map
 
         /// <summary>
         /// checks if a transition to the target room is allowed
-        /// rules:
-        ///   - same ring: allowed if target is Visible or Cleared
-        ///   - inward: allowed if target is Visible (one-way, can't go back out)
+        /// in the new single-room flow, transitions are managed by RoomManager
+        /// this method is kept for backward compatibility
         /// </summary>
         public bool CanTransitionTo(StormRoom currentRoom, StormRoom targetRoom)
         {
             if (currentRoom == null || targetRoom == null) return false;
 
-            // same ring — always allowed if target is accessible
-            if (currentRoom.EyewallIndex == targetRoom.EyewallIndex)
-            {
-                return targetRoom.CurrentState == StormRoomState.Visible ||
-                       targetRoom.CurrentState == StormRoomState.Cleared;
-            }
-
-            // inward transition — only if target is Visible
-            if (targetRoom.EyewallIndex < currentRoom.EyewallIndex)
-            {
-                return targetRoom.CurrentState == StormRoomState.Visible;
-            }
-
-            // outward transition — blocked (ring-only backtracking
-            return false;
+            // in the new flow, any room can be transitioned to via the van vote
+            // this method always returns true for simplicity
+            return true;
         }
 
         // =====================================
-        // room revelation
+        // room revelation (no-op in new flow)
         // =====================================
 
         /// <summary>
-        /// reveals adjacent rooms (left, right) and inward path if this room has one
-        /// called when a room is cleared or activated
+        /// in the new single-room flow, room revelation is handled by RoomManager
+        /// this method is kept as a no-op for backward compatibility
         /// </summary>
         private void RevealAdjacentRooms(StormRoom room)
         {
-            if (!IsServerAuthority) return;
-
-            var layout = GameFlowManager.Instance?.CurrentLayout;
-            if (layout == null) return;
-
-            var roomData = layout.GetRoom(room.RoomIndex);
-
-            // reveal left neighbor
-            if (roomData.leftRoomIndex >= 0)
-            {
-                var leftRoom = GetRoomByIndex(roomData.leftRoomIndex);
-                if (leftRoom != null) leftRoom.SetVisible();
-            }
-
-            // reveal right neighbor
-            if (roomData.rightRoomIndex >= 0)
-            {
-                var rightRoom = GetRoomByIndex(roomData.rightRoomIndex);
-                if (rightRoom != null) rightRoom.SetVisible();
-            }
-
-            // reveal inward path if this room has one
-            if (roomData.inwardRoomIndex >= 0)
-            {
-                var inwardRoom = GetRoomByIndex(roomData.inwardRoomIndex);
-                if (inwardRoom != null) inwardRoom.SetVisible();
-            }
+            // no-op — RoomManager handles room transitions via voting
         }
 
         /// <summary>
