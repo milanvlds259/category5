@@ -160,6 +160,7 @@ namespace Category5.Map
             // notify RoomManager — it will instantiate the starting room
             if (RoomManager.Instance != null)
             {
+                RoomManager.Instance.SetStorm(_currentStorm);
                 RoomManager.Instance.SetLayout(_layout);
                 RoomManager.Instance.StartAtRoom(_layout.StartingRoomIndex);
             }

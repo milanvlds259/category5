@@ -227,7 +227,7 @@ namespace Category5.Player
             return float.MaxValue;
         }
 
-        public bool IsLocalPlayer => IsOwner || _isOffline;
+        public new bool IsLocalPlayer => IsOwner || _isOffline;
         public bool IsPlayerDead => _isOffline ? false : IsDead.Value;
 
         private void Awake()

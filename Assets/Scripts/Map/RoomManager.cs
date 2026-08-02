@@ -107,8 +107,8 @@ namespace Category5.Map
                 return;
             }
 
-            // instantiate the starting room at its layout position
-            InstantiateRoom(roomIndex, _layout.GetRoomPosition(roomIndex));
+            // single-room flow: always spawn at scene center (below the van)
+            InstantiateRoom(roomIndex, Vector3.zero);
             CurrentRoomIndex.Value = roomIndex;
             CurrentState.Value = RoomState.Fighting;
 
