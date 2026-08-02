@@ -8,9 +8,9 @@
 ## Game at a Glance
 
 **Category 5** is a third-person **cooperative (1–5 player) PVE action platformer**.
-A team of stormchasers rides wind tunnels between floating island arenas ("storm eyes"),
-fights elemental enemies, collects tiered items, and defeats boss storms across multiple
-rounds. MOBA-style class combat + wind-riding traversal are equally core.
+A team of stormchasers fights through hand-crafted rooms inside a storm, recalls to the van
+between encounters, votes on the next room, and defeats the boss in the eye room.
+MOBA-style class combat + wind-riding traversal are equally core.
 
 | Field | Value |
 |-------|-------|
@@ -43,34 +43,51 @@ rounds. MOBA-style class combat + wind-riding traversal are equally core.
 ## Core Loop & Session Flow
 
 ```
-Homebase (Van) ──glide──▶ Procedural Map (arenas + wind tunnels)
-   │                              │
-   │              ┌───────────────┘
-   │              ▼
-   │     Player triggers arena → EnemySpawner activates (waves)
-   │              │
-   │              ▼  all spawners cleared
-   │     Boss entrance (delay) → Boss fight
-   │              │
-   │              ▼  boss dies
-   │     Item selection (synchronous, all players, blocks round)
-   │              │
-   │              ▼  all selections done
-   │     Next round: new map generated, spawners reset, dead revived
-   │              │
-   │              ▼  final round boss dies
-   └────────── Victory ◀──────────┘
+Van (scene center, above room) ──F exit──▶ Room (spawns at center below van)
+   │                                            │
+   │                                            ▼
+   │                                   EnemySpawner runs waves
+   │                                            │
+   │                                            ▼  all waves cleared
+   │                                   StormRoom.OnRoomCleared fires
+   │                                            │
+   │                                            ▼
+   └─────────────────────────── ◀── recall timer → teleport to van
+                                         │
+                                         ▼
+                              Vote on next room (solo = auto-pick)
+                                         │
+                                         ▼
+                              Prep timer → old room despawns, new room spawns at center
+                                         │
+                                         ▼  eye room cleared
+                                    Boss entrance → Boss fight
+                                         │
+                                         ▼  boss dies
+                                    Item selection (synchronous)
+                                         │
+                                         ▼
+                                    Next round or Victory
 ```
 
+**Room-based flow** (managed by `RoomManager`):
+- Only one room exists at a time — despawned when cleared, next spawns at center
+- Van stays at scene center (above); players recall to van between rooms
+- After room clear: recall timer (5s) → teleport to van → vote on next room → prep timer (30s) → next room
+- Voting: each connected player picks from adjacent rooms (highest votes wins; tie = random)
+- Solo play: auto-picks the only available connected room (no vote UI)
+- `RoomManager.CurrentState` NetworkVariable: `Idle → Fighting → Recalling → Voting → Prep → Fighting`
+- Room layout is a graph (`MapLayout`) of positions and connections — physical placement is always at center
+
 **Round structure** (managed by `GameFlowManager`):
-- 3 rounds default (`totalRounds`), enemy count scales `[1.0x, 1.5x, 2.0x]` per round
-- Boss HP scales with round progress (AnimationCurve) **and** player count (`playerCountMultipliers`)
+- 3 rounds default, enemy count scales per round
+- Boss HP scales with round progress and player count
 - `GamePhase` enum: `Fighting → PowerUpSelection → (next round Fighting) | Victory | GameOver`
 - All players dead → `GameOver`. Players respawn at round transitions.
 
-**Two item-drop paths:**
-- **Boss drop** (synchronous): all players get selection UI, round **blocks** until all done
-- **Island drop** (async): `ItemDrop` prefab spawns at cleared spawner, player collides → individual selection, **no round block**, can skip, 60s timeout, one per spawner per round
+**Item drop path (boss drop, synchronous):**
+- All players get selection UI after boss dies, round blocks until all done
+- Island drops (async) are deprecated in the new room-based flow
 
 ---
 
@@ -87,8 +104,8 @@ Every system → code location, key types, and essential facts.
   - **Server-authoritative**: damage, deaths, spawns, item selection, game phase, round, map seed
   - **Owner-authoritative**: movement, abilities, wind riding (synced via `OwnerPlayerNetworkAnimator`)
 - **Networked state** (`NetworkVariable<T>`): `CurrentHealth`, `CurrentMana`, `IsDead`, ability cooldowns, `enchanterCharges`, `CurrentPhase`, `CurrentRound`, map `Seed`, `PlayerName`
-- **Scenes**: `MainMenu` → `Homebase` (hub) → game scene (`DebugMap` is active dev scene; `SampleScene` is legacy default)
-- **Singletons**: `GameFlowManager.Instance`, `ItemManager.Instance`, `ItemRegistry.Instance`, `ClassRegistry.Instance`, `UIManager.Instance`, `HomebaseManager.Instance`
+- **Scenes**: `MainMenu` → `Homebase` (hub) → game scene (`SampleScene` is active dev scene)
+- **Singletons**: `GameFlowManager.Instance`, `ItemManager.Instance`, `ItemRegistry.Instance`, `ClassRegistry.Instance`, `UIManager.Instance`, `HomebaseManager.Instance`, `RoomManager.Instance`
 - **Gaps**: no lag compensation, no rollback, no matchmaker, reconnect unclear, spectator basic
 
 #### Data-Driven Design
@@ -166,23 +183,35 @@ Every system → code location, key types, and essential facts.
 - **HP**: `GetHealthForRound(roundIndex, totalRounds, playerCount)` = `baseHealth × curve(t) × playerCountMultiplier`
 
 #### Map Generation — `Assets/Scripts/Map/` (no GDD yet)
-- `MapGenerator` (NetworkBehaviour): **procedural**, seed-synced (`NetworkVariable<int> Seed`)
-- Generates: boss arena (center) + N arenas (random positions, no overlap) + paths (Splines between nearest-neighbor arenas) + cloud boundaries (walls for eyes, spheres for others) + NavMesh + wind tunnels + launch pads + enemy spawners (on non-boss arenas, trigger-activated)
-- `numberOfArenas`, `numberOfEyes` (eyes = drop-in arenas), `minBounds`/`maxBounds`
-- `StartRound()`: server picks seed → `DeleteMap` → `GenerateMap(seed)` → `AddEnemySpawnersToArenas`; clients generate from synced seed
-- `TriggerVolume` (`Assets/Scripts/Map/TriggerVolume.cs`): generic trigger event component
-- **Known issues** (noted in code): entrance reposition, path spacing, paths over arenas
+- **Architecture**: `MapLayoutGenerator` → `MapLayout` (pure data) → `RoomManager` instantiates one room at a time
+- **No physical positions**: rooms always spawn at `Vector3.zero` (scene center, below van). `MapLayout.worldPosition` is only for graph connections.
+- **`StormRoomData`** (`Assets/Scripts/Core/`): pure data struct — `roomIndex`, `eyewallIndex`, `worldPosition`, connection indices (`left/right/inwardRoomIndex`), `taskType`, `prefabPoolIndex`
+- **`MapLayout`** (`Assets/Scripts/Map/`): holds full graph — `AllRooms`, ring membership, eye room index, starting room index. No instantiation.
+- **`MapLayoutGenerator`** (`Assets/Scripts/Map/`): generates ring layout positions + connections. `Generate(StormData, seed)` returns `MapLayout`. Configurable: `outerRingRadius`, `ringRadiusStep`, `minRingRadius`.
+- **`MapGenerator`** (`Assets/Scripts/Map/`): NetworkBehaviour, seed-synced. On spawn: creates `MapLayoutGenerator`, generates layout, passes storm + layout to `RoomManager` and `GameFlowManager`. No longer instantiates rooms directly.
+- **`RoomManager`** (`Assets/Scripts/Map/`): NetworkBehaviour singleton. Manages active room lifecycle — instantiate, clear, recall, vote, prep, transition. `vanTransform` reference for van position. `StartAtRoom(index)` spawns starting room at center. `HandleRoomCleared()` starts recall → vote → prep → next room flow.
+- **`RoomPrefabPool`** (`Assets/Scripts/Core/`): ScriptableObject holding array of room prefabs. `StormData` has `eyeRoomPool`, `outerRoomPool`, `innerRoomPools[]`.
+- **`StormData`** (`Assets/Scripts/Core/`): ScriptableObject — `eyewallCount`, `roomsPerEyewall[]`, `inwardPathsPerRing[]`, difficulty scaling, `bossForEye`, prefab pools, `recallTimer` (5s), `prepTimer` (30s).
+- **`StormRoomState`** enum: `Active`, `Cleared` (simplified from 4 states)
+- **`StormRoom`** (`Assets/Scripts/Map/`): NetworkBehaviour on each room prefab. `Configure()` sets identity + connections. `SetActive()` starts spawner. `SetCleared()` fires `OnRoomCleared`. `OnRoomCleared` static event for `RoomManager` subscription.
+- **`TriggerVolume`** (`Assets/Scripts/Map/TriggerVolume.cs`): generic trigger event component.
+- **Room prefabs**: 8 hand-crafted rooms in `Assets/Data/Storms/` (`EyeRoom_Room0`, `OuterRingRooms_Room0-3`, `InnerRingRooms_Room0-2`). Each has `StormRoom` + `EnemySpawner`.
+- **Voting**: `RoomVoteData` (tracks votes, resolves winner), `RoomVoteManager` (NetworkBehaviour, RPC-based), `RoomVoteUI`/`RoomVoteCard` (full-screen vote overlay in van).
+- **UI**: `RoomPreviewCard` (static info during prep), `PrepTimerUI` (countdown during prep phase).
+- **Key flow**: `MapGenerator.OnNetworkSpawn` → `MapLayoutGenerator.Generate()` → `RoomManager.Instance.SetStorm(storm)` → `RoomManager.Instance.SetLayout(layout)` → `RoomManager.Instance.StartAtRoom(startIndex)` → room spawns at center → spawner runs → `OnRoomCleared` → recall → vote → prep → next room.
 
 #### Game Flow — `Assets/Scripts/Core/GameFlowManager.cs`
-- `GameFlowManager` (NetworkBehaviour, singleton): round progression, boss lifecycle, spawner tracking, player death/respawn, victory/gameover, Wwise state switching
-- Flow: `TryInitializeServerFlow` → spawners activate on trigger → `NotifySpawnerCompleted` → all complete → `OnAllWavesCleared` → `BossEntranceSequence` (delay) → `SpawnOrRevealBoss` → boss `Die` → `OnBossDied` → `ItemManager.StartItemSelection` (or `Victory` if final round) → `OnAllItemSelectionsComplete` → `StartNextRound` (`mapGenerator.StartRound`, spawners reset, `RespawnAllPlayers`)
+- `GameFlowManager` (NetworkBehaviour, singleton): round progression, boss lifecycle, player death/respawn, victory/gameover, Wwise state switching
+- Uses `MapLayout` (not `MapGenerator`) for room graph data — calls `RoomManager.Instance` for room transitions
+- Flow: `TryInitializeServerFlow` → `MapGenerator` generates layout → `RoomManager` spawns starting room → spawner runs → `OnRoomCleared` → `RoomManager` recall/vote/prep → boss room cleared → `OnBossDied` → `ItemManager.StartItemSelection` → `OnAllItemSelectionsComplete` → `StartNextRound` (new layout, spawners reset, respawn)
+- `HandleRoomCleared()` subscribes to `RoomManager.OnRoomCleared` — triggers boss entrance for eye rooms
 - Disconnect handling via `HandlePlayerDisconnected`
 
 #### Van / Homebase — `Assets/Scripts/Player/Van/` + `Assets/Scripts/Core/HomebaseManager.cs`
 - `HomebaseManager`: spawns offline player, destroys on network start
-- `VanExitController`: F to exit van → teleport to exit position → boost → `StartGliding()`
+- `VanExitController`: F to exit van → teleport to `exitPosition` transform → boost → `StartGliding()`. No island spawn points — room spawns at center below van.
 - `VanHealingZone`: heal while in van
-- `RecallController`: hold Recall (input) → 5s channel → teleport to van; interrupted by movement/wind-riding/death/pause
+- `RecallController`: hold Recall (input) → 5s channel → teleport to van via `PlayerSpawnPoint.GetNextVanSpawnPoint()`; interrupted by movement/wind-riding/death/pause
 - Hub interactables (`Assets/Scripts/Interactions/`): `DepartureGate` (party mgmt), `ClassSelectionStation`, `NetworkTerminal`, `HubInteractable` (base), `IInteractable`
 
 ### Presentation
@@ -249,15 +278,19 @@ Every system → code location, key types, and essential facts.
 ### Implemented & Functional
 - 5 classes with full Q/E/R abilities + projectiles/zones/buffs
 - Wind riding (tunnel + cloud + gliding), launch pads, drafting
-- Procedural map generation (arenas + spline paths + wind tunnels + spawners), per-round regen
+- Room-based flow: single room at center, van recall, vote on next room, prep timer
+- `MapLayout`/`MapLayoutGenerator`: procedural ring graph (positions + connections, no instantiation)
+- `RoomManager`: instantiates one room at a time at center, manages clear → recall → vote → prep → next room
+- Voting system: `RoomVoteData`, `RoomVoteManager` (RPC), `RoomVoteUI`/`RoomVoteCard`
 - Enemy system: 3 enemy types (Basic/Swarm/Ranged), spawner waves, taunt, knockback, launch, grapple
 - Boss system: state machine, HP scaling, intro card, round reset
-- Item system: 12 items with behaviours, tier upgrades, boss (sync) + island (async) drops
+- Item system: 12 items with behaviours, tier upgrades, boss (sync) drops
 - Full game flow: 3 rounds, victory/game-over, respawn at round transition
 - Networking: lobby, class selection, scene transitions, disconnect handling, Relay support
 - UI: lobby, HUD, minimap, team health, cooldowns, item selection, menus, loading screens
-- Van/Homebase: exit/gliding, healing, recall, hub interactables, departure gate
+- Van: exit/gliding, healing, recall, hub interactables
 - Wwise audio integration
+- 8 hand-crafted room prefabs (`Assets/Data/Storms/`)
 
 ### Known Gaps / Future Work
 - `Glider.cs` is an empty stub (gliding handled in `WindRiderController`)
@@ -265,8 +298,11 @@ Every system → code location, key types, and essential facts.
 - No crowd-control (CC) framework (stuns exist ad-hoc on enemies)
 - No lag compensation / rollback / matchmaker; reconnect flow unclear
 - No voice chat (text only); no settings persistence; no accessibility options
-- Procedural map gen has known issues (entrance reposition, path spacing, paths over arenas)
-- No GDDs yet for: Enemy System, Boss System, Map Generation (existing GDDs are reverse-documented)
+- `StormRoom.OnRoomCleared` static event has potential memory leak (subscribed per room instantiation, never unsubscribed on room destroy)
+- `RoomManager.TeleportPlayersToVan()` needs testing with multi-player
+- Vote UI not yet tested in multiplayer
+- `MapLayoutGenerator` ring positions are generated but unused (rooms always spawn at center)
+- No GDDs yet for: Enemy System, Boss System, Map Generation, Room-Based Flow
 
 ### GDDs (`design/gdd/`)
 - `game-concept.md` — core vision, pillars, scope tiers
@@ -301,7 +337,7 @@ Every system → code location, key types, and essential facts.
 ```text
 Assets/
 ├── Scripts/
-│   ├── Core/          # GameFlowManager, GamePhase, networking, spawn, IDamageable, ClassRegistry, ElementType
+│   ├── Core/          # GameFlowManager, GamePhase, networking, spawn, IDamageable, ClassRegistry, ElementType, StormData, StormRoomData, StormRoomState, RoomPrefabPool, RoomVoteManager
 │   ├── Player/        # PlayerController, PlayerStats, PlayerCombat, PlayerClass, PlayerClassManager
 │   │   ├── Abilities/ # AbilityBase, AbilityData, PlayerAbilityManager + per-class folders (Ranger/Fighter/Enchanter/Elementalist/Assassin)
 │   │   ├── WindRiding/# WindRiderController, WindTunnel, WindLaunchPad, WindDraft*, WindRideSettings
@@ -310,13 +346,14 @@ Assets/
 │   ├── Enemies/       # EnemyBase, EnemyData, EnemySpawner, BasicEnemy, SwarmEnemy, RangedEnemy, EnemyVisuals
 │   ├── Boss/          # BossBase, BossData, BossAttackData, TestBoss, BossVisuals, BossProjectile
 │   ├── Items/         # ItemData, ItemRegistry, ItemManager, PlayerInventory, ItemDrop, ItemBehaviour + Behaviours/
-│   ├── UI/            # All UI (Lobby/, HUD, menus, feedback, items)
+│   ├── UI/            # All UI (Lobby/, HUD, menus, feedback, items) + RoomVoteUI, RoomVoteCard, RoomPreviewCard, PrepTimerUI
 │   ├── Audio/         # Wwise events, SoundData
 │   ├── Camera/        # ThirdPersonCamera
-│   ├── Map/           # MapGenerator, TriggerVolume
+│   ├── Map/           # MapGenerator, MapLayout, MapLayoutGenerator, RoomManager, RoomVoteData, StormRoom, TriggerVolume
 │   ├── Interactions/  # Hub interactables, IInteractable
 │   └── Utils/         # AutoStartHost
-├── Scenes/            # MainMenu, Homebase, DebugMap (active), SampleScene (legacy), NiccoTestScene
+├── Scenes/            # MainMenu, Homebase, SampleScene (active dev scene)
+├── Data/Storms/       # Room prefabs (EyeRoom_Room0, OuterRingRooms_Room0-3, InnerRingRooms_Room0-2)
 ├── Prefabs/           # (UI/, etc.)
 └── [imported asset packages]
 design/gdd/            # Game design documents (see Current State)
@@ -396,13 +433,13 @@ Framework contribution guide: `docs/CONTRIBUTING.md`.
 - Project name: Category5
 - Unity version: Unity 6000.3.0f1
 - Active scene:
-  - Name: SoldierEnemy
+  - Name: SampleScene
   - Tags:
     - Untagged, Respawn, Finish, EditorOnly, MainCamera, Player, GameController, Path
   - Layers:
     - Default, TransparentFX, Ignore Raycast, Player, Water, UI, Enemy, Projectile, CloudSurface, PlayerInTunnel
 - Active game object:
-  - Name: WeakPoint_Flank
+  - Name: Room_9
   - Tag: Untagged
-  - Layer: Enemy
+  - Layer: Default
 <!-- UNITY CODE ASSIST INSTRUCTIONS END -->

@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6aed4b9b4a7785846bd4b52a1c1329b7, type: 3}
+  m_Name: OuterRingRooms
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Core.RoomPrefabPool
+  poolName: OuterRingRooms
+  roomPrefabs:
+  - {fileID: 3881053406997853435, guid: 63da0cfb83a513e4f85375c17fbe4f29, type: 3}
+  - {fileID: 4380339662684477766, guid: a167682752b3c704486135dbbe881f63, type: 3}
+  - {fileID: 314218474520230239, guid: 9d7825b4e7dea9d4d865b988f8661acf, type: 3}
+  - {fileID: 1498328036727152230, guid: 45404e7dfb8877e4eb2684d74498bb9c, type: 3}

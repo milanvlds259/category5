@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using Category5.Core;
 using Category5.Items;
+using Category5.Map;
 using Random = UnityEngine.Random;
 
 namespace Category5.Enemies
@@ -57,6 +58,10 @@ namespace Category5.Enemies
         // item drop
         [SerializeField] private GameObject itemDropPrefab;
         private bool _isResetting = false;
+
+        // room context — set by MapGenerator when configuring the spawner
+        private StormRoom _ownerRoom;
+        private float _difficultyMultiplier = 1f;
         
         // per-spawner collection tracking (Story 002: TR-item-002)
         private SpawnerCollectionTracker _collectionTracker = new SpawnerCollectionTracker();
@@ -380,12 +385,6 @@ namespace Category5.Enemies
             
             if (_aliveEnemies.Count == 0 && !isSpawning && _currentWave >= totalWaves)
             {
-                // direct server callback for robust progression
-                if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer && GameFlowManager.Instance != null)
-                {
-                    GameFlowManager.Instance.NotifySpawnerCompleted(this);
-                }
-                
                 // spawn item drop at spawner position (server-authoritative)
                 if (!_isResetting && itemDropPrefab != null)
                 {
@@ -423,6 +422,39 @@ namespace Category5.Enemies
         public int TotalWaves => totalWaves;
         public bool IsActive => _isActive;
         public bool IsSpawning => isSpawning;
+
+        // =====================================
+        // room context (set by MapGenerator)
+        // =====================================
+
+        /// <summary>
+        /// sets the room that owns this spawner (called by MapGenerator)
+        /// </summary>
+        public void SetOwnerRoom(StormRoom room)
+        {
+            _ownerRoom = room;
+        }
+
+        /// <summary>
+        /// returns the room that owns this spawner
+        /// </summary>
+        public StormRoom GetOwnerRoom() => _ownerRoom;
+
+        /// <summary>
+        /// applies a difficulty multiplier to enemy count (called by MapGenerator)
+        /// does not reset the spawner — just updates the scaling factor
+        /// </summary>
+        public void SetDifficultyMultiplier(float multiplier)
+        {
+            if (!IsServer) return;
+            _difficultyMultiplier = Mathf.Max(0.1f, multiplier);
+            _effectiveEnemiesPerWave = Mathf.Max(1, Mathf.RoundToInt(enemiesPerWave * _difficultyMultiplier));
+        }
+
+        /// <summary>
+        /// returns the current difficulty multiplier
+        /// </summary>
+        public float GetDifficultyMultiplier() => _difficultyMultiplier;
         
         // =====================================
         // per-spawner collection tracking (Story 002: TR-item-002)

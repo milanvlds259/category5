@@ -227,7 +227,7 @@ namespace Category5.Player
             return float.MaxValue;
         }
 
-        public bool IsLocalPlayer => IsOwner || _isOffline;
+        public new bool IsLocalPlayer => IsOwner || _isOffline;
         public bool IsPlayerDead => _isOffline ? false : IsDead.Value;
 
         private void Awake()
@@ -1376,6 +1376,17 @@ if (_playerCombat != null && _playerCombat.IsCharging) return;
             {
                 _playerCombat.ResetCombatState();
             }
+        }
+        
+        /// <summary>
+        /// teleports the player to a new position without resetting health or state
+        /// server-only — used by GameFlowManager to move players to the starting room
+        /// </summary>
+        public void RepositionPlayer(Vector3 position, Quaternion rotation)
+        {
+            if (!IsServer) return;
+            
+            RespawnAtPositionClientRpc(position, rotation);
         }
         
         // consume mana (server rpc)
