@@ -14,6 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Core.RoomPrefabPool
   poolName: InnerRingRooms
   roomPrefabs:
-  - {fileID: 5144351397433187210, guid: 0e4868fa742d68745bf8734683af6387, type: 3}
-  - {fileID: 3533224077559491170, guid: 2b97d922ad1a0d1479af8c01e37351ee, type: 3}
-  - {fileID: 6957120574451744677, guid: a82dfd19e6d532a40893e0db95f76469, type: 3}
+  - {fileID: 5654328929454243944, guid: 07c5b54de9f506444bf84c1517fd3b10, type: 3}

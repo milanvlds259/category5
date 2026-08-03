@@ -155,10 +155,7 @@ namespace Category5.Map
             room.Configure(
                 roomData.roomIndex,
                 roomData.eyewallIndex,
-                roomData.taskType,
-                roomData.leftRoomIndex,
-                roomData.rightRoomIndex,
-                roomData.inwardRoomIndex
+                roomData.taskType
             );
 
             // apply difficulty scaling
@@ -171,19 +168,47 @@ namespace Category5.Map
             // subscribe to room cleared event
             StormRoom.OnRoomCleared += HandleRoomCleared;
 
+            // spawn the room's network object so IsServer returns true
+            // and OnNetworkSpawn fires on StormRoom + EnemySpawner
+            NetworkObject roomNetObj = instance.GetComponent<NetworkObject>();
+            if (roomNetObj != null && !roomNetObj.IsSpawned)
+            {
+                roomNetObj.Spawn();
+            }
+            else if (roomNetObj == null)
+            {
+                Debug.LogWarning($"[RoomManager] room prefab '{prefab.name}' has no NetworkObject — spawner may not start");
+            }
+
             _currentRoomInstance = room;
             room.SetActive();
 
             Debug.Log($"[RoomManager] instantiated room {roomIndex} at {worldPosition}");
         }
 
-        // despawns the current room
+        // despawns the current room and cleans up enemies
         private void DespawnCurrentRoom()
         {
             if (_currentRoomInstance != null)
             {
                 StormRoom.OnRoomCleared -= HandleRoomCleared;
-                Destroy(_currentRoomInstance.gameObject);
+
+                // despawn any alive enemies before destroying the room
+                if (_currentRoomInstance.RoomSpawner != null)
+                {
+                    _currentRoomInstance.RoomSpawner.StopSpawning();
+                }
+
+                NetworkObject roomNetObj = _currentRoomInstance.GetComponent<NetworkObject>();
+                if (roomNetObj != null && roomNetObj.IsSpawned)
+                {
+                    roomNetObj.Despawn();
+                }
+                else
+                {
+                    Destroy(_currentRoomInstance.gameObject);
+                }
+
                 _currentRoomInstance = null;
             }
         }

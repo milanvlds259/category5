@@ -239,7 +239,7 @@ namespace Category5.Core
             Quaternion spawnRot = Quaternion.identity;
             if (_currentRoom != null)
             {
-                Transform spawnPoint = _currentRoom.GetSpawnPoint(0);
+                Transform spawnPoint = _currentRoom.GetEntitySpawnPoint(0);
                 if (spawnPoint != null)
                 {
                     spawnPos = spawnPoint.position;

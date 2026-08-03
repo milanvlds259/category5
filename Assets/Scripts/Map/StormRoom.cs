@@ -1,46 +1,34 @@
 using System;
 using UnityEngine;
+using UnityEngine.AI;
 using Unity.Netcode;
 using Category5.Core;
 using Category5.Enemies;
+using Category5.Player.Van;
+using Unity.AI.Navigation;
 
 namespace Category5.Map
 {
     // networked component attached to each hand-crafted room prefab
-    // holds room identity, state, and connection points
-    // MapGenerator configures it at runtime after instantiation
+    // holds room identity, state, and spawner reference
+    // RoomManager instantiates one room at a time and configures it at runtime
+    [RequireComponent(typeof(NetworkObject))]
     public class StormRoom : NetworkBehaviour
     {
-        [Header("connection points (set from prefab children)")]
-        [SerializeField] private Transform leftExitPoint;
-        [SerializeField] private Transform rightExitPoint;
-        [SerializeField] private Transform inwardExitPoint;
-        [SerializeField] private Transform[] playerSpawnPoints;
+        [Header("entity spawn points (boss, etc.)")]
+        [SerializeField] private Transform[] entitySpawnPoints;
 
         [Header("room reference")]
         [SerializeField] private EnemySpawner roomSpawner;
-        [SerializeField] private TriggerVolume entryTrigger;
 
-        // identity — set by MapGenerator at runtime
+        // identity — set by RoomManager at runtime
         private int _roomIndex = -1;
         private int _eyewallIndex = -1;
         private RoomTaskType _taskType = RoomTaskType.EnemyWave;
 
-        // connection indices — set by MapGenerator
-        private int _leftRoomIndex = -1;
-        private int _rightRoomIndex = -1;
-        private int _inwardRoomIndex = -1;
-
         // server-authoritative state
         private NetworkVariable<StormRoomState> _currentState = new NetworkVariable<StormRoomState>(
             StormRoomState.Active,
-            NetworkVariableReadPermission.Everyone,
-            NetworkVariableWritePermission.Server
-        );
-
-        // networked task type so clients know what this room is
-        private NetworkVariable<int> _taskTypeNet = new NetworkVariable<int>(
-            (int)RoomTaskType.EnemyWave,
             NetworkVariableReadPermission.Everyone,
             NetworkVariableWritePermission.Server
         );
@@ -50,20 +38,11 @@ namespace Category5.Map
         public int EyewallIndex => _eyewallIndex;
         public RoomTaskType TaskType => _taskType;
         public StormRoomState CurrentState => _currentState.Value;
-        public int LeftRoomIndex => _leftRoomIndex;
-        public int RightRoomIndex => _rightRoomIndex;
-        public int InwardRoomIndex => _inwardRoomIndex;
-        public bool HasInwardPath => _inwardRoomIndex >= 0;
-        public Transform LeftExitPoint => leftExitPoint;
-        public Transform RightExitPoint => rightExitPoint;
-        public Transform InwardExitPoint => inwardExitPoint;
-        public Transform[] PlayerSpawnPoints => playerSpawnPoints;
+        public Transform[] EntitySpawnPoints => entitySpawnPoints;
         public EnemySpawner RoomSpawner => roomSpawner;
 
-        // events — fire on all clients for UI updates
+        // events
         public static event Action<StormRoom> OnRoomCleared;
-        public static event Action<StormRoom> OnRoomActivated;
-        public static event Action<StormRoom> OnRoomDiscovered;
 
         public override void OnNetworkSpawn()
         {
@@ -76,40 +55,25 @@ namespace Category5.Map
             _currentState.OnValueChanged -= OnStateChanged;
         }
 
-        // configures this room's identity and connections
-        // called by MapGenerator on the server after instantiation
-        public void Configure(int roomIndex, int eyewallIndex, RoomTaskType taskType,
-                              int leftRoom, int rightRoom, int inwardRoom)
+        // configures this room's identity
+        // called by RoomManager on the server after instantiation
+        public void Configure(int roomIndex, int eyewallIndex, RoomTaskType taskType)
         {
             _roomIndex = roomIndex;
             _eyewallIndex = eyewallIndex;
             _taskType = taskType;
-            _leftRoomIndex = leftRoom;
-            _rightRoomIndex = rightRoom;
-            _inwardRoomIndex = inwardRoom;
-
-            // sync task type to clients
-            _taskTypeNet.Value = (int)taskType;
 
             // subscribe to spawner completion if we have one
             if (roomSpawner != null)
             {
+                // spawner is controlled by van exit event, not auto-start
+                roomSpawner.autoStartOnSpawn = false;
                 EnemySpawner.OnAllEnemiesDefeated += HandleSpawnerCleared;
             }
             else
             {
                 Debug.LogWarning($"[StormRoom] room {roomIndex} has no EnemySpawner assigned!");
             }
-        }
-
-
-        // overrides the prefab's default exit points with generated positions
-        // used when the MapGenerator needs to reposition exits for tunnel connections
-        public void SetExitPoints(Transform left, Transform right, Transform inward)
-        {
-            if (left != null) leftExitPoint = left;
-            if (right != null) rightExitPoint = right;
-            if (inward != null) inwardExitPoint = inward;
         }
 
         // =====================================
@@ -124,11 +88,66 @@ namespace Category5.Map
 
             _currentState.Value = StormRoomState.Active;
 
-            // activate the spawner
+            // build the navmesh at runtime so enemies can pathfind on the room geometry
+            NavMeshSurface navMesh = GetComponentInChildren<NavMeshSurface>();
+            if (navMesh != null)
+            {
+                navMesh.BuildNavMesh();
+            }
+            else
+            {
+                Debug.LogWarning($"[StormRoom] room {_roomIndex} has no NavMeshSurface — enemies won't be able to navigate");
+            }
+
+            // auto-size spawner bounds to cover the room's walkable area
+            if (roomSpawner != null)
+            {
+                roomSpawner.spawnBounds = CalculateRoomBounds();
+            }
+
+            // wait for a player to exit the van before spawning enemies
+            VanExitController.OnPlayerExitedVan += HandlePlayerExitedVan;
+        }
+
+        private void HandlePlayerExitedVan()
+        {
+            VanExitController.OnPlayerExitedVan -= HandlePlayerExitedVan;
+
+            if (!IsServer) return;
+            if (_currentState.Value == StormRoomState.Cleared) return;
+
             if (roomSpawner != null)
             {
                 roomSpawner.StartSpawning();
             }
+        }
+
+        // calculates the spawn bounds from the room's child renderers
+        // so enemies spread across the entire room without manual configuration
+        private Vector3 CalculateRoomBounds()
+        {
+            Renderer[] renderers = GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0)
+            {
+                Debug.LogWarning($"[StormRoom] room {_roomIndex} has no renderers — using default bounds");
+                return new Vector3(20f, 5f, 20f);
+            }
+
+            Bounds combined = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++)
+            {
+                combined.Encapsulate(renderers[i].bounds);
+            }
+
+            // use the horizontal extents as spawn bounds, center on the room
+            Vector3 size = combined.size;
+            Vector3 center = combined.center;
+
+            // offset the spawner position so bounds are centered on the room geometry
+            roomSpawner.transform.position = center;
+
+            // add a small margin so enemies can spawn near edges
+            return new Vector3(size.x + 2f, size.y + 2f, size.z + 2f);
         }
 
         // marks room as cleared — called when spawner completes
@@ -151,39 +170,13 @@ namespace Category5.Map
             OnRoomCleared?.Invoke(this);
         }
 
-        // =====================================
-        // entry trigger
-        // =====================================
-
-        private void Start()
-        {
-            if (entryTrigger != null)
-            {
-                entryTrigger.OnTriggerVolumeEnter += HandlePlayerEntered;
-            }
-        }
-
         private void OnDestroy()
         {
-            if (entryTrigger != null)
-            {
-                entryTrigger.OnTriggerVolumeEnter -= HandlePlayerEntered;
-            }
+            VanExitController.OnPlayerExitedVan -= HandlePlayerExitedVan;
 
             if (roomSpawner != null)
             {
                 EnemySpawner.OnAllEnemiesDefeated -= HandleSpawnerCleared;
-            }
-        }
-
-        private void HandlePlayerEntered()
-        {
-            if (!IsServer) return;
-
-            // activate the room when players enter
-            if (_currentState.Value == StormRoomState.Active)
-            {
-                OnRoomActivated?.Invoke(this);
             }
         }
 
@@ -207,25 +200,15 @@ namespace Category5.Map
         // queries
         // =====================================
 
-        // returns the spawn point transform for a given player index
-        // wraps around if more players than spawn points
-        public Transform GetSpawnPoint(int playerIndex)
+        // returns an entity spawn point transform for a given index
+        // used for boss spawning in the eye room, wraps around if more indices than points
+        public Transform GetEntitySpawnPoint(int index)
         {
-            if (playerSpawnPoints == null || playerSpawnPoints.Length == 0)
+            if (entitySpawnPoints == null || entitySpawnPoints.Length == 0)
             {
-                // fallback to room center
                 return transform;
             }
-            return playerSpawnPoints[playerIndex % playerSpawnPoints.Length];
-        }
-
-        // returns the exit transform for a given connected room index
-        public Transform GetExitForRoom(int targetRoomIndex)
-        {
-            if (targetRoomIndex == _leftRoomIndex) return leftExitPoint;
-            if (targetRoomIndex == _rightRoomIndex) return rightExitPoint;
-            if (targetRoomIndex == _inwardRoomIndex) return inwardExitPoint;
-            return null;
+            return entitySpawnPoints[index % entitySpawnPoints.Length];
         }
     }
 }

@@ -115,19 +115,6 @@ namespace Category5.EditorTools
             ground.transform.localPosition = new Vector3(0f, 0.01f, 0f);
             ground.transform.localScale = new Vector3(3f, 1f, 3f);
 
-            // add exit point transforms
-            GameObject leftExit = new GameObject("LeftExit");
-            leftExit.transform.SetParent(room.transform);
-            leftExit.transform.localPosition = new Vector3(-15f, 1f, 0f);
-
-            GameObject rightExit = new GameObject("RightExit");
-            rightExit.transform.SetParent(room.transform);
-            rightExit.transform.localPosition = new Vector3(15f, 1f, 0f);
-
-            GameObject inwardExit = new GameObject("InwardExit");
-            inwardExit.transform.SetParent(room.transform);
-            inwardExit.transform.localPosition = new Vector3(0f, 1f, 15f);
-
             // add spawn points
             GameObject spawnPoints = new GameObject("SpawnPoints");
             spawnPoints.transform.SetParent(room.transform);
@@ -143,25 +130,12 @@ namespace Category5.EditorTools
                 );
             }
 
-            // add trigger volume for entry detection
-            GameObject triggerObj = new GameObject("EntryTrigger");
-            triggerObj.transform.SetParent(room.transform);
-            triggerObj.transform.localPosition = Vector3.zero;
-            SphereCollider triggerCollider = triggerObj.AddComponent<SphereCollider>();
-            triggerCollider.radius = 15f;
-            triggerCollider.isTrigger = true;
-            TriggerVolume triggerVolume = triggerObj.AddComponent<TriggerVolume>();
-            triggerVolume.targetLayers = LayerMask.GetMask("Player");
-            triggerVolume.targetTag = "Player";
-
             // add enemy spawner
             GameObject spawnerObj = new GameObject("EnemySpawner");
             spawnerObj.transform.SetParent(room.transform);
             spawnerObj.transform.localPosition = new Vector3(0f, 1f, 0f);
             EnemySpawner spawner = spawnerObj.AddComponent<EnemySpawner>();
-            spawner.autoStartOnSpawn = false;
-            spawner.startOnTrigger = true;
-            spawner.triggerVolume = triggerVolume;
+            spawner.autoStartOnSpawn = true;
             spawner.spawnBounds = new Vector3(25f, 0f, 25f);
 
             // set private serialized fields via SerializedObject
@@ -179,10 +153,6 @@ namespace Category5.EditorTools
             StormRoom stormRoom = room.AddComponent<StormRoom>();
             // wire up references via SerializedObject so private fields get set
             SerializedObject so = new SerializedObject(stormRoom);
-            so.FindProperty("leftExitPoint").objectReferenceValue = leftExit.transform;
-            so.FindProperty("rightExitPoint").objectReferenceValue = rightExit.transform;
-            so.FindProperty("inwardExitPoint").objectReferenceValue = inwardExit.transform;
-            so.FindProperty("entryTrigger").objectReferenceValue = triggerVolume;
             so.FindProperty("roomSpawner").objectReferenceValue = spawner;
             so.ApplyModifiedPropertiesWithoutUndo();
 

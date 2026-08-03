@@ -3,6 +3,7 @@ using UnityEngine.InputSystem;
 using Category5.Core;
 using Category5.Player;
 using Category5.Player.WindRiding;
+using System;
 
 namespace Category5.Player.Van
 {
@@ -21,6 +22,9 @@ namespace Category5.Player.Van
         [SerializeField] private GameObject exitPrompt;
 
         private PlayerController _currentPlayer;
+
+        // fired when any player exits the van — used by StormRoom to start the spawner
+        public static event Action OnPlayerExitedVan;
 
         private void Awake()
         {
@@ -63,6 +67,10 @@ namespace Category5.Player.Van
                 _currentPlayer.SetExternalVelocity(exitBoost);
 
                 rider.StartGliding();
+
+                // notify systems that a player has left the van
+                OnPlayerExitedVan?.Invoke();
+
                 ClearCurrentPlayer();
             }
         }

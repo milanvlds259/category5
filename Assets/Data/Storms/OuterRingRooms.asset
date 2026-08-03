@@ -14,7 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Core.RoomPrefabPool
   poolName: OuterRingRooms
   roomPrefabs:
-  - {fileID: 3881053406997853435, guid: 63da0cfb83a513e4f85375c17fbe4f29, type: 3}
-  - {fileID: 4380339662684477766, guid: a167682752b3c704486135dbbe881f63, type: 3}
-  - {fileID: 314218474520230239, guid: 9d7825b4e7dea9d4d865b988f8661acf, type: 3}
-  - {fileID: 1498328036727152230, guid: 45404e7dfb8877e4eb2684d74498bb9c, type: 3}
+  - {fileID: 5654328929454243944, guid: 07c5b54de9f506444bf84c1517fd3b10, type: 3}

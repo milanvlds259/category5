@@ -42,17 +42,12 @@ namespace Category5.UI
 
         private void OnEnable()
         {
-            // subscribe to room events for live updates
             StormRoom.OnRoomCleared += HandleRoomStateChanged;
-            StormRoom.OnRoomActivated += HandleRoomStateChanged;
-            StormRoom.OnRoomDiscovered += HandleRoomStateChanged;
         }
 
         private void OnDisable()
         {
             StormRoom.OnRoomCleared -= HandleRoomStateChanged;
-            StormRoom.OnRoomActivated -= HandleRoomStateChanged;
-            StormRoom.OnRoomDiscovered -= HandleRoomStateChanged;
         }
 
         private void Start()
