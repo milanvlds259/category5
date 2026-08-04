@@ -587,7 +587,7 @@ namespace Category5.Player
         private void OnInteract(InputAction.CallbackContext context)
         {
             if (IsPlayerDead) return;
-            if (Category5.UI.PauseMenu.GameIsPaused || Category5.UI.HubUI.IsAnyMenuOpen || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying) return;
+            if (Category5.UI.PauseMenu.GameIsPaused || Category5.UI.HubUI.IsAnyMenuOpen || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying || Category5.UI.MapSelectionUI.IsOpen) return;
 
             // Debug.Log($"PlayerController: Interact pressed. Current: {(_currentInteractable != null ? _currentInteractable.GetInteractPrompt() : "None")}");
 
@@ -694,12 +694,13 @@ if (IsWindRiding)
                 }
             }
             
-            // check if input should be blocked (pause menu, hub menus, power-up selection, boss intro, island item selection, or recall channeling)
+            // check if input should be blocked (pause menu, hub menus, power-up selection, boss intro, island item selection, recall channeling, or map table)
             bool inputBlocked = Category5.UI.PauseMenu.GameIsPaused || 
                                Category5.UI.HubUI.IsAnyMenuOpen || 
                                IsInPowerUpSelection() || 
                                Category5.UI.BossIntroUI.IntroIsPlaying || 
                                Category5.UI.ItemSelectionUI.IsSelectionUIActive || 
+                               Category5.UI.MapSelectionUI.IsOpen || 
                                IsRecallChanneling ||
                                Category5.DebugTools.DebugMenuUI.IsMenuOpen;
 
@@ -976,7 +977,7 @@ Vector3 lookDirection = transform.forward;
         {
             // don't accept input if dead or blocked
             if (IsDead.Value) return;
-            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying) return;
+            if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying || Category5.UI.MapSelectionUI.IsOpen) return;
             
             // Start gliding if airborne and high enough
             if (!_isGrounded && GetHeightAboveGround() > 5f && _windRider != null && !IsWindRiding)
@@ -1013,6 +1014,7 @@ Vector3 lookDirection = transform.forward;
             if (Category5.UI.PauseMenu.GameIsPaused || 
                 IsInPowerUpSelection() || 
                 Category5.UI.BossIntroUI.IntroIsPlaying ||
+                Category5.UI.MapSelectionUI.IsOpen ||
                 Category5.DebugTools.DebugMenuUI.IsMenuOpen) return;
             if (IsWindRiding) return;
 

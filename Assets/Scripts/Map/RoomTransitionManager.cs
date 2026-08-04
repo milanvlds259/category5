@@ -72,7 +72,7 @@ namespace Category5.Map
         {
             if (currentRoom == null || targetRoom == null) return false;
 
-            // in the new flow, any room can be transitioned to via the van vote
+            // in the new flow, any room can be transitioned to via the van
             // this method always returns true for simplicity
             return true;
         }

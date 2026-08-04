@@ -6,6 +6,6 @@ namespace Category5.Core
     public enum StormRoomState
     {
         Active,      // players are currently inside — spawner running
-        Cleared      // task completed — can backtrack to via vote
+        Cleared      // task completed — next room will be selected by host
     }
 }

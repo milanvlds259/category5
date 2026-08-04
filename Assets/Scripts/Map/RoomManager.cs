@@ -8,7 +8,7 @@ using Category5.Enemies;
 
 namespace Category5.Map
 {
-    // manages the active room lifecycle: instantiation, despawn, voting, timers
+    // manages the active room lifecycle: instantiation, despawn, map selection, timers
     // only one room exists at a time — old rooms are despawned when transitioning
     // the van stays at scene center; new rooms spawn at the old room's position
     public class RoomManager : NetworkBehaviour
@@ -46,14 +46,12 @@ namespace Category5.Map
         // current storm data
         private StormData _currentStorm;
 
-        // vote data for next room selection
-        private RoomVoteData _voteData;
+        // van locked state — prevents players from exiting van during transition
+        private bool _vanLocked = false;
 
         // events
         public static event Action<StormRoom> OnRoomEntered;
         public static event Action<StormRoom> OnRoomCleared;
-        public static event Action OnVoteStarted;
-        public static event Action<int> OnVoteResolved;
         public static event Action OnPrepStarted;
         public static event Action OnRoomTransitioning;
 
@@ -84,6 +82,9 @@ namespace Category5.Map
         // =====================================
         // public API
         // =====================================
+
+        // layout accessor for UI (map selection, etc.)
+        public MapLayout Layout => _layout;
 
         // called by MapGenerator after layout is generated
         public void SetLayout(MapLayout layout)
@@ -228,7 +229,7 @@ namespace Category5.Map
         }
 
         // =====================================
-        // room cleared → recall → vote → prep → transition
+        // room cleared → recall → prep → transition
         // =====================================
 
         // called when the current room's spawner completes
@@ -251,11 +252,12 @@ namespace Category5.Map
             float recallTime = _currentStorm != null ? _currentStorm.recallTimer : 5f;
             yield return new WaitForSeconds(recallTime);
 
-            // teleport all players to the van
+            // teleport all players to the van and lock exit
             TeleportPlayersToVan();
+            LockVan();
 
-            // start the vote
-            StartVote();
+            // wait for the host to select the next room via the map table
+            // MapSelectionUI.OnNodeSelected() calls StartPrepTimerForRoom()
         }
 
         // teleports all players to the van spawn points
@@ -283,82 +285,66 @@ namespace Category5.Map
         }
 
         // =====================================
-        // voting
+        // host auto-selection (replaces voting)
         // =====================================
 
-        // starts a vote for the next room
-        private void StartVote()
+        // the host (or solo player) picks the next room from connected options
+        // this is a temporary solution — replace with a proper voting/selection system later
+        private int HostSelectNextRoom()
         {
-            if (!IsServerAuthority) return;
-            if (_layout == null || _currentRoomInstance == null) return;
+            if (_layout == null || _currentRoomInstance == null) return -1;
 
-            // get connected rooms (left, right, inward)
             int currentRoomIdx = _currentRoomInstance.RoomIndex;
             List<int> connectedRooms = _layout.GetConnectedRooms(currentRoomIdx);
 
             if (connectedRooms.Count == 0)
             {
-                Debug.LogWarning("[RoomManager] no connected rooms — cannot vote");
-                // skip vote, go straight to prep with current room? or end game?
-                StartPrepTimer(currentRoomIdx);
-                return;
+                Debug.LogWarning("[RoomManager] no connected rooms from room " + currentRoomIdx);
+                return -1;
             }
 
-            _voteData = new RoomVoteData(connectedRooms);
-            CurrentState.Value = RoomState.Voting;
-
-            OnVoteStarted?.Invoke();
-            Debug.Log($"[RoomManager] vote started with {connectedRooms.Count} options");
-
-            // start coroutine to wait for all votes
-            StartCoroutine(WaitForVotesCoroutine());
-        }
-
-        // called by RoomVoteManager when a player casts a vote
-        public void CastVote(ulong clientId, int roomIndex)
-        {
-            if (!IsServerAuthority) return;
-            if (_voteData == null) return;
-
-            _voteData.CastVote(clientId, roomIndex);
-            Debug.Log($"[RoomManager] player {clientId} voted for room {roomIndex}");
-        }
-
-        // waits until all connected players have voted
-        private IEnumerator WaitForVotesCoroutine()
-        {
-            while (_voteData != null && !_voteData.AllConnectedPlayersVoted(GetConnectedClientIds()))
+            // single connected room — go there automatically
+            if (connectedRooms.Count == 1)
             {
-                yield return null;
+                Debug.Log($"[RoomManager] auto-selected room {connectedRooms[0]} (only option)");
+                return connectedRooms[0];
             }
 
-            if (_voteData == null) yield break;
-
-            // resolve the vote
-            int winningRoom = _voteData.GetWinningRoom();
-            Debug.Log($"[RoomManager] vote resolved — winning room: {winningRoom}");
-
-            OnVoteResolved?.Invoke(winningRoom);
-            _voteData = null;
-
-            // start prep timer
-            StartPrepTimer(winningRoom);
+            // multiple options — pick randomly for now
+            // replace this with a host selection UI when ready
+            int picked = connectedRooms[UnityEngine.Random.Range(0, connectedRooms.Count)];
+            Debug.Log($"[RoomManager] host auto-selected room {picked} from {connectedRooms.Count} options");
+            return picked;
         }
 
-        // returns the list of currently connected client IDs
-        private List<ulong> GetConnectedClientIds()
+        // =====================================
+        // van locking
+        // =====================================
+
+        public bool IsVanLocked => _vanLocked;
+
+        private void LockVan()
         {
-            var ids = new List<ulong>();
-            foreach (ulong id in NetworkManager.Singleton.ConnectedClientsIds)
-            {
-                ids.Add(id);
-            }
-            return ids;
+            _vanLocked = true;
+            Debug.Log("[RoomManager] van exit locked");
+        }
+
+        private void UnlockVan()
+        {
+            _vanLocked = false;
+            Debug.Log("[RoomManager] van exit unlocked");
         }
 
         // =====================================
         // prep timer
         // =====================================
+
+        // called by MapSelectionUI when the host picks a room
+        public void StartPrepTimerForRoom(int nextRoomIndex)
+        {
+            if (!IsServerAuthority) return;
+            StartPrepTimer(nextRoomIndex);
+        }
 
         // starts the prep timer before transitioning to the next room
         private void StartPrepTimer(int nextRoomIndex)
@@ -392,6 +378,7 @@ namespace Category5.Map
             if (!IsServerAuthority) return;
 
             OnRoomTransitioning?.Invoke();
+            UnlockVan();
 
             // remember the old room's position
             Vector3 oldPosition = _currentRoomInstance != null
@@ -426,7 +413,6 @@ namespace Category5.Map
         Idle,           // not started
         Fighting,       // players in room, spawner running
         Recalling,      // room cleared, waiting to recall to van
-        Voting,         // players in van, voting on next room
-        Preparing,      // vote resolved, waiting for prep timer
+        Preparing,      // waiting for prep timer before next room
     }
 }

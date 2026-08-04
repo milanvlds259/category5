@@ -439,7 +439,7 @@ Framework contribution guide: `docs/CONTRIBUTING.md`.
   - Layers:
     - Default, TransparentFX, Ignore Raycast, Player, Water, UI, Enemy, Projectile, CloudSurface, PlayerInTunnel
 - Active game object:
-  - Name: AbilitiesUI
+  - Name: MapSelectionUI
   - Tag: Untagged
-  - Layer: UI
+  - Layer: Default
 <!-- UNITY CODE ASSIST INSTRUCTIONS END -->

@@ -3,6 +3,7 @@ using UnityEngine.InputSystem;
 using Category5.Core;
 using Category5.Player;
 using Category5.Player.WindRiding;
+using Category5.Map;
 using System;
 
 namespace Category5.Player.Van
@@ -39,6 +40,10 @@ namespace Category5.Player.Van
         {
             if (_currentPlayer == null) return;
             if (_currentPlayer.IsDead.Value) return;
+
+            // can't exit van during room transitions or when map is open
+            if (RoomManager.Instance != null && RoomManager.Instance.IsVanLocked) return;
+            if (Category5.UI.MapSelectionUI.IsOpen) return;
 
             if (Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame)
             {
