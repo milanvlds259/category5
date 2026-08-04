@@ -454,14 +454,14 @@ MonoBehaviour:
   IsDead:
     m_InternalValue: 0
   visualsToHideOnDeath: []
-  moveSpeed: 7
-  sprintSpeedMultiplier: 1.5
+  moveSpeed: 3
+  sprintSpeedMultiplier: 2.5
   jumpHeight: 3
   gravity: -20
-  rotationSpeed: 15
+  rotationSpeed: 4
   groundedMomentumDecay: 18
   airborneMomentumDecay: 4
-  movementMomentumCancelRate: 24
+  movementMomentumCancelRate: 1
   groundCheckRadius: 0.2
   groundCheckOffset: {x: 0, y: -0.95, z: 0}
   groundLayers:
