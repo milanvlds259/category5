@@ -165,9 +165,11 @@ namespace Category5.Map
                 RoomManager.Instance.StartAtRoom(_layout.StartingRoomIndex);
             }
 
-            // notify GameFlowManager
+            // notify GameFlowManager — always re-send storm data in case
+            // SetStorm was called before GameFlowManager existed
             if (GameFlowManager.Instance != null)
             {
+                GameFlowManager.Instance.SetStormData(_currentStorm);
                 GameFlowManager.Instance.SetLayout(_layout);
             }
         }

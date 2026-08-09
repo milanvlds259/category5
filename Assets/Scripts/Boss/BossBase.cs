@@ -157,6 +157,10 @@ namespace Category5.Boss
                 // freeze boss ai and trigger the intro card on all clients
                 _introDormancyTimer = bossData != null ? bossData.introDuration : 0f;
                 TriggerBossIntroClientRpc();
+
+                // immediate ground check so the boss starts grounded instead of
+                // falling for 3 frames while the hysteresis confirms
+                InitializeGroundState();
             }
             
             // configure rigidbody: kinematic so we control movement manually
@@ -210,6 +214,32 @@ namespace Category5.Boss
 
             if (bossData.scaleMultiplier != 1f)
                 transform.localScale = Vector3.one * bossData.scaleMultiplier;
+        }
+
+        // does an immediate ground check on spawn so the boss starts grounded
+        // instead of falling for 3 frames while the hysteresis confirms
+        private void InitializeGroundState()
+        {
+            Collider col = GetComponent<Collider>() ?? GetComponentInChildren<Collider>();
+            if (col == null) return;
+
+            Vector3 checkPos = new Vector3(transform.position.x, col.bounds.min.y + 0.1f, transform.position.z);
+            if (Physics.CheckSphere(checkPos, groundCheckRadius, groundLayers, QueryTriggerInteraction.Ignore))
+            {
+                _isGrounded = true;
+                _verticalVelocity = groundedStickForce;
+                _groundedTrueCounter = groundedConfirmFrames;
+                _groundedFalseCounter = 0;
+
+                // snap to ground surface so the collider bottom sits exactly on it
+                Vector3 rayOrigin = new Vector3(transform.position.x, col.bounds.min.y + 0.15f, transform.position.z);
+                if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, 0.5f, groundLayers, QueryTriggerInteraction.Ignore))
+                {
+                    float diff = hit.point.y - col.bounds.min.y;
+                    if (diff > 0.001f)
+                        transform.position += Vector3.up * diff;
+                }
+            }
         }
 
         // sets up minimap trackable component for radar visibility

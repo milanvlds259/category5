@@ -14,4 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Core.RoomPrefabPool
   poolName: EyeRoom
   roomPrefabs:
-  - {fileID: 5654328929454243944, guid: 07c5b54de9f506444bf84c1517fd3b10, type: 3}
+  - {fileID: 5654328929454243944, guid: 17948dab1f5cd0b42baafd89d9c979c0, type: 3}

@@ -63,6 +63,16 @@ namespace Category5.Enemies
         
         // item drop
         [SerializeField] private GameObject itemDropPrefab;
+        [SerializeField] private bool spawnItemDropOnClear = true;
+
+        public bool SpawnItemDropOnClear
+        {
+            get => spawnItemDropOnClear;
+            set => spawnItemDropOnClear = value;
+        }
+
+        public GameObject ItemDropPrefab => itemDropPrefab;
+        public Transform[] SpawnPoints => spawnPoints;
         private bool _isResetting = false;
 
         // room context — set by MapGenerator when configuring the spawner
@@ -413,7 +423,7 @@ namespace Category5.Enemies
             if (_aliveEnemies.Count == 0 && !isSpawning && _currentWave >= totalWaves)
             {
                 // spawn item drop at spawner position (server-authoritative)
-                if (!_isResetting && itemDropPrefab != null)
+                if (!_isResetting && itemDropPrefab != null && spawnItemDropOnClear)
                 {
                     GameObject itemDropObject = Instantiate(itemDropPrefab, transform.position, Quaternion.identity);
                     NetworkObject networkObject = itemDropObject.GetComponent<NetworkObject>();

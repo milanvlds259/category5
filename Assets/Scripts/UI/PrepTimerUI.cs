@@ -10,7 +10,7 @@ namespace Category5.UI
     public class PrepTimerUI : MonoBehaviour
     {
         [Header("references")]
-        [SerializeField] private GameObject timerPanel;
+        [SerializeField] private CanvasGroup canvasGroup;
         [SerializeField] private TextMeshProUGUI timerText;
 
         private float _prepTimeRemaining;
@@ -30,7 +30,7 @@ namespace Category5.UI
 
         private void HandlePrepStarted()
         {
-            if (timerPanel != null) timerPanel.SetActive(true);
+            if (canvasGroup != null) canvasGroup.alpha = 1f;
             _isPrepping = true;
 
             // get prep time from storm data
@@ -40,7 +40,7 @@ namespace Category5.UI
 
         private void HandleRoomTransitioning()
         {
-            if (timerPanel != null) timerPanel.SetActive(false);
+            if (canvasGroup != null) canvasGroup.alpha = 0f;
             _isPrepping = false;
         }
 

@@ -18,6 +18,10 @@ namespace Category5.Map
         [Header("entity spawn points (boss, etc.)")]
         [SerializeField] private Transform[] entitySpawnPoints;
 
+        [Header("item drop spawn points")]
+        [Tooltip("where item drops spawn after room is cleared — place empty child transforms in the room for designers to position")]
+        [SerializeField] private Transform[] itemDropSpawnPoints;
+
         [Header("room reference")]
         [SerializeField] private EnemySpawner roomSpawner;
 
@@ -170,7 +174,7 @@ namespace Category5.Map
             OnRoomCleared?.Invoke(this);
         }
 
-        private void OnDestroy()
+        private new void OnDestroy()
         {
             VanExitController.OnPlayerExitedVan -= HandlePlayerExitedVan;
 
@@ -210,5 +214,38 @@ namespace Category5.Map
             }
             return entitySpawnPoints[index % entitySpawnPoints.Length];
         }
-    }
+        /// returns an item drop spawn position for a given index
+        /// uses designer-placed points if available, otherwise falls back to spawner spawn points
+        public Vector3 GetItemDropPosition(int index)
+        {
+            // use designer-placed drop points first
+            if (itemDropSpawnPoints != null && itemDropSpawnPoints.Length > 0)
+            {
+                var point = itemDropSpawnPoints[index % itemDropSpawnPoints.Length];
+                if (point != null) return point.position;
+            }
+
+            // fall back to enemy spawner spawn points if available
+            if (roomSpawner != null && roomSpawner.SpawnPoints != null && roomSpawner.SpawnPoints.Length > 0)
+            {
+                var point = roomSpawner.SpawnPoints[index % roomSpawner.SpawnPoints.Length];
+                if (point != null) return point.position;
+            }
+
+            // last resort: room center with slight offset
+            return transform.position + new Vector3(UnityEngine.Random.Range(-2f, 2f), 0.5f, UnityEngine.Random.Range(-2f, 2f));
+        }
+
+        /// number of available item drop spawn positions
+        public int ItemDropPointCount
+        {
+            get
+            {
+                if (itemDropSpawnPoints != null && itemDropSpawnPoints.Length > 0)
+                    return itemDropSpawnPoints.Length;
+                if (roomSpawner != null && roomSpawner.SpawnPoints != null && roomSpawner.SpawnPoints.Length > 0)
+                    return roomSpawner.SpawnPoints.Length;
+                return 1;
+            }
+        }    }
 }

@@ -152,6 +152,7 @@ Transform:
   - {fileID: 4569333605478841423}
   - {fileID: 8891885319111606636}
   - {fileID: 6421674290857039788}
+  - {fileID: 382124372865918041}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &4461561535449360321
@@ -166,7 +167,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 1798754716
+  GlobalObjectIdHash: 1521871489
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -239,6 +240,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Map.StormRoom
   ShowTopMostFoldoutHeaderGroup: 1
   entitySpawnPoints: []
+  itemDropSpawnPoints:
+  - {fileID: 382124372865918041}
   roomSpawner: {fileID: 5078554205157976382}
 --- !u!114 &5078554205157976382
 MonoBehaviour:
@@ -264,8 +267,8 @@ MonoBehaviour:
   spawnPoints: []
   useRandomSpawnPoints: 1
   spawnBounds: {x: 0, y: 0, z: 0}
-  enemiesPerWave: 5
-  totalWaves: 3
+  enemiesPerWave: 1
+  totalWaves: 1
   spawnInterval: 0.5
   waveCooldown: 5
   autoStartOnSpawn: 1
@@ -278,7 +281,8 @@ MonoBehaviour:
   isSpawning: 0
   _isActive: 0
   isCleared: 0
-  itemDropPrefab: {fileID: 0}
+  itemDropPrefab: {fileID: 3078507921385916218, guid: 08c1fbc8418b2d949ab3b844a861fcec, type: 3}
+  spawnItemDropOnClear: 1
 --- !u!114 &7117136298720976166
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -311,6 +315,59 @@ MonoBehaviour:
   m_MinRegionArea: 2
   m_NavMeshData: {fileID: 0}
   m_BuildHeightMesh: 0
+--- !u!1 &7785183987579774575
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 382124372865918041}
+  - component: {fileID: 4583845375277951254}
+  m_Layer: 0
+  m_Name: Item Spawn Point
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &382124372865918041
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7785183987579774575}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 24.21, y: 3.38, z: 11.43}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7935055612535959411}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!135 &4583845375277951254
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7785183987579774575}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.5
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1001 &62618678860383368
 PrefabInstance:
   m_ObjectHideFlags: 0

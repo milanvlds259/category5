@@ -46,7 +46,11 @@ namespace Category5.Map
             // step 3: connect rings (inward paths from outer to inner)
             ConnectRings(storm, layout);
 
-            // step 4: pick a random starting room in the outermost ring
+            // step 4: connect innermost ring to the eye room
+            // ensures there's always at least one path from start to boss
+            ConnectInnermostToEye(storm, layout);
+
+            // step 5: pick a random starting room in the outermost ring
             PickStartingRoom(layout);
 
             Debug.Log($"[MapLayoutGenerator] generated {layout.TotalRooms} rooms in {layout.RingCount} rings");
@@ -209,6 +213,47 @@ namespace Category5.Map
                     pathsCreated++;
                 }
             }
+        }
+
+        // =====================================
+        // innermost ring → eye room
+        // =====================================
+
+        private void ConnectInnermostToEye(StormData storm, MapLayout layout)
+        {
+            // innermost storm ring = eyewallCount - 1
+            int innerStormRing = storm.eyewallCount - 1;
+            int innerLayoutRing = StormRingToLayoutRing(layout, innerStormRing);
+            List<int> innerRooms = layout.GetRingRooms(innerLayoutRing);
+
+            if (innerRooms.Count == 0)
+            {
+                Debug.LogError($"[MapLayoutGenerator] innermost ring (layout ring {innerLayoutRing}) has no rooms — cannot connect to eye!");
+                return;
+            }
+
+            // how many paths from innermost ring to eye?
+            // use the last entry in inwardPathsPerRing, or default to 1
+            int pathsToEye = storm.GetInwardPathsForRing(innerStormRing);
+            if (pathsToEye <= 0) pathsToEye = 1;
+            pathsToEye = Mathf.Min(pathsToEye, innerRooms.Count);
+
+            List<int> shuffled = new List<int>(innerRooms);
+            Shuffle(shuffled);
+
+            int eyeRoomIndex = layout.EyeRoomIndex;
+            int pathsCreated = 0;
+
+            for (int i = 0; i < shuffled.Count && pathsCreated < pathsToEye; i++)
+            {
+                int roomIdx = shuffled[i];
+                var roomData = layout.GetRoom(roomIdx);
+                roomData.inwardRoomIndex = eyeRoomIndex;
+                layout.UpdateRoom(roomIdx, roomData);
+                pathsCreated++;
+            }
+
+            Debug.Log($"[MapLayoutGenerator] connected {pathsCreated} room(s) from innermost ring to eye room {eyeRoomIndex}");
         }
 
         // =====================================

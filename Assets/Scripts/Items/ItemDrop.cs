@@ -13,6 +13,9 @@ namespace Category5.Items
     [RequireComponent(typeof(SphereCollider))]
     public class ItemDrop : NetworkBehaviour
     {
+        // fired when a player collects this drop (room manager uses this to track collection count)
+        public event System.Action<ulong> OnCollected;
+
         private EnemySpawner _spawner;
         private bool _hasDespawned;
 
@@ -100,10 +103,13 @@ namespace Category5.Items
         // if not yet collected marks it and proceeds
         private void TryCollect(ulong clientId)
         {
-            if (_spawner == null) return;
-            if (_spawner.HasPlayerCollected(clientId)) return;
-
-            _spawner.MarkCollected(clientId);
+            // spawner-based collection tracking (island drops)
+            if (_spawner != null)
+            {
+                if (_spawner.HasPlayerCollected(clientId)) return;
+                _spawner.MarkCollected(clientId);
+                ItemManager.Instance.RegisterIslandSelectionSpawner(clientId, _spawner);
+            }
 
             if (ItemManager.Instance == null)
             {
@@ -111,8 +117,10 @@ namespace Category5.Items
                 return;
             }
 
-            ItemManager.Instance.RegisterIslandSelectionSpawner(clientId, _spawner);
             ItemManager.Instance.StartItemSelectionForPlayer(clientId);
+
+            // notify listeners (room manager uses this to track collection count)
+            OnCollected?.Invoke(clientId);
 
             // despawn the drop after successful collection
             if (NetworkObject != null)
