@@ -1,9 +1,11 @@
 using UnityEngine;
+using UnityEngine.AI;
 using Unity.Netcode;
 using System;
 using System.Collections.Generic;
 using Category5.Core;
 using Category5.Items;
+using Category5.Map;
 using Random = UnityEngine.Random;
 
 namespace Category5.Enemies
@@ -27,7 +29,7 @@ namespace Category5.Enemies
         [Header("spawn points")]
         [SerializeField] private Transform[] spawnPoints;
         [SerializeField] private bool useRandomSpawnPoints = true;
-        public Vector3 spawnBounds;
+        public Vector3 spawnBounds = new Vector3(20f, 5f, 20f);
         
         [Header("wave settings")]
         [SerializeField] private int enemiesPerWave = 3;
@@ -38,6 +40,11 @@ namespace Category5.Enemies
         public bool startOnTrigger = false;
         public TriggerVolume triggerVolume;
         [SerializeField] private float spawnOccupancyRadius = 0.6f; // avoid spawning inside other colliders
+        
+        [Header("navmesh spawn")]
+        [SerializeField] private float navMeshSampleDistance = 20f; // max distance from candidate to nearest navmesh surface
+        [SerializeField] private float spawnHeightOffset = 0.1f; // offset above navmesh surface so enemies don't clip into floor
+        [SerializeField] private int maxSpawnAttempts = 20; // how many random positions to try before giving up
         
         [Header("runtime state")]
         [SerializeField] private bool isSpawning = false;
@@ -56,7 +63,21 @@ namespace Category5.Enemies
         
         // item drop
         [SerializeField] private GameObject itemDropPrefab;
+        [SerializeField] private bool spawnItemDropOnClear = true;
+
+        public bool SpawnItemDropOnClear
+        {
+            get => spawnItemDropOnClear;
+            set => spawnItemDropOnClear = value;
+        }
+
+        public GameObject ItemDropPrefab => itemDropPrefab;
+        public Transform[] SpawnPoints => spawnPoints;
         private bool _isResetting = false;
+
+        // room context — set by MapGenerator when configuring the spawner
+        private StormRoom _ownerRoom;
+        private float _difficultyMultiplier = 1f;
         
         // per-spawner collection tracking (Story 002: TR-item-002)
         private SpawnerCollectionTracker _collectionTracker = new SpawnerCollectionTracker();
@@ -130,6 +151,11 @@ namespace Category5.Enemies
         {
             if (!IsServer) return;
             if (hasStartedSpawning) return;
+            
+            if (useRandomSpawnPoints && spawnBounds.sqrMagnitude < 0.01f)
+            {
+                Debug.LogWarning($"[EnemySpawner] {gameObject.name}: spawnBounds is zero — enemies will all spawn at the spawner position. set spawnBounds in the inspector");
+            }
             
             hasStartedSpawning = true;
             _isActive = true;
@@ -252,9 +278,9 @@ namespace Category5.Enemies
             {
                 Vector3 candidate = GetNextSpawnPoint();
 
-                // check occupancy
+                // check occupancy — only detect other enemies, not room geometry
                 Collider[] colliders = new Collider[1];
-                Physics.OverlapSphereNonAlloc(candidate, spawnOccupancyRadius, colliders, Physics.AllLayers, QueryTriggerInteraction.Ignore);
+                Physics.OverlapSphereNonAlloc(candidate, spawnOccupancyRadius, colliders, 1 << 6, QueryTriggerInteraction.Ignore);
                 bool occupied = colliders[0] != null;
                 if (!occupied)
                 {
@@ -348,19 +374,35 @@ namespace Category5.Enemies
         
         private Vector3 GetNextSpawnPoint()
         {
-            if (useRandomSpawnPoints)
+            Vector3 fallback = transform.position; // last resort if nothing works
+
+            for (int attempt = 0; attempt < maxSpawnAttempts; attempt++)
             {
-                return new Vector3(
-                    Random.Range(transform.position.x - spawnBounds.x/2, transform.position.x + spawnBounds.x/2),
-                    Random.Range(transform.position.y - spawnBounds.y/2, transform.position.y + spawnBounds.y/2),
-                    Random.Range(transform.position.z - spawnBounds.z/2, transform.position.z + spawnBounds.z/2));
+                Vector3 candidate;
+                if (useRandomSpawnPoints)
+                {
+                    candidate = new Vector3(
+                        Random.Range(transform.position.x - spawnBounds.x/2, transform.position.x + spawnBounds.x/2),
+                        transform.position.y,
+                        Random.Range(transform.position.z - spawnBounds.z/2, transform.position.z + spawnBounds.z/2));
+                }
+                else
+                {
+                    Transform point = spawnPoints[_nextSpawnPointIndex];
+                    _nextSpawnPointIndex = (_nextSpawnPointIndex + 1) % spawnPoints.Length;
+                    candidate = point.position;
+                    fallback = candidate;
+                }
+
+                // snap to the nearest navmesh surface so enemies always spawn on walkable ground
+                if (NavMesh.SamplePosition(candidate, out NavMeshHit hit, navMeshSampleDistance, NavMesh.AllAreas))
+                {
+                    return hit.position + Vector3.up * spawnHeightOffset;
+                }
             }
-            else
-            {
-                Transform point = spawnPoints[_nextSpawnPointIndex];
-                _nextSpawnPointIndex = (_nextSpawnPointIndex + 1) % spawnPoints.Length;
-                return point.position;
-            }
+
+            Debug.LogWarning($"[EnemySpawner] could not snap to navmesh after {maxSpawnAttempts} attempts — spawner pos: {transform.position}, bounds: {spawnBounds}, fallback: {fallback}");
+            return fallback;
         }
         
         // =====================================
@@ -380,14 +422,8 @@ namespace Category5.Enemies
             
             if (_aliveEnemies.Count == 0 && !isSpawning && _currentWave >= totalWaves)
             {
-                // direct server callback for robust progression
-                if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer && GameFlowManager.Instance != null)
-                {
-                    GameFlowManager.Instance.NotifySpawnerCompleted(this);
-                }
-                
                 // spawn item drop at spawner position (server-authoritative)
-                if (!_isResetting && itemDropPrefab != null)
+                if (!_isResetting && itemDropPrefab != null && spawnItemDropOnClear)
                 {
                     GameObject itemDropObject = Instantiate(itemDropPrefab, transform.position, Quaternion.identity);
                     NetworkObject networkObject = itemDropObject.GetComponent<NetworkObject>();
@@ -423,6 +459,39 @@ namespace Category5.Enemies
         public int TotalWaves => totalWaves;
         public bool IsActive => _isActive;
         public bool IsSpawning => isSpawning;
+
+        // =====================================
+        // room context (set by MapGenerator)
+        // =====================================
+
+        /// <summary>
+        /// sets the room that owns this spawner (called by MapGenerator)
+        /// </summary>
+        public void SetOwnerRoom(StormRoom room)
+        {
+            _ownerRoom = room;
+        }
+
+        /// <summary>
+        /// returns the room that owns this spawner
+        /// </summary>
+        public StormRoom GetOwnerRoom() => _ownerRoom;
+
+        /// <summary>
+        /// applies a difficulty multiplier to enemy count (called by MapGenerator)
+        /// does not reset the spawner — just updates the scaling factor
+        /// </summary>
+        public void SetDifficultyMultiplier(float multiplier)
+        {
+            if (!IsServer) return;
+            _difficultyMultiplier = Mathf.Max(0.1f, multiplier);
+            _effectiveEnemiesPerWave = Mathf.Max(1, Mathf.RoundToInt(enemiesPerWave * _difficultyMultiplier));
+        }
+
+        /// <summary>
+        /// returns the current difficulty multiplier
+        /// </summary>
+        public float GetDifficultyMultiplier() => _difficultyMultiplier;
         
         // =====================================
         // per-spawner collection tracking (Story 002: TR-item-002)

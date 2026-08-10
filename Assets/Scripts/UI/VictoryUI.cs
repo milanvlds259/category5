@@ -121,10 +121,11 @@ namespace Category5.UI
             // stats display
             if (statsText != null)
             {
-                int totalRounds = Category5.Core.GameFlowManager.Instance != null 
-                    ? Category5.Core.GameFlowManager.Instance.CurrentRound.Value 
-                    : 3;
-                statsText.text = $"Completed all {totalRounds} rounds!";
+                string stormName = Category5.Core.GameFlowManager.Instance != null &&
+                    Category5.Core.GameFlowManager.Instance.GetCurrentStorm() != null
+                    ? Category5.Core.GameFlowManager.Instance.GetCurrentStorm().stormName
+                    : "Storm";
+                statsText.text = $"Cleared {stormName}!";
             }
             
             // skill points earned display

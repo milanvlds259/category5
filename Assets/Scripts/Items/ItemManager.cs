@@ -75,6 +75,17 @@ namespace Category5.Items
             ProcessQueuedIslandSelections();
         }
 
+        /// <summary>
+        /// clears island selection state so players can collect drops in new rooms
+        /// called by room manager when transitioning between rooms
+        /// </summary>
+        public void ClearIslandSelectionState()
+        {
+            _islandPlayerItemChoices.Clear();
+            _pendingIslandSelections.Clear();
+            _islandSelections.Clear();
+        }
+
         [ClientRpc]
         private void HideSelectionClientRpc()
         {

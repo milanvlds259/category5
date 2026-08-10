@@ -97,13 +97,13 @@ namespace Category5.UI
                 titleText.text = "GAME OVER";
             }
             
-            // update round reached text
+            // update room reached text
             if (roundReachedText != null)
             {
-                int roundReached = Category5.Core.GameFlowManager.Instance != null 
-                    ? Category5.Core.GameFlowManager.Instance.CurrentRound.Value 
-                    : 1;
-                roundReachedText.text = $"Reached Round {roundReached}";
+                int roomIdx = Category5.Core.GameFlowManager.Instance != null
+                    ? Category5.Core.GameFlowManager.Instance.GetCurrentRoomIndex()
+                    : -1;
+                roundReachedText.text = roomIdx >= 0 ? $"Reached Room {roomIdx}" : "Storm Failed";
             }
             
             // optional stats display (can be expanded later)
