@@ -3,6 +3,8 @@ using UnityEngine.InputSystem;
 using Category5.Core;
 using Category5.Player;
 using Category5.Player.WindRiding;
+using Category5.Map;
+using System;
 
 namespace Category5.Player.Van
 {
@@ -22,6 +24,9 @@ namespace Category5.Player.Van
 
         private PlayerController _currentPlayer;
 
+        // fired when any player exits the van — used by StormRoom to start the spawner
+        public static event Action OnPlayerExitedVan;
+
         private void Awake()
         {
             Collider col = GetComponent<Collider>();
@@ -36,24 +41,19 @@ namespace Category5.Player.Van
             if (_currentPlayer == null) return;
             if (_currentPlayer.IsDead.Value) return;
 
+            // can't exit van during room transitions or when map is open
+            if (RoomManager.Instance != null && RoomManager.Instance.IsVanLocked) return;
+            if (Category5.UI.MapSelectionUI.IsOpen) return;
+
             if (Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame)
             {
                 Debug.Log("[VanExit] F key pressed.");
                 WindRiderController rider = _currentPlayer.GetComponent<WindRiderController>();
-if (rider == null || rider.IsWindRiding)
-{
-    Debug.LogWarning("[VanExit] Cannot exit: rider=" + (rider != null) + ", isWindRiding=" + (rider?.IsWindRiding ?? false));
-    return;
-}
-
-PlayerSpawnPoint spawnPoint = PlayerSpawnPoint.GetNextIslandSpawnPoint();
-if (spawnPoint == null)
-{
-    Debug.LogError("[VanExit] no island spawn point found");
-    return;
-}
-
-Debug.Log("[VanExit] Teleporting player to " + spawnPoint.name);
+                if (rider == null || rider.IsWindRiding)
+                {
+                    Debug.LogWarning("[VanExit] Cannot exit: rider=" + (rider != null) + ", isWindRiding=" + (rider?.IsWindRiding ?? false));
+                    return;
+                }
 
                 // teleport player to exit position to clear van geometry
                 CharacterController cc = _currentPlayer.GetComponent<CharacterController>();
@@ -72,6 +72,10 @@ Debug.Log("[VanExit] Teleporting player to " + spawnPoint.name);
                 _currentPlayer.SetExternalVelocity(exitBoost);
 
                 rider.StartGliding();
+
+                // notify systems that a player has left the van
+                OnPlayerExitedVan?.Invoke();
+
                 ClearCurrentPlayer();
             }
         }

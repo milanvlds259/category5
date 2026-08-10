@@ -28,9 +28,7 @@ namespace Category5.Audio
         // args: player, exit velocity (the ride velocity at the moment of exit)
         public static event Action<PlayerController, Vector3> OnDraftExited;
 
-        // =====================================
         // invoke methods - call these from gameplay scripts
-        // =====================================
 
         public static void InvokeRideStarted(PlayerController player, Vector3 position)
         {

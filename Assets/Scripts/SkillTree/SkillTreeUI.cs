@@ -158,11 +158,11 @@ namespace Category5.SkillTree
         /// <summary>Closes the skill tree UI.</summary>
         public void Close()
         {
-            if (!_isOpen) return;
+            // always force closed state so an invisible panel cant eat clicks
             _isOpen = false;
 
-            // [ARTIST ANIMATION] - Panel exit
-            // Add DOTween exit animation here, e.g.:
+            // [SUMMER ANIMATION] - Panel exit
+            // Add DOTween exit animation here something like:
             // rootCanvasGroup.DOFade(0f, 0.2f).OnComplete(() => panel.SetActive(false));
 
             if (rootCanvasGroup != null)

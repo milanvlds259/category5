@@ -5,6 +5,7 @@ using Unity.Netcode;
 using Category5.Player;
 using Category5.Boss;
 using Category5.Items;
+using Category5.Map;
 using System.Collections.Generic;
 
 namespace Category5.UI
@@ -46,11 +47,10 @@ namespace Category5.UI
             // Find and register the local player if they already exist (e.g. persisted from hub)
             FindAndRegisterLocalPlayer();
             
-            // subscribe to round changes
+            // subscribe to room changes
             if (Category5.Core.GameFlowManager.Instance != null)
             {
-                Category5.Core.GameFlowManager.Instance.OnRoundChanged += UpdateRoundDisplay;
-                UpdateRoundDisplay(Category5.Core.GameFlowManager.Instance.CurrentRound.Value);
+                RoomTransitionManager.OnRoomEntered += UpdateRoomDisplay;
             }
         }
 
@@ -71,20 +71,18 @@ namespace Category5.UI
 
         private void OnDestroy()
         {
-            if (Category5.Core.GameFlowManager.Instance != null)
-            {
-                Category5.Core.GameFlowManager.Instance.OnRoundChanged -= UpdateRoundDisplay;
-            }
+            RoomTransitionManager.OnRoomEntered -= UpdateRoomDisplay;
         }
-        
-        private void UpdateRoundDisplay(int round)
+
+        private void UpdateRoomDisplay(StormRoom room)
         {
-            if (roundText != null)
-            {
-                roundText.text = $"Category {round}";
-            }
+            if (roundText == null || room == null) return;
+            // show eyewall index as the "category" indicator
+            int eyewall = room.EyewallIndex;
+            string label = eyewall == -1 ? "Eye" : $"Eyewall {eyewall + 1}";
+            roundText.text = label;
         }
-        
+
         private void FindAndRegisterBoss()
         {
             // look for any boss in the scene that needs to be registered

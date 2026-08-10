@@ -1007,6 +1007,7 @@ namespace Category5.UI
         private void UpdateStartButtonState()
         {
             bool allReady = LobbyManager.Instance != null && LobbyManager.Instance.AreAllPlayersReady();
+            bool isOffline = NetworkManager.Singleton == null || !NetworkManager.Singleton.IsListening;
 
             // update ready text for everyone
             if (allPlayersReadyText != null)
@@ -1015,9 +1016,16 @@ namespace Category5.UI
                 allPlayersReadyText.color = allReady ? new Color(0.4f, 1f, 0.4f) : new Color(1f, 0.8f, 0.4f);
             }
 
-            // start button is host-only
-            if (startGameButton == null || !NetworkManager.Singleton.IsHost) return;
-            startGameButton.interactable = allReady;
+            // start button is host-only, or always available in offline mode
+            if (startGameButton == null) return;
+            if (isOffline)
+            {
+                startGameButton.interactable = true;
+            }
+            else if (NetworkManager.Singleton.IsHost)
+            {
+                startGameButton.interactable = allReady;
+            }
         }
 
         // initialize relay services in the background
@@ -1144,11 +1152,12 @@ namespace Category5.UI
             
             bool isHost = NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer;
             bool isListening = NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening;
+            bool isOffline = NetworkManager.Singleton == null || !isListening;
             
-            // only the host can start the game
+            // host can start the game, or start button is shown in offline mode
             if (startGameButton != null)
             {
-                startGameButton.gameObject.SetActive(isHost);
+                startGameButton.gameObject.SetActive(isHost || isOffline);
             }
 
             // show ready button for all players

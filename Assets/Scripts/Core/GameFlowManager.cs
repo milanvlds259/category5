@@ -8,62 +8,56 @@ using Category5.Enemies;
 using Category5.Player;
 using Category5.Items;
 using Category5.Audio;
+using Category5.Map;
 
 namespace Category5.Core
 {
-    // manages game flow: round progression, boss lifecycle, enemy wave tracking,
+    // manages game flow: storm progression, room clearing, boss lifecycle,
     // player death/respawn, victory and game over conditions
     public class GameFlowManager : NetworkBehaviour
     {
         public static GameFlowManager Instance { get; private set; }
 
-        [Header("round settings")]
-        [SerializeField] private int totalRounds = 3;
-
-        [Header("boss configuration")]
-        [Tooltip("boss to use per round — assign one entry per round, or just one entry to reuse the same boss with scaled hp")]
-        [SerializeField] private BossData[] bossPerRound;
-
-        [Header("enemy scaling")]
-        [Tooltip("enemy count multiplier per round (index 0 = round 1)")]
-        [SerializeField] private float[] enemyScalePerRound = { 1.0f, 1.5f, 2.0f };
+        [Header("storm configuration")]
+        [Tooltip("the storm to play this session — assigned from StormCategoryData")]
+        [SerializeField] private StormData currentStorm;
 
         [Header("boss entrance")]
         [Tooltip("delay in seconds between all enemies cleared and boss appearing")]
         [SerializeField] private float bossEntranceDelay = 2f;
 
         [Header("references")]
-        [SerializeField] private GameObject bossSpawnPoint;
         [SerializeField] private MapGenerator mapGenerator;
 
         // network variables for syncing game state
         public NetworkVariable<GamePhase> CurrentPhase = new NetworkVariable<GamePhase>(GamePhase.Fighting);
-        public NetworkVariable<int> CurrentRound = new NetworkVariable<int>(1);
+
+        // current storm layout — set by MapGenerator after generating the room graph
+        private MapLayout _currentLayout;
+        public MapLayout CurrentLayout => _currentLayout;
+
+        // current room tracked server-side
+        private StormRoom _currentRoom;
 
         // current boss reference
         private BossBase _currentBoss;
-        // tracks which BossData is currently active so we can detect boss swaps between rounds
-        private BossData _currentBossData;
 
-        // spawner tracking
-        private EnemySpawner[] _allSpawners;
-        private HashSet<EnemySpawner> _completedSpawners = new HashSet<EnemySpawner>();
         private bool _serverInitialized = false;
-        private bool _bossEntranceTriggeredThisRound = false;
+        private bool _bossEntranceTriggered = false;
 
         // events for ui and other systems
         public event Action OnVictory;
         public event Action OnGameOver;
-        public event Action<int> OnRoundChanged;
 
         // events for boss entrance sequence (vfx/sfx hooks)
         public static event Action OnAllEnemiesCleared;
         public static event Action OnBossEntranceStart;
 
-        // fired server-side when a new round begins (before ClientRpc) — safe to subscribe from server-only code
-        public static event Action<int> OnRoundStarted;
+        // events for room progression
+        public static event Action<StormRoom> OnRoomEntered;
+        public static event Action<StormRoom> OnRoomCleared;
 
-        // WWise Variables
+        // wwise variables
         [SerializeField] private AK.Wwise.State CombatState;
         [SerializeField] private AK.Wwise.State ExploreState;
         [SerializeField] private AK.Wwise.State WinState;
@@ -92,20 +86,15 @@ namespace Category5.Core
         public override void OnNetworkSpawn()
         {
             TryInitializeServerFlow();
+            RoomTransitionManager.OnRoomEntered += HandleRoomEntered;
         }
 
         private void Update()
         {
             if (!IsServerAuthority) return;
-            if (!_serverInitialized) TryInitializeServerFlow();
             if (!_serverInitialized) return;
 
-            // fallback polling path in case spawner completion event subscription did not fire
-            if (!_bossEntranceTriggeredThisRound && CurrentPhase.Value == GamePhase.Fighting && AreAllActiveSpawnersFullyComplete())
-            {
-                // Debug.Log("GameFlowManager: fallback detected all spawners complete, triggering boss entrance");
-                OnAllWavesCleared();
-            }
+            // fallback polling path removed — RoomManager handles room clearing now
         }
 
         private void TryInitializeServerFlow()
@@ -113,140 +102,159 @@ namespace Category5.Core
             if (_serverInitialized) return;
             if (!IsServerAuthority) return;
 
-            // find the boss in scene and hide it until enemies are cleared
-            _currentBoss = FindFirstObjectByType<BossBase>();
-            if (_currentBoss != null)
+            // if we have a storm and layout already, start it
+            if (currentStorm != null && _currentLayout != null)
             {
-                _currentBossData = _currentBoss.BossData;
-                _currentBoss.HideBoss();
-            }
-            else
-            {
-                Debug.LogWarning("GameFlowManager: no boss found in scene");
+                StartStorm();
+                _serverInitialized = true;
+                return;
             }
 
-            // subscribe to spawner completion events
-            EnemySpawner.OnAllEnemiesDefeated += OnSpawnerCompleted;
-            RefreshSpawners();
+            // otherwise wait for MapGenerator to call SetStormData + SetLayout
+        }
 
-            // start enemy waves for round 1
-            float multiplier = GetEnemyMultiplier(0);
-            EnemySpawner.ResetAllSpawners(multiplier);
-            _bossEntranceTriggeredThisRound = false;
-            _serverInitialized = true;
-            // Debug.Log("GameFlowManager: server flow initialized");
+        /// <summary>
+        /// called by MapGenerator to provide storm data before generating the layout
+        /// </summary>
+        public void SetStormData(StormData storm)
+        {
+            currentStorm = storm;
+        }
+
+        /// <summary>
+        /// called by MapGenerator after building the room graph
+        /// delegates room progression to RoomManager
+        /// </summary>
+        public void SetLayout(MapLayout layout)
+        {
+            _currentLayout = layout;
+            if (!_serverInitialized && IsServerAuthority)
+            {
+                StartStorm();
+                _serverInitialized = true;
+            }
+        }
+
+        private void StartStorm()
+        {
+            if (!IsServerAuthority) return;
+            if (_currentLayout == null)
+            {
+                Debug.LogError("[GameFlowManager] cannot start storm — no layout set");
+                return;
+            }
+
+            // subscribe to room events from RoomManager
+            RoomManager.OnRoomEntered += HandleRoomEntered;
+            RoomManager.OnRoomCleared += HandleRoomCleared;
+
+            ExploreState.SetValue();
+            _bossEntranceTriggered = false;
+
+            // RoomManager handles starting room instantiation and player positioning
+            // (MapGenerator already called RoomManager.StartAtRoom)
         }
 
         public override void OnNetworkDespawn()
         {
             if (IsServerAuthority)
             {
-                EnemySpawner.OnAllEnemiesDefeated -= OnSpawnerCompleted;
+                RoomManager.OnRoomEntered -= HandleRoomEntered;
+                RoomManager.OnRoomCleared -= HandleRoomCleared;
             }
 
             _serverInitialized = false;
         }
 
         // =====================================
-        // enemy wave tracking
+        // room progression (delegated to RoomManager)
         // =====================================
 
-        // called when an enemy spawner completes all waves and enemies are defeated
-        private void OnSpawnerCompleted(EnemySpawner spawner)
-        {
-            NotifySpawnerCompleted(spawner);
-        }
-
-        // robust server entrypoint for spawner completion
-        public void NotifySpawnerCompleted(EnemySpawner spawner)
+        /// <summary>
+        /// called by RoomManager when players enter a new room
+        /// </summary>
+        private void HandleRoomEntered(StormRoom newRoom)
         {
             if (!IsServerAuthority) return;
-            if (spawner == null) return;
 
-            if (_allSpawners == null || _allSpawners.Length == 0)
+            _currentRoom = newRoom;
+
+            // check if this is the eye room — boss fight!
+            if (_currentLayout != null && newRoom.RoomIndex == _currentLayout.EyeRoomIndex)
             {
-                RefreshSpawners();
+                CombatState.SetValue();
+            }
+            else
+            {
+                ExploreState.SetValue();
             }
 
-            _completedSpawners.Add(spawner);
-            int totalKnown = _allSpawners != null ? _allSpawners.Length : 0;
-            // Debug.Log($"GameFlowManager: spawner completed ({_completedSpawners.Count}/{totalKnown})");
-
-            // use dynamic completion check to avoid stale cached arrays
-            if (AreAllActiveSpawnersFullyComplete())
-            {
-                OnAllWavesCleared();
-            }
+            _bossEntranceTriggered = false;
+            OnRoomEntered?.Invoke(newRoom);
         }
 
-        private bool AreAllSpawnersComplete()
+        /// <summary>
+        /// called by RoomManager when a room is cleared
+        /// </summary>
+        private void HandleRoomCleared(StormRoom room)
         {
-            if (_allSpawners == null) return true;
+            if (!IsServerAuthority) return;
 
-            foreach (var spawner in _allSpawners)
+            OnRoomCleared?.Invoke(room);
+
+            // if the eye room was cleared, trigger boss entrance
+            if (_currentLayout != null && room.RoomIndex == _currentLayout.EyeRoomIndex)
             {
-                if (spawner != null && spawner.IsActive && !_completedSpawners.Contains(spawner))
-                {
-                    return false;
-                }
+                StartCoroutine(BossEntranceSequence());
             }
-            return true;
         }
 
         // =====================================
         // boss entrance sequence
         // =====================================
 
-        private void OnAllWavesCleared()
-        {
-            if (_bossEntranceTriggeredThisRound) return;
-            _bossEntranceTriggeredThisRound = true;
-            // Debug.Log("GameFlowManager: all enemy waves cleared, starting boss entrance sequence");
-            OnAllEnemiesCleared?.Invoke();
-            StartCoroutine(BossEntranceSequence());
-
-            CombatState.SetValue();
-        }
+        // boss entrance is triggered by HandleRoomCleared when the eye room is cleared
+        // (see StartStorm subscription to RoomManager.OnRoomCleared)
 
         private IEnumerator BossEntranceSequence()
         {
             yield return new WaitForSeconds(bossEntranceDelay);
-
-            // Debug.Log("GameFlowManager: boss entrance!");
             OnBossEntranceStart?.Invoke();
-
             SpawnOrRevealBoss();
         }
 
         private void SpawnOrRevealBoss()
         {
-            int roundIndex = CurrentRound.Value - 1;
-            BossData bossData = GetBossDataForRound(roundIndex);
-
-            if (bossData == null)
+            if (currentStorm == null || currentStorm.bossForEye == null)
             {
-                Debug.LogError("GameFlowManager: no BossData configured for this round — assign entries to bossPerRound in the inspector");
+                Debug.LogError("[GameFlowManager] no BossData for this storm — assign bossForEye in StormData");
                 return;
             }
 
-            // count connected players so boss hp scales with lobby size
+            BossData bossData = currentStorm.bossForEye;
             int playerCount = NetworkManager.Singleton != null ? NetworkManager.Singleton.ConnectedClientsIds.Count : 1;
-            int bossHp = bossData.GetHealthForRound(roundIndex, totalRounds, playerCount);
 
-            // get spawn point position and rotation
-            Vector3 spawnPos = bossSpawnPoint != null ? bossSpawnPoint.transform.position : Vector3.zero;
-            Quaternion spawnRot = bossSpawnPoint != null ? bossSpawnPoint.transform.rotation : Quaternion.identity;
-
-            bool needsNewBoss = _currentBoss == null || !_currentBoss.IsSpawned || _currentBossData != bossData;
-
-            if (!needsNewBoss)
+            // spawn position from the eye room or fallback
+            Vector3 spawnPos = Vector3.zero;
+            Quaternion spawnRot = Quaternion.identity;
+            if (_currentRoom != null)
             {
-                // same boss type — just reset it with scaled hp
+                Transform spawnPoint = _currentRoom.GetEntitySpawnPoint(0);
+                if (spawnPoint != null)
+                {
+                    spawnPos = spawnPoint.position;
+                    spawnRot = spawnPoint.rotation;
+                }
+            }
+
+            int bossHp = bossData.GetHealthForRound(0, 1, playerCount);
+
+            if (_currentBoss != null && _currentBoss.IsSpawned)
+            {
                 _currentBoss.ResetBoss(bossHp, spawnPos, spawnRot);
             }
             else
             {
-                // different boss or no existing boss — despawn old one and spawn the new prefab
                 if (_currentBoss != null && _currentBoss.IsSpawned)
                 {
                     _currentBoss.GetComponent<NetworkObject>()?.Despawn();
@@ -255,7 +263,7 @@ namespace Category5.Core
 
                 if (bossData.bossPrefab == null)
                 {
-                    Debug.LogError($"GameFlowManager: BossData '{bossData.bossName}' has no bossPrefab assigned");
+                    Debug.LogError($"[GameFlowManager] BossData '{bossData.bossName}' has no bossPrefab assigned");
                     return;
                 }
 
@@ -265,22 +273,9 @@ namespace Category5.Core
                 {
                     networkObj.Spawn();
                     _currentBoss = bossInstance.GetComponent<BossBase>();
-                    _currentBossData = bossData;
-                    // health is set inside BossBase.OnNetworkSpawn via InitializeFromData,
-                    // but we call ResetBoss to apply the round-scaled hp and show the boss
                     _currentBoss?.ResetBoss(bossHp, spawnPos, spawnRot);
                 }
             }
-        }
-
-        // returns the BossData to use for a given zero-based round index
-        // falls back to the last entry if the round exceeds the array length
-        private BossData GetBossDataForRound(int roundIndex)
-        {
-            if (bossPerRound == null || bossPerRound.Length == 0) return null;
-            return roundIndex < bossPerRound.Length
-                ? bossPerRound[roundIndex]
-                : bossPerRound[bossPerRound.Length - 1];
         }
 
         // =====================================
@@ -292,113 +287,41 @@ namespace Category5.Core
         {
             if (!IsServerAuthority) return;
 
-            // Debug.Log($"GameFlowManager: boss died on round {CurrentRound.Value}");
-
-            // check if this was the final round
-            if (CurrentRound.Value >= totalRounds)
-            {
-                CurrentPhase.Value = GamePhase.Victory;
-                TriggerVictoryLocal();
-                return;
-            }
-
-            // boss is dead and enemies were already cleared -> start item selection
-            if (ItemManager.Instance != null)
-            {
-                // Debug.Log("GameFlowManager: triggering ItemManager.StartItemSelection");
-                ItemManager.Instance.StartItemSelection();
-            }
-            else
-            {
-                Debug.LogError("GameFlowManager: ItemManager not found, cannot start item selection");
-            }
-
-            
+            // boss in the eye = storm complete — victory!
+            CurrentPhase.Value = GamePhase.Victory;
+            TriggerVictoryLocal();
         }
 
         private void TriggerVictoryLocal()
         {
-            // fire audio event for victory
             GameEvents.InvokeVictory();
-
-            NotifyVictoryClientRpc(); // fire on all clients and host
-
-            //Rylan Code
+            NotifyVictoryClientRpc();
             WinState.SetValue();
-        }
-
-        [ClientRpc]
-        private void NotifyRoundChangedClientRpc(int round)
-        {
-            OnRoundChanged?.Invoke(round);
         }
 
         [ClientRpc]
         private void NotifyVictoryClientRpc()
         {
-            // Debug.Log("Victory! All rounds complete.");
             OnVictory?.Invoke();
         }
 
         // =====================================
-        // round progression
+        // item selection callback (kept for ItemManager compatibility)
         // =====================================
 
-        // called by ItemManager when all players have made their item selection
         public void OnAllItemSelectionsComplete()
         {
             if (!IsServerAuthority) return;
-
-            // Debug.Log("GameFlowManager: all item selections complete, starting next round");
-            StartNextRound();
-        }
-
-        private void StartNextRound()
-        {
-            CurrentRound.Value++;
-            CurrentPhase.Value = GamePhase.Fighting;
-            OnRoundStarted?.Invoke(CurrentRound.Value);
-            NotifyRoundChangedClientRpc(CurrentRound.Value);
-            _bossEntranceTriggeredThisRound = false;
-
-            // Delete old map, and generate a new one for the next storm
-            mapGenerator.StartRound();
-
-            // reset spawner tracking for new round
-            _completedSpawners.Clear();
-            RefreshSpawners();
-
-            // respawn any dead players before starting next round
-            RespawnAllPlayers();
-
-            // hide boss until enemies are cleared again
-            if (_currentBoss != null)
-            {
-                _currentBoss.HideBoss();
-            }
-
-            // start enemy waves with scaling multiplier
-            float multiplier = GetEnemyMultiplier(CurrentRound.Value - 1);
-            EnemySpawner.ResetAllSpawners(multiplier);
-
-            // notify clients to hide selection ui and fire round start event via ItemManager rpc
-            if (ItemManager.Instance != null)
-            {
-                ItemManager.Instance.NotifyRoundStartedAndHideSelection(CurrentRound.Value);
-            }
-
-            ExploreState.SetValue();
+            // in room-based system, item selection after boss = victory
         }
 
         // =====================================
         // boss registration
         // =====================================
 
-        // allow setting boss reference from boss script
         public void RegisterBoss(BossBase boss)
         {
             _currentBoss = boss;
-            _currentBossData = boss?.BossData;
         }
 
         // =====================================
@@ -448,22 +371,18 @@ namespace Category5.Core
         // triggers game over state
         private void TriggerGameOver()
         {
-            // Debug.Log($"GameFlowManager: game over on round {CurrentRound.Value}");
             CurrentPhase.Value = GamePhase.GameOver;
-            TriggerGameOverLocal(CurrentRound.Value);
+            TriggerGameOverLocal();
         }
 
-        private void TriggerGameOverLocal(int roundReached)
+        private void TriggerGameOverLocal()
         {
-            // Debug.Log($"Game Over! Reached round {roundReached}");
-
-            // fire audio event for game over
             GameEvents.InvokeGameOver();
-            NotifyGameOverClientRpc(roundReached); // fire on all clients and host
+            NotifyGameOverClientRpc();
         }
 
         [ClientRpc]
-        private void NotifyGameOverClientRpc(int roundReached)
+        private void NotifyGameOverClientRpc()
         {
             OnGameOver?.Invoke();
         }
@@ -552,41 +471,14 @@ namespace Category5.Core
         // helpers
         // =====================================
 
-        private void RefreshSpawners()
-        {
-            _allSpawners = FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
-            // Debug.Log($"GameFlowManager: found {_allSpawners.Length} spawners in scene");
-        }
+        /// <summary>
+        /// returns the current storm data
+        /// </summary>
+        public StormData GetCurrentStorm() => currentStorm;
 
-        // Changed since inactive spawners need to be considered too
-        private bool AreAllActiveSpawnersFullyComplete()
-        {
-            var spawners = FindObjectsByType<EnemySpawner>(FindObjectsSortMode.None);
-            if (spawners == null || spawners.Length == 0) return false;
-
-            bool hasActiveSpawner = false;
-            foreach (var spawner in spawners)
-            {
-                if (spawner == null) continue;
-                hasActiveSpawner = true;
-
-                bool completed = spawner.CurrentWave >= spawner.TotalWaves && spawner.AliveEnemyCount == 0 && !spawner.IsSpawning;
-                if (!completed)
-                {
-                    return false;
-                }
-            }
-
-            return hasActiveSpawner;
-        }
-
-        private float GetEnemyMultiplier(int roundIndex)
-        {
-            if (enemyScalePerRound == null || enemyScalePerRound.Length == 0) return 1.0f;
-
-            return roundIndex < enemyScalePerRound.Length
-                ? enemyScalePerRound[roundIndex]
-                : enemyScalePerRound[enemyScalePerRound.Length - 1];
-        }
+        /// <summary>
+        /// returns the current room index
+        /// </summary>
+        public int GetCurrentRoomIndex() => _currentRoom != null ? _currentRoom.RoomIndex : -1;
     }
 }
