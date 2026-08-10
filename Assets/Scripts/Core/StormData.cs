@@ -45,6 +45,13 @@ namespace Category5.Core
         [Tooltip("prefab pool for the eye room (boss arena)")]
         public RoomPrefabPool eyeRoomPool;
 
+        [Header("blueprint")]
+        [Tooltip("optional artist-authored blueprint — overrides procedural ring generation when assigned")]
+        public StormBlueprint blueprint;
+
+        // true when a blueprint is assigned and ready to use
+        public bool HasBlueprint => blueprint != null;
+
         [Header("transition timers")]
         [Tooltip("seconds after room clear before players are recalled to the van")]
         public float recallTimer = 5f;

@@ -22,6 +22,14 @@ namespace Category5
         [Header("stability")]
         [SerializeField] private bool lockPosition = true;
 
+        [Header("vfx")]
+        [Tooltip("spawned once when the black hole appears (e.g. vortex open ring)")]
+        [SerializeField] private GameObject spawnVfxPrefab;
+        [Tooltip("looping effect during the pull phase, parented to the zone")]
+        [SerializeField] private GameObject pullVfxPrefab;
+        [Tooltip("spawned once when the black hole explodes")]
+        [SerializeField] private GameObject explosionVfxPrefab;
+
         [Header("debug")]
         [SerializeField] private bool showDebugPullSphere = true;
         [SerializeField] private Color debugSphereColor = new Color(0.08f, 0.05f, 0.16f, 0.18f);
@@ -37,6 +45,7 @@ namespace Category5
         private Vector3 _spawnPosition;
         private Rigidbody _rigidbody;
         private GameObject _debugSphere;
+        private GameObject _activePullVfx;
 
         // events for vfx/sfx hooks
         public static event System.Action<Vector3, float> OnBlackHoleSpawned;
@@ -322,7 +331,14 @@ namespace Category5
         private void NotifySpawnedClientRpc(Vector3 position, float radius)
         {
             OnBlackHoleSpawned?.Invoke(position, radius);
-            // Debug.Log($"[BlackHoleZone] spawned at {position}");
+
+            // spawn one-shot spawn vfx
+            if (spawnVfxPrefab != null)
+                Instantiate(spawnVfxPrefab, position, Quaternion.identity);
+
+            // spawn looping pull vfx as child of the zone
+            if (pullVfxPrefab != null && _activePullVfx == null)
+                _activePullVfx = Instantiate(pullVfxPrefab, transform);
         }
 
         [ClientRpc]
@@ -335,7 +351,17 @@ namespace Category5
         private void NotifyExplosionClientRpc(Vector3 position, int enemiesHit)
         {
             OnBlackHoleExploded?.Invoke(position, enemiesHit);
-            // Debug.Log($"[BlackHoleZone] explosion vfx at {position}, hit {enemiesHit}");
+
+            // destroy looping pull vfx
+            if (_activePullVfx != null)
+            {
+                Destroy(_activePullVfx);
+                _activePullVfx = null;
+            }
+
+            // spawn one-shot explosion vfx
+            if (explosionVfxPrefab != null)
+                Instantiate(explosionVfxPrefab, position, Quaternion.identity);
         }
 
         [ClientRpc]

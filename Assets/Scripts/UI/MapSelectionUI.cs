@@ -187,7 +187,7 @@ namespace Category5.UI
 
                 float radius = GetRingRadius(ring);
                 float angleStep = 360f / ringRooms.Count;
-                float startAngle = 90f; // top
+                float startAngle = 90f;
 
                 for (int i = 0; i < ringRooms.Count; i++)
                 {

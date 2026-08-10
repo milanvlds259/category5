@@ -29,6 +29,10 @@ namespace Category5.UI
         [SerializeField] private Color clearedColor = new Color(0.3f, 1f, 0.3f, 0.9f);
         [SerializeField] private Color eyeColor = new Color(1f, 0.4f, 0f, 1f);
 
+        [Header("blueprint")]
+        [Tooltip("optional background image — set automatically from blueprint if assigned")]
+        [SerializeField] private Image backgroundImage;
+
         [Header("scaling")]
         [Tooltip("world units per UI pixel — controls how zoomed in the map is")]
         [SerializeField] private float worldToUIScale = 0.5f;
@@ -97,6 +101,17 @@ namespace Category5.UI
 
             if (_layout == null) return;
 
+            // apply blueprint background if available (read from storm data)
+            var storm = GameFlowManager.Instance?.GetCurrentStorm();
+            var bp = storm != null ? storm.blueprint : null;
+            if (bp != null && backgroundImage != null)
+            {
+                if (bp.mapBackground != null)
+                    backgroundImage.sprite = bp.mapBackground;
+
+                backgroundImage.color = bp.mapTint;
+            }
+
             // create icons for each room
             for (int i = 0; i < _layout.TotalRooms; i++)
             {
@@ -134,7 +149,19 @@ namespace Category5.UI
             Image img = iconObj.GetComponent<Image>();
             if (img != null)
             {
-                img.color = hiddenColor;
+                // use blueprint icon/color per eyewall if available
+                var storm = GameFlowManager.Instance?.GetCurrentStorm();
+                var bp = storm != null ? storm.blueprint : null;
+                if (bp != null)
+                {
+                    Sprite icon = bp.GetIconForEyewall(data.eyewallIndex);
+                    if (icon != null) img.sprite = icon;
+                    img.color = bp.GetColorForEyewall(data.eyewallIndex);
+                }
+                else
+                {
+                    img.color = hiddenColor;
+                }
             }
 
             _roomIcons[data.roomIndex] = img;
@@ -151,7 +178,19 @@ namespace Category5.UI
             Image img = iconObj.GetComponent<Image>();
             if (img != null)
             {
-                img.color = eyeColor;
+                // use blueprint icon/color for eye room if available
+                var storm = GameFlowManager.Instance?.GetCurrentStorm();
+                var bp = storm != null ? storm.blueprint : null;
+                if (bp != null)
+                {
+                    Sprite icon = bp.GetIconForEyewall(-1);
+                    if (icon != null) img.sprite = icon;
+                    img.color = bp.GetColorForEyewall(-1);
+                }
+                else
+                {
+                    img.color = eyeColor;
+                }
             }
 
             _eyeIcon = img;
