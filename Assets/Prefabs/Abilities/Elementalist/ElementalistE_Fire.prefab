@@ -53,4 +53,4 @@ MonoBehaviour:
   burnDuration: 3
   spawnHeightOffset: 1.5
   spawnForwardOffset: 0.5
-  fireballPrefab: {fileID: 773458864881063007, guid: 26b13c5f90032034a9ce75635d031414, type: 3}
+  fireballPrefab: {fileID: 709864596039066683, guid: da0033cdbc4cc07478c904e635ca1195, type: 3}

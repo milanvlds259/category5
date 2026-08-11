@@ -21,5 +21,5 @@ MonoBehaviour:
   castTime: 0
   manaCost: 35
   consumesAllMana: 1
-  vfxPrefab: {fileID: 5359620070868328391, guid: 64698370742b3884e8ac327204ea1e8f, type: 3}
+  vfxPrefab: {fileID: 0}
   sfxClip: {fileID: 0}
