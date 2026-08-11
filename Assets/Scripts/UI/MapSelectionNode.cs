@@ -24,6 +24,22 @@ namespace Category5.UI
 
         public int RoomIndex => _roomIndex;
 
+        private void Awake()
+        {
+            // auto-assign references since nodes are created procedurally, not from a prefab
+            if (backgroundImage == null)
+                backgroundImage = GetComponent<Image>();
+
+            if (labelText == null)
+            {
+                var label = transform.Find("Label");
+                if (label != null) labelText = label.GetComponent<TextMeshProUGUI>();
+            }
+
+            if (canvasGroup == null)
+                canvasGroup = GetComponent<CanvasGroup>();
+        }
+
         // colors
         private static readonly Color ClearedColor = new Color(0.4f, 0.4f, 0.4f, 0.7f);
         private static readonly Color CurrentColor = new Color(1f, 0.85f, 0.2f, 1f);
@@ -31,7 +47,7 @@ namespace Category5.UI
         private static readonly Color EyeColor = new Color(1f, 0.2f, 0.2f, 1f);
         private static readonly Color DefaultColor = new Color(0.55f, 0.55f, 0.65f, 0.8f);
 
-        public void Initialize(int roomIndex, bool isEyeRoom)
+        public void Initialize(int roomIndex, bool isEyeRoom, Color? defaultColor = null, Sprite defaultIcon = null)
         {
             _roomIndex = roomIndex;
             _isSelectable = false;
@@ -56,17 +72,18 @@ namespace Category5.UI
                 labelText.fontSize = isEyeRoom ? 16f : 12f;
             }
 
-            // start as default
-            SetVisualState(DefaultColor);
+            // apply blueprint icon if provided
+            if (backgroundImage != null && defaultIcon != null)
+                backgroundImage.sprite = defaultIcon;
+
+            // start as default (use blueprint color if provided)
+            SetVisualState(defaultColor ?? DefaultColor);
         }
 
         public void SetVisualState(Color color)
         {
             if (backgroundImage != null)
                 backgroundImage.color = color;
-
-            if (ringIndicator != null)
-                ringIndicator.color = color * 0.8f;
         }
 
         public void SetSelectable(bool selectable)

@@ -11820,6 +11820,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Category5.UI.MapSelectionUI
   mapRadius: 280
   fadeInDuration: 0.2
+  backgroundImage: {fileID: 0}
+  titleFont: {fileID: 11400000, guid: 7f12ae2996ab1bb47b4ed1553d2d626c, type: 2}
 --- !u!1 &2079384095
 GameObject:
   m_ObjectHideFlags: 0

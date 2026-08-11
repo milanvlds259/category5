@@ -10,6 +10,54 @@ namespace Category5.UI
     // subscribes to GameFlowManager and StormRoom events for live updates
     public class StormMapUI : MonoBehaviour
     {
+        // tries to find the active blueprint from multiple sources
+        // GameFlowManager.GetCurrentStorm() only works on the server,
+        // so we fall back to MapGenerator.DefaultStorm for clients
+        private static StormBlueprint GetBlueprint()
+        {
+            // try the active storm from GameFlowManager first
+            if (GameFlowManager.Instance != null)
+            {
+                var storm = GameFlowManager.Instance.GetCurrentStorm();
+                if (storm != null)
+                {
+                    if (storm.blueprint != null)
+                        return storm.blueprint;
+                    Debug.LogWarning($"[StormMapUI] GameFlowManager storm '{storm.name}' has no blueprint assigned");
+                }
+                else
+                {
+                    Debug.Log("[StormMapUI] GameFlowManager.Instance exists but GetCurrentStorm() returned null");
+                }
+            }
+            else
+            {
+                Debug.Log("[StormMapUI] GameFlowManager.Instance is null");
+            }
+
+            // fallback: read from MapGenerator's default storm (serialized, available on all clients)
+            var mapGen = FindFirstObjectByType<MapGenerator>();
+            if (mapGen != null)
+            {
+                if (mapGen.DefaultStorm != null)
+                {
+                    if (mapGen.DefaultStorm.blueprint != null)
+                        return mapGen.DefaultStorm.blueprint;
+                    Debug.LogWarning($"[StormMapUI] MapGenerator.DefaultStorm '{mapGen.DefaultStorm.name}' has no blueprint assigned");
+                }
+                else
+                {
+                    Debug.LogWarning("[StormMapUI] MapGenerator found but DefaultStorm is null — assign a StormData to MapGenerator.defaultStorm in the inspector");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("[StormMapUI] no MapGenerator found in scene");
+            }
+
+            return null;
+        }
+
         [Header("map container")]
         [Tooltip("parent RectTransform for room icons — icons are positioned relative to this")]
         [SerializeField] private RectTransform mapContainer;
@@ -101,15 +149,19 @@ namespace Category5.UI
 
             if (_layout == null) return;
 
-            // apply blueprint background if available (read from storm data)
-            var storm = GameFlowManager.Instance?.GetCurrentStorm();
-            var bp = storm != null ? storm.blueprint : null;
-            if (bp != null && backgroundImage != null)
+            // apply blueprint background if available
+            var bp = GetBlueprint();
+            if (bp != null)
             {
-                if (bp.mapBackground != null)
-                    backgroundImage.sprite = bp.mapBackground;
+                Debug.Log($"[StormMapUI] using blueprint '{bp.name}'");
 
-                backgroundImage.color = bp.mapTint;
+                if (backgroundImage != null)
+                {
+                    if (bp.mapBackground != null)
+                        backgroundImage.sprite = bp.mapBackground;
+
+                    backgroundImage.color = bp.mapTint;
+                }
             }
 
             // create icons for each room
@@ -150,13 +202,14 @@ namespace Category5.UI
             if (img != null)
             {
                 // use blueprint icon/color per eyewall if available
-                var storm = GameFlowManager.Instance?.GetCurrentStorm();
-                var bp = storm != null ? storm.blueprint : null;
+                var bp = GetBlueprint();
                 if (bp != null)
                 {
                     Sprite icon = bp.GetIconForEyewall(data.eyewallIndex);
                     if (icon != null) img.sprite = icon;
-                    img.color = bp.GetColorForEyewall(data.eyewallIndex);
+                    Color c = bp.GetColorForEyewall(data.eyewallIndex);
+                    img.color = c;
+                    Debug.Log($"[StormMapUI] room {data.roomIndex} eyewall={data.eyewallIndex} color={c} icon={(icon != null ? icon.name : "null")}");
                 }
                 else
                 {
@@ -179,13 +232,14 @@ namespace Category5.UI
             if (img != null)
             {
                 // use blueprint icon/color for eye room if available
-                var storm = GameFlowManager.Instance?.GetCurrentStorm();
-                var bp = storm != null ? storm.blueprint : null;
+                var bp = GetBlueprint();
                 if (bp != null)
                 {
                     Sprite icon = bp.GetIconForEyewall(-1);
                     if (icon != null) img.sprite = icon;
-                    img.color = bp.GetColorForEyewall(-1);
+                    Color c = bp.GetColorForEyewall(-1);
+                    img.color = c;
+                    Debug.Log($"[StormMapUI] eye room color={c} icon={(icon != null ? icon.name : "null")}");
                 }
                 else
                 {

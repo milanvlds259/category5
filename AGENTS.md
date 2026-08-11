@@ -439,7 +439,7 @@ Framework contribution guide: `docs/CONTRIBUTING.md`.
   - Layers:
     - Default, TransparentFX, Ignore Raycast, Player, Water, UI, Enemy, Projectile, CloudSurface, PlayerInTunnel
 - Active game object:
-  - Name: Main Camera
-  - Tag: MainCamera
+  - Name: MapSelectionUI
+  - Tag: Untagged
   - Layer: Default
 <!-- UNITY CODE ASSIST INSTRUCTIONS END -->

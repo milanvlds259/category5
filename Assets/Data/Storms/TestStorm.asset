@@ -25,3 +25,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: fb69551ad57f254468a301bc217c6128, type: 2}
   - {fileID: 11400000, guid: fb69551ad57f254468a301bc217c6128, type: 2}
   eyeRoomPool: {fileID: 11400000, guid: 409c160b8bc089f41847b9ea0b7f862d, type: 2}
+  blueprint: {fileID: 11400000, guid: 7beffa5f6775bd84690a0bba4d6bfdc4, type: 2}
+  recallTimer: 5
+  prepTimer: 10
