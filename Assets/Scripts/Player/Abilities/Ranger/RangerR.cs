@@ -13,8 +13,13 @@ namespace Category5
         [SerializeField] private ProjectileData arrowData;
         [SerializeField] private Transform projectileSpawnPoint;
 
+        [Header("vfx")]
+        [Tooltip("spawned when the critshot arrow hits a target (overrides ProjectileData impact vfx)")]
+        [SerializeField] private GameObject critshotImpactVfxPrefab;
+
         // events for vfx/sfx hooks
         public static event System.Action<Vector3, Vector3> OnCritshotFired; // position, direction
+        public GameObject CritshotImpactVfxPrefab => critshotImpactVfxPrefab;
 
         private PlayerCombat playerCombat;
         private PlayerController playerControllerRef;

@@ -110,14 +110,14 @@ namespace Category5.Player
         }
         
         // initialize piercing projectile (for critshot ultimate)
-        public void InitializePiercing(ProjectileData data, ulong ownerClientId, PlayerStats ownerStats, float damageMultiplier, bool ignoreEnemies = true, bool ignoreEnvironment = true)
+        public void InitializePiercing(ProjectileData data, ulong ownerClientId, PlayerStats ownerStats, float damageMultiplier, bool ignoreEnemies = true, bool ignoreEnvironment = true, GameObject impactVfxOverride = null)
         {
             speed = data.Speed;
             _damageCoefficient = data.DamageCoefficient * damageMultiplier;
             lifetime = data.Lifetime;
             _ownerClientId = ownerClientId;
             _ownerInventory = ownerStats;
-            _impactVfxPrefab = data.ImpactVfxPrefab;
+            _impactVfxPrefab = impactVfxOverride != null ? impactVfxOverride : data.ImpactVfxPrefab;
             _isPiercing = true;
             _ignoreEnemies = ignoreEnemies;
             _ignoreEnvironment = ignoreEnvironment;

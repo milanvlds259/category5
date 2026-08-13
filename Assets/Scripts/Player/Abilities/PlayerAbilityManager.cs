@@ -665,6 +665,11 @@ namespace Category5
                 return;
             }
             
+            // check if RangerR has a critshot-specific impact vfx override
+            GameObject impactVfxOverride = null;
+            if (ability3 is RangerR rangerR)
+                impactVfxOverride = rangerR.CritshotImpactVfxPrefab;
+
             // initialize with piercing behavior using OwnerClientId from this manager's context
             projectile.InitializePiercing(
                 critshotArrowData,
@@ -672,7 +677,8 @@ namespace Category5
                 playerStats,
                 damageMultiplier,
                 ignoreEnemies: true,
-                ignoreEnvironment: true
+                ignoreEnvironment: true,
+                impactVfxOverride: impactVfxOverride
             );
             
             // spawn on network
