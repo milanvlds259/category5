@@ -13,24 +13,27 @@ namespace Category5
         [SerializeField] private float slowMultiplier = 0.6f;
         [SerializeField] private float arrowSpeed = 20f;
         [SerializeField] private float arrowLifetime = 5f;
-        
+
+        // events for vfx/sfx hooks
+        public static event System.Action<Vector3, Vector3> OnArrowLaunched; // position, direction
+
         private PlayerCombat playerCombat;
-        
+
         public override void Initialize(PlayerController player, PlayerStats stats, PlayerAbilityManager manager)
         {
             base.Initialize(player, stats, manager);
             playerCombat = player.GetComponent<PlayerCombat>();
         }
-        
+
         public override bool CanUse()
         {
             if (!base.CanUse()) return false;
             if (playerCombat == null) return false;
             if (playerCombat.CurrentCombatClass != CombatClass.Ranged) return false;
-            
+
             return true;
         }
-        
+
         public override void Execute()
         {
             Vector3 spawnPos = playerController.transform.position + Vector3.up * 1.5f + playerController.transform.forward * 0.5f;
@@ -38,6 +41,8 @@ namespace Category5
 
             SpawnVfx(spawnPos);
             PlayAudio(spawnPos);
+
+            OnArrowLaunched?.Invoke(spawnPos, direction);
 
             abilityManager.SpawnRangerEArrowServerRpc(
                 spawnPos,

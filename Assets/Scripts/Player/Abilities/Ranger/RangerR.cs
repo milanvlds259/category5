@@ -12,23 +12,26 @@ namespace Category5
         [SerializeField] private float damageMultiplier = 3f; // 3x damage
         [SerializeField] private ProjectileData arrowData;
         [SerializeField] private Transform projectileSpawnPoint;
-        
+
+        // events for vfx/sfx hooks
+        public static event System.Action<Vector3, Vector3> OnCritshotFired; // position, direction
+
         private PlayerCombat playerCombat;
         private PlayerController playerControllerRef;
-        
+
         public override void Initialize(PlayerController player, PlayerStats stats, PlayerAbilityManager manager)
         {
             base.Initialize(player, stats, manager);
             playerCombat = player.GetComponent<PlayerCombat>();
             playerControllerRef = player;
-            
+
             // try to find projectile spawn point if not assigned
             if (projectileSpawnPoint == null)
             {
                 projectileSpawnPoint = player.transform.Find("ProjectileSpawnPoint");
             }
         }
-        
+
         public override bool CanUse()
         {
             if (!base.CanUse()) return false;
@@ -39,29 +42,29 @@ namespace Category5
                 Debug.LogWarning("RangerR: No arrow data assigned!");
                 return false;
             }
-            
+
             return true;
         }
-        
+
         public override void Execute()
         {
-            // Debug.Log("RangerR.Execute() called");
-            
             // get spawn position
-            Vector3 spawnPos = projectileSpawnPoint != null 
-                ? projectileSpawnPoint.position 
+            Vector3 spawnPos = projectileSpawnPoint != null
+                ? projectileSpawnPoint.position
                 : playerControllerRef.transform.position + playerControllerRef.transform.forward * 0.5f + Vector3.up * 1.5f;
-            
+
             // apply forward offset
             spawnPos += (projectileSpawnPoint != null ? projectileSpawnPoint.forward : playerControllerRef.transform.forward) * arrowData.SpawnForwardOffset;
-            
+
             // get aim direction from camera
             Vector3 direction = GetAimDirection(spawnPos);
-            
+
+            // fire event
+            OnCritshotFired?.Invoke(spawnPos, direction);
+
             // send request to ability manager to spawn piercing arrow on server
-            // pass all necessary data directly to avoid dependency on ability state
             abilityManager.RequestSpawnNetworkProjectileServerRpc(spawnPos, direction, damageMultiplier);
-            
+
             // play vfx and audio directly (client-side)
             SpawnVfx(spawnPos);
             PlayAudio(spawnPos);

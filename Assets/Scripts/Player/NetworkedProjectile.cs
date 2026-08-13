@@ -321,9 +321,10 @@ namespace Category5.Player
             {
                 HitFeedbackManager.Instance.NotifyPlayerHitEnemy(position, damage, false);
             }
-            
-            // TODO: spawn impact vfx here for all clients
-            // Debug.Log($"Projectile hit at {position}");
+
+            // spawn impact vfx on all clients
+            if (_impactVfxPrefab != null)
+                Instantiate(_impactVfxPrefab, position, Quaternion.identity);
         }
         
         [ClientRpc]
