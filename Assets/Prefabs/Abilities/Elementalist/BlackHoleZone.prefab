@@ -154,7 +154,7 @@ MonoBehaviour:
   lockPosition: 1
   spawnVfxPrefab: {fileID: 5359620070868328391, guid: 64698370742b3884e8ac327204ea1e8f, type: 3}
   pullVfxPrefab: {fileID: 0}
-  explosionVfxPrefab: {fileID: 0}
+  explosionVfxPrefab: {fileID: 3640942085610094016, guid: 4c3c31b02e6f23f41b665006c434ab5b, type: 3}
   showDebugPullSphere: 0
   debugSphereColor: {r: 0.08, g: 0.05, b: 0.16, a: 0.7372549}
   explosionRadius: 8
