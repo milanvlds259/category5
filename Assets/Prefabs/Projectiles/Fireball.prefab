@@ -172,7 +172,8 @@ MonoBehaviour:
   detonationLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  showDebugExplosionSphere: 1
+  explosionVfxPrefab: {fileID: 709864596039066683, guid: da0033cdbc4cc07478c904e635ca1195, type: 3}
+  showDebugExplosionSphere: 0
   debugSphereDuration: 0.75
   debugSphereColor: {r: 0.8867924, g: 0.41417968, b: 0.11879673, a: 0.54509807}
 --- !u!1 &5934894194154960887
