@@ -22,6 +22,12 @@ namespace Category5
         [SerializeField] private float slowMultiplier = 0.5f;
         [SerializeField] private float slowDuration = 3f;
 
+        [Header("vfx")]
+        [Tooltip("spawned once when the ice lance hits an enemy")]
+        [SerializeField] private GameObject hitVfxPrefab;
+        [Tooltip("spawned once when the ice lance shatters on environment")]
+        [SerializeField] private GameObject shatterVfxPrefab;
+
         private ulong _ownerClientId;
         private PlayerStats _ownerStats;
         private Rigidbody _rigidbody;
@@ -162,12 +168,18 @@ namespace Category5
         private void IceHitClientRpc(Vector3 position)
         {
             OnIceHit?.Invoke(position);
+
+            if (hitVfxPrefab != null)
+                Instantiate(hitVfxPrefab, position, Quaternion.identity);
         }
 
         [ClientRpc]
         private void NotifyIceShatterClientRpc(Vector3 position)
         {
             OnIceShatter?.Invoke(position);
+
+            if (shatterVfxPrefab != null)
+                Instantiate(shatterVfxPrefab, position, Quaternion.identity);
         }
 
         [ClientRpc]

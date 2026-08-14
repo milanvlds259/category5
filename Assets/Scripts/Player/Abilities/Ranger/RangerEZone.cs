@@ -19,6 +19,12 @@ namespace Category5
         [SerializeField] private float slowMultiplier = 0.6f;
         private float _damageCoefficient = 1f;
 
+        [Header("vfx")]
+        [Tooltip("spawned once when the zone appears")]
+        [SerializeField] private GameObject spawnVfxPrefab;
+        [Tooltip("spawned once when the zone expires")]
+        [SerializeField] private GameObject expireVfxPrefab;
+
         private ulong _ownerClientId;
         private PlayerStats _ownerStats;
         private float _tickTimer;
@@ -125,12 +131,18 @@ namespace Category5
         private void NotifyZoneSpawnedClientRpc(Vector3 position, float radius)
         {
             OnZoneSpawned?.Invoke(position, radius);
+
+            if (spawnVfxPrefab != null)
+                Instantiate(spawnVfxPrefab, position, Quaternion.identity);
         }
 
         [ClientRpc]
         private void NotifyZoneExpiredClientRpc(Vector3 position)
         {
             OnZoneExpired?.Invoke(position);
+
+            if (expireVfxPrefab != null)
+                Instantiate(expireVfxPrefab, position, Quaternion.identity);
         }
     }
 }

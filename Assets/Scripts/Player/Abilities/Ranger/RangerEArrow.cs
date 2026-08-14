@@ -13,6 +13,13 @@ namespace Category5
         [SerializeField] private float speed = 20f;
         [SerializeField] private float lifetime = 5f;
 
+        [Header("vfx")]
+        [Tooltip("spawned once when the arrow detonates on impact")]
+        [SerializeField] private GameObject detonationVfxPrefab;
+
+        // events for vfx/sfx hooks
+        public static event System.Action<Vector3> OnArrowDetonated;
+
         private ulong _ownerClientId;
         private PlayerStats _ownerStats;
         private GameObject _zonePrefab;
@@ -114,6 +121,9 @@ namespace Category5
                 zonePosition.y = 0f;
             }
 
+            // notify all clients for vfx
+            NotifyArrowDetonatedClientRpc(hitPoint);
+
             SpawnZone(zonePosition);
         }
 
@@ -159,6 +169,15 @@ namespace Category5
             if (collider.GetComponent<PlayerController>() != null) return true;
             if (collider.GetComponentInParent<PlayerController>() != null) return true;
             return false;
+        }
+
+        [ClientRpc]
+        private void NotifyArrowDetonatedClientRpc(Vector3 position)
+        {
+            OnArrowDetonated?.Invoke(position);
+
+            if (detonationVfxPrefab != null)
+                Instantiate(detonationVfxPrefab, position, Quaternion.identity);
         }
     }
 }

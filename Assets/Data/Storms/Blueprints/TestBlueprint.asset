@@ -13,5 +13,21 @@ MonoBehaviour:
   m_Name: TestBlueprint
   m_EditorClassIdentifier: Assembly-CSharp::Category5.Core.StormBlueprint
   mapBackground: {fileID: 0}
-  mapTint: {r: 1, g: 1, b: 1, a: 1}
-  roomVisuals: []
+  mapTint: {r: 0, g: 1, b: 0.6068573, a: 1}
+  roomVisuals:
+  - eyewallIndex: 0
+    roomIcon: {fileID: -2413806693520163455, guid: ebe73ca9363db456bacf42c025bb4847, type: 3}
+    nodeColor: {r: 1, g: 0.066037595, b: 0.26302034, a: 0}
+    label: ROOM
+  - eyewallIndex: 1
+    roomIcon: {fileID: -2413806693520163455, guid: ebe73ca9363db456bacf42c025bb4847, type: 3}
+    nodeColor: {r: 1, g: 0.37342376, b: 0.06666666, a: 0}
+    label: ROOM
+  - eyewallIndex: 2
+    roomIcon: {fileID: -2413806693520163455, guid: ebe73ca9363db456bacf42c025bb4847, type: 3}
+    nodeColor: {r: 0.94716984, g: 0.8092444, b: 0.041103493, a: 0}
+    label: ROOM
+  - eyewallIndex: -1
+    roomIcon: {fileID: -2413806693520163455, guid: ebe73ca9363db456bacf42c025bb4847, type: 3}
+    nodeColor: {r: 0.4566037, g: 0.050829433, b: 0.062222023, a: 0}
+    label: ROOM

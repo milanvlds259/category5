@@ -21,6 +21,14 @@ namespace Category5.UI
         [SerializeField] private float mapRadius = 280f;
         [SerializeField] private float fadeInDuration = 0.2f;
 
+        [Header("blueprint")]
+        [Tooltip("optional background image — set automatically from blueprint if assigned")]
+        [SerializeField] private Image backgroundImage;
+
+        [Header("title")]
+        [Tooltip("optional font for the 'STORM MAP' title — leave null for default")]
+        [SerializeField] private TMP_FontAsset titleFont;
+
         private Canvas _canvas;
         private CanvasGroup _canvasGroup;
         private RectTransform _mapContainer;
@@ -167,6 +175,54 @@ namespace Category5.UI
         }
 
         // =====================================
+        // blueprint lookup
+        // =====================================
+
+        // tries to find the active blueprint from multiple sources
+        private static StormBlueprint GetBlueprint()
+        {
+            if (GameFlowManager.Instance != null)
+            {
+                var storm = GameFlowManager.Instance.GetCurrentStorm();
+                if (storm != null)
+                {
+                    if (storm.blueprint != null)
+                        return storm.blueprint;
+                    Debug.LogWarning($"[MapSelectionUI] GameFlowManager storm '{storm.name}' has no blueprint assigned");
+                }
+                else
+                {
+                    Debug.Log("[MapSelectionUI] GameFlowManager.Instance exists but GetCurrentStorm() returned null");
+                }
+            }
+            else
+            {
+                Debug.Log("[MapSelectionUI] GameFlowManager.Instance is null");
+            }
+
+            var mapGen = FindFirstObjectByType<MapGenerator>();
+            if (mapGen != null)
+            {
+                if (mapGen.DefaultStorm != null)
+                {
+                    if (mapGen.DefaultStorm.blueprint != null)
+                        return mapGen.DefaultStorm.blueprint;
+                    Debug.LogWarning($"[MapSelectionUI] MapGenerator.DefaultStorm '{mapGen.DefaultStorm.name}' has no blueprint assigned");
+                }
+                else
+                {
+                    Debug.LogWarning("[MapSelectionUI] MapGenerator found but DefaultStorm is null — assign a StormData to MapGenerator.defaultStorm in the inspector");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("[MapSelectionUI] no MapGenerator found in scene");
+            }
+
+            return null;
+        }
+
+        // =====================================
         // map building
         // =====================================
 
@@ -175,6 +231,21 @@ namespace Category5.UI
             ClearMap();
 
             if (_layout == null) return;
+
+            // apply blueprint background if available
+            var bp = GetBlueprint();
+            if (bp != null)
+            {
+                Debug.Log($"[MapSelectionUI] using blueprint '{bp.name}'");
+
+                if (backgroundImage != null)
+                {
+                    if (bp.mapBackground != null)
+                        backgroundImage.sprite = bp.mapBackground;
+
+                    backgroundImage.color = bp.mapTint;
+                }
+            }
 
             // place eye room at center
             PlaceNode(_layout.EyeRoomIndex, Vector2.zero, true);
@@ -225,7 +296,19 @@ namespace Category5.UI
 
             var nodeObj = CreateNodeElement(roomIndex, isEyeRoom);
             var node = nodeObj.GetComponent<MapSelectionNode>();
-            node.Initialize(roomIndex, isEyeRoom);
+
+            // get blueprint visuals for this room's eyewall
+            Color? bpColor = null;
+            Sprite bpIcon = null;
+            var bp = GetBlueprint();
+            if (bp != null && _layout != null)
+            {
+                int eyewall = _layout.GetRoom(roomIndex).eyewallIndex;
+                bpColor = bp.GetColorForEyewall(eyewall);
+                bpIcon = bp.GetIconForEyewall(eyewall);
+            }
+
+            node.Initialize(roomIndex, isEyeRoom, bpColor, bpIcon);
 
             RectTransform rt = nodeObj.GetComponent<RectTransform>();
             rt.SetParent(_mapContainer, false);
@@ -320,7 +403,7 @@ namespace Category5.UI
             var bgRt = bgObj.GetComponent<RectTransform>();
             StretchFull(bgRt);
             var bgImg = bgObj.AddComponent<Image>();
-            bgImg.color = new Color(0f, 0f, 0.05f, 0.85f);
+            bgImg.color = new Color(0.12f, 0.12f, 0.12f, 0.92f);
             bgImg.raycastTarget = true;
 
             // map container (centered, holds nodes and lines)
@@ -359,6 +442,7 @@ namespace Category5.UI
 
             var titleText = titleObj.AddComponent<TextMeshProUGUI>();
             titleText.text = "STORM MAP";
+            if (titleFont != null) titleText.font = titleFont;
             titleText.fontSize = 28;
             titleText.fontStyle = FontStyles.Bold;
             titleText.alignment = TextAlignmentOptions.Center;
@@ -468,17 +552,7 @@ namespace Category5.UI
         {
             var obj = new GameObject($"Room_{roomIndex}", typeof(RectTransform), typeof(Image), typeof(CanvasGroup), typeof(MapSelectionNode));
             var img = obj.GetComponent<Image>();
-            img.color = new Color(0.55f, 0.55f, 0.65f, 0.8f);
             img.raycastTarget = true;
-
-            // ring indicator (inner circle)
-            var ringObj = CreateUIElement("Ring", obj.transform);
-            var ringRt = ringObj.GetComponent<RectTransform>();
-            StretchFull(ringRt);
-            ringRt.sizeDelta = new Vector2(-8f, -8f);
-            var ringImg = ringObj.AddComponent<Image>();
-            ringImg.color = new Color(0.4f, 0.4f, 0.5f, 0.5f);
-            ringImg.raycastTarget = false;
 
             // label
             var labelObj = CreateUIElement("Label", obj.transform);

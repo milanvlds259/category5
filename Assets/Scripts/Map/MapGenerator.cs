@@ -15,6 +15,9 @@ namespace Category5.Map
         [Tooltip("the storm to generate — set by NetworkMenu before scene load, or assign in inspector for testing")]
         [SerializeField] private StormData defaultStorm;
 
+        // public read-only access so UI can read the blueprint from the default storm
+        public StormData DefaultStorm => defaultStorm;
+
         [Header("ring layout")]
         [Tooltip("radius of the outermost ring — must be large enough so rooms don't overlap")]
         [SerializeField] private float outerRingRadius = 200f;

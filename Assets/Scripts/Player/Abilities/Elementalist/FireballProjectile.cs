@@ -30,6 +30,10 @@ namespace Category5
         [Header("detonation")]
         [SerializeField] private LayerMask detonationLayers = ~0;
 
+        [Header("vfx")]
+        [Tooltip("spawned once when the fireball explodes")]
+        [SerializeField] private GameObject explosionVfxPrefab;
+
         [Header("debug")]
         [SerializeField] private bool showDebugExplosionSphere = true;
         [SerializeField] private float debugSphereDuration = 0.75f;
@@ -313,7 +317,9 @@ namespace Category5
         private void FireballExplodeClientRpc(Vector3 position, int enemiesHit)
         {
             OnFireballExplode?.Invoke(position, enemiesHit);
-            // Debug.Log($"[FireballProjectile] explosion vfx at {position}, hit {enemiesHit} enemies");
+
+            if (explosionVfxPrefab != null)
+                Instantiate(explosionVfxPrefab, position, Quaternion.identity);
         }
 
         [ClientRpc]
