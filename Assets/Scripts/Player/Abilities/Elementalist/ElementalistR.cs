@@ -23,11 +23,15 @@ namespace Category5
         // events for vfx/sfx hooks
         public static event System.Action<Vector3> OnBlackHoleCast;
 
+        // plays a cast animation and fires on the CastImpact animation event
+        public override bool HasCastAnimation => true;
+
+        // can be held to aim the black hole before firing
+        public override bool CanHoldToAim => true;
+
         public override void Execute()
         {
-            Vector3 spawnPos = playerController.transform.position
-                + Vector3.up * spawnHeightOffset
-                + playerController.transform.forward * spawnForwardOffset;
+            Vector3 spawnPos = GetSpawnPosition();
 
             Vector3 direction = GetAimDirection(spawnPos);
 
@@ -44,7 +48,21 @@ namespace Category5
             );
         }
 
-        private Vector3 GetAimDirection(Vector3 spawnPos)
+        // spawns from the model's projectile spawn point (hand), falling back to the old offsets
+        private Vector3 GetSpawnPosition()
+        {
+            Transform spawnPoint = GetProjectileSpawnPoint();
+            if (spawnPoint != null)
+            {
+                return spawnPoint.position;
+            }
+            return playerController.transform.position
+                + Vector3.up * spawnHeightOffset
+                + playerController.transform.forward * spawnForwardOffset;
+        }
+
+        // screen-center raycast capped at castRange (public override for hold-to-aim)
+        public override Vector3 GetAimDirection(Vector3 spawnPos)
         {
             if (Camera.main == null)
             {

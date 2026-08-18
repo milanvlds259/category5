@@ -24,6 +24,13 @@ namespace Category5
         [SerializeField] private Sprite iceIcon;
         [SerializeField] private Sprite thunderIcon;
 
+        [Header("element switch buff")]
+        [Tooltip("how long the damage buff lasts after cycling element")]
+        [SerializeField] private float eBuffDuration = 4f;
+
+        [Tooltip("additive damage multiplier applied to E after cycling element")]
+        [SerializeField] private float eBuffDamageMultiplier = 0.25f;
+
         // public accessor for other scripts (dispatcher reads this)
         public ElementMode CurrentElement => currentElement;
 
@@ -31,6 +38,9 @@ namespace Category5
 
         // event fired when element changes (for ui/vfx)
         public static event Action<ElementMode> OnElementChanged;
+
+        // event fired when the element switch buff starts (for ui/vfx - buff indicator)
+        public static event Action<ElementMode, float> OnElementBuffStarted; // element, duration
 
         public Sprite GetIconForElement(ElementMode mode)
         {
@@ -58,6 +68,13 @@ namespace Category5
 
             // notify listeners (ui, vfx)
             OnElementChanged?.Invoke(currentElement);
+
+            // apply temporary damage buff (encourages switching elements rather than spamming fireball)
+            if (playerStats != null && eBuffDamageMultiplier > 0f && eBuffDuration > 0f)
+            {
+                playerStats.ApplyTemporaryMultiplier("damage", eBuffDamageMultiplier, eBuffDuration);
+                OnElementBuffStarted?.Invoke(currentElement, eBuffDuration);
+            }
 
             // play audio/vfx feedback
             SpawnVfx(playerController.transform.position);

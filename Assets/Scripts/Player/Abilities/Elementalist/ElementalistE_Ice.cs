@@ -22,10 +22,21 @@ namespace Category5
         // events for vfx/sfx hooks
         public static event System.Action<Vector3, Vector3> OnIceLanceLaunched;
 
+        // plays a cast animation and fires on the CastImpact animation event
+        public override bool HasCastAnimation => true;
+
+        // can be held to aim an ice lance before firing (flat forward direction)
+        public override bool CanHoldToAim => true;
+
+        // ice aims flat (ignores vertical pitch) so the lance travels along the ground
+        public override Vector3 GetAimDirection(Vector3 spawnPos)
+        {
+            return GetFlatForwardDirection();
+        }
+
         public override void Execute()
         {
-            Vector3 spawnPos = playerController.transform.position
-                + playerController.transform.forward * spawnForwardOffset;
+            Vector3 spawnPos = GetSpawnPosition();
 
             Vector3 direction = GetFlatForwardDirection();
 
@@ -40,6 +51,18 @@ namespace Category5
                 spawnPos, direction, abilityData.damageCoefficient, projectileSpeed,
                 projectileLifetime, slowMultiplier, slowDuration
             );
+        }
+
+        // spawns from the model's projectile spawn point (hand), falling back to the old offsets
+        private Vector3 GetSpawnPosition()
+        {
+            Transform spawnPoint = GetProjectileSpawnPoint();
+            if (spawnPoint != null)
+            {
+                return spawnPoint.position;
+            }
+            return playerController.transform.position
+                + playerController.transform.forward * spawnForwardOffset;
         }
 
         private Vector3 GetFlatForwardDirection()

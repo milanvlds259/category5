@@ -15,6 +15,23 @@ namespace Category5
         // cached reference to Q ability for reading current element
         private ElementalistQ _elementCycler;
 
+        // the dispatcher plays a cast animation and defers to the active sub-ability on the CastImpact event
+        public override bool HasCastAnimation => true;
+
+        // the dispatcher can be held to aim - delegates the aim type to the active sub-ability
+        public override bool CanHoldToAim => true;
+
+        // expose the active sub-ability's data so cooldown/mana use the current element's values
+        public override AbilityData Data => ActiveAbilityData;
+
+        // delegate aim direction to the active sub-ability (fire=screen-center, ice=flat forward, thunder=forward)
+        public override Vector3 GetAimDirection(Vector3 spawnPos)
+        {
+            AbilityBase active = GetActiveAbility();
+            if (active == null) return base.GetAimDirection(spawnPos);
+            return active.GetAimDirection(spawnPos);
+        }
+
         public override void Initialize(PlayerController player, PlayerStats stats, PlayerAbilityManager manager)
         {
             base.Initialize(player, stats, manager);

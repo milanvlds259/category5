@@ -10,10 +10,12 @@ namespace Category5.Player
     public class PlayerAnimationEventRelay : MonoBehaviour
     {
         private PlayerCombat _playerCombat;
+        private PlayerAbilityManager _playerAbilityManager;
 
-        public void Configure(PlayerCombat playerCombat)
+        public void Configure(PlayerCombat playerCombat, PlayerAbilityManager playerAbilityManager)
         {
             _playerCombat = playerCombat;
+            _playerAbilityManager = playerAbilityManager;
         }
 
         // animation event hook place this on hit frame in attack clips
@@ -28,6 +30,21 @@ namespace Category5.Player
             if (_playerCombat != null)
             {
                 _playerCombat.OnAttackImpactAnimationEvent();
+            }
+        }
+
+        // animation event hook for cast abilities - place this on the cast frame in cast clips
+        [Preserve]
+        public void CastImpact()
+        {
+            if (_playerAbilityManager == null)
+            {
+                _playerAbilityManager = GetComponentInParent<PlayerAbilityManager>();
+            }
+
+            if (_playerAbilityManager != null)
+            {
+                _playerAbilityManager.OnCastImpactAnimationEvent();
             }
         }
 
