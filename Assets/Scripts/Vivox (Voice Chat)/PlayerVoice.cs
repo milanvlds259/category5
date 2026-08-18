@@ -7,6 +7,8 @@ using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Vivox;
 using TMPro;
+using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 public class PlayerVoice : NetworkBehaviour
 {
@@ -15,7 +17,11 @@ public class PlayerVoice : NetworkBehaviour
     [SerializeField] private GameObject _playerHead;
     private Vector3 lastHeadPos;
 
+    private int volumeNum = 12;
+
     private string channelName = "ProximityChat";
+    private string testChannelName = "TestingChat";
+    private string radioChannelName = "RadioChat";
     private bool inChannel = false;
     Channel3DProperties properties;
 
@@ -23,11 +29,24 @@ public class PlayerVoice : NetworkBehaviour
 
     private float _nextPosUpdate;
 
+    public Toggle echoToggle;
+    public Toggle muteToggle;
     public TMP_Dropdown inputDropdown;
     private List<VivoxInputDevice> availableDevices = new List<VivoxInputDevice>();
 
+    private bool testingOn = false;
+    private bool pttOn = false;
+
+    private AudioSource radioSFX;
+    public AudioClip radioClickBeep;
+    public AudioClip radioClick;
+
     void Start()
     {
+        echoToggle.onValueChanged.AddListener(OnEchoToggleChanged);
+        muteToggle.onValueChanged.AddListener(OnMuteToggleChanged);
+        radioSFX = GetComponent<AudioSource>();
+
         if (IsLocalPlayer)
         {
             InitializeAsync();
@@ -66,9 +85,6 @@ public class PlayerVoice : NetworkBehaviour
             PopulateInputDropdown();
 
             Join3DChannelAsync();
-
-            // Used for testing your own voice
-            // JoinEchoChannelAsync();
         }
     }
 
@@ -76,18 +92,35 @@ public class PlayerVoice : NetworkBehaviour
     public async void Join3DChannelAsync()
     {
         await VivoxService.Instance.JoinPositionalChannelAsync(channelName, ChatCapability.AudioOnly, properties);
-        VivoxService.Instance.SetOutputDeviceVolume(15);
+        VivoxService.Instance.SetOutputDeviceVolume(volumeNum);
         inChannel = true;
+        JoinGroupChannelAsync();
+        await VivoxService.Instance.SetChannelTransmissionModeAsync(TransmissionMode.Single, channelName);
         Debug.Log("Joined 3D positional channel.");
     }
 
     // Puts you into a testing channel
     public async void JoinEchoChannelAsync()
     {
-        await VivoxService.Instance.JoinEchoChannelAsync(channelName, ChatCapability.AudioOnly);
-        VivoxService.Instance.SetOutputDeviceVolume(15);
+        await VivoxService.Instance.JoinEchoChannelAsync(testChannelName, ChatCapability.AudioOnly);
+        VivoxService.Instance.SetOutputDeviceVolume(volumeNum);
         inChannel = true;
         Debug.Log("Joined Echo channel.");
+    }
+
+    public async void JoinGroupChannelAsync()
+    {
+        await VivoxService.Instance.JoinGroupChannelAsync(radioChannelName, ChatCapability.AudioOnly);
+        VivoxService.Instance.SetOutputDeviceVolume(volumeNum);
+        Debug.Log("Joined Group channel.");
+    }
+
+    // Leaves a given channel
+    void LeaveChannel(string channelNameToLeave)
+    {
+        VivoxService.Instance.SetChannelTransmissionModeAsync(TransmissionMode.All);
+        VivoxService.Instance.LeaveChannelAsync(channelNameToLeave);
+        Debug.Log("Left " + channelNameToLeave + " channel.");
     }
 
     // Update is called once per frame
@@ -96,10 +129,38 @@ public class PlayerVoice : NetworkBehaviour
         if (inChannel && IsLocalPlayer)
         {
             // So it doesn't do this every frame
-            if (Time.time > _nextPosUpdate)
+            if (Time.time > _nextPosUpdate && testingOn == false)
             {
                 UpdatePlayerPos();
                 _nextPosUpdate += 0.3f;
+            }
+
+            if (pttOn && Keyboard.current != null && testingOn == false)
+            {
+                if (Keyboard.current.cKey.wasPressedThisFrame)
+                {
+                    VivoxService.Instance.SetChannelTransmissionModeAsync(TransmissionMode.Single, channelName);
+                    Debug.Log("Transmitting voice.");
+                } else if (Keyboard.current.cKey.wasReleasedThisFrame)
+                {
+                    VivoxService.Instance.SetChannelTransmissionModeAsync(TransmissionMode.None);
+                    Debug.Log("Not transmitting voice.");
+                }
+            }
+
+            if (Keyboard.current != null && testingOn == false)
+            {
+                if (Keyboard.current.vKey.wasPressedThisFrame)
+                {
+                    radioSFX.PlayOneShot(radioClickBeep);
+                    VivoxService.Instance.SetChannelTransmissionModeAsync(TransmissionMode.All);
+                    Debug.Log("Radio on.");
+                } else if (Keyboard.current.vKey.wasReleasedThisFrame)
+                {
+                    radioSFX.PlayOneShot(radioClick);
+                    VivoxService.Instance.SetChannelTransmissionModeAsync(TransmissionMode.Single, channelName);
+                    Debug.Log("Radio off.");
+                }
             }
         }
     }
@@ -182,5 +243,76 @@ public class PlayerVoice : NetworkBehaviour
     {
         await VivoxService.Instance.SetActiveInputDeviceAsync(device);
         Debug.Log("Set new input device.");
+    }
+
+    // Switches to voice testing mode
+    void TestingEnabled()
+    {
+        if (inChannel)
+        {
+            LeaveChannel(channelName);
+            LeaveChannel(radioChannelName);
+            inChannel = false;
+            JoinEchoChannelAsync();
+            testingOn = true;
+            Debug.Log("Successfully enabled Voice Testing Mode.");
+        }
+    }
+
+    // Stops voice testing mode
+    void TestingDisabled()
+    {
+        if (inChannel)
+        {
+            LeaveChannel(testChannelName);
+            inChannel = false;
+            Join3DChannelAsync();
+            testingOn = false;
+            Debug.Log("Successfully disabled Voice Testing Mode.");
+        }
+    }
+
+    public void OnEchoToggleChanged(bool value)
+    {
+        Debug.Log("Voice Testing toggle changed.");
+        if (value == true)
+        {
+            TestingEnabled();
+        } else if (value == false)
+        {
+            TestingDisabled();
+        }
+    }
+
+    public void OnMuteToggleChanged(bool value)
+    {
+        Debug.Log("PTT toggle changed.");
+        if (value == true)
+        {
+            PttEnabled();
+        } else if (value == false)
+        {
+            PttDisabled();
+        }
+    }
+
+    void PttEnabled()
+    {
+        if (pttOn == false)
+        {
+            VivoxService.Instance.SetChannelTransmissionModeAsync(TransmissionMode.None);
+            pttOn = true;
+            Debug.Log("Push to Talk Enabled.");
+        }
+    }
+
+    void PttDisabled()
+    {
+        if (pttOn == true)
+        {
+            VivoxService.Instance.SetChannelTransmissionModeAsync(TransmissionMode.Single, channelName);
+            pttOn = false;
+            Debug.Log("Push to Talk Disabled.");
+        }
     }
 }
