@@ -12,6 +12,16 @@ namespace Category5
         [Header("Heal Settings")]
         [SerializeField] private LayerMask playerLayers;
 
+        [Header("vfx")]
+        [Tooltip("spawned once when the beacon appears")]
+        [SerializeField] private GameObject spawnVfxPrefab;
+        [Tooltip("looping aura effect parented to the beacon")]
+        [SerializeField] private GameObject activeVfxPrefab;
+        [Tooltip("spawned once when the beacon expires")]
+        [SerializeField] private GameObject expireVfxPrefab;
+        [Tooltip("spawned at the heal target's position every tick")]
+        [SerializeField] private GameObject healTickVfxPrefab;
+
         [Header("Debug")]
         [SerializeField] private bool showDebugRadius = true;
         [SerializeField] private Color debugColor = new Color(1f, 1f, 0f, 0.2f);
@@ -106,6 +116,9 @@ namespace Category5
         private void NotifyHealTickClientRpc(Vector3 position, int healAmount)
         {
             OnHealTick?.Invoke(position, healAmount);
+
+            if (healTickVfxPrefab != null)
+                Instantiate(healTickVfxPrefab, position, Quaternion.identity);
         }
 
         [ClientRpc]
@@ -113,6 +126,15 @@ namespace Category5
         {
             OnBeaconSpawned?.Invoke(position, radius);
             CreateDebugSphere(radius);
+
+            if (spawnVfxPrefab != null)
+                Instantiate(spawnVfxPrefab, position, Quaternion.identity);
+
+            if (activeVfxPrefab != null)
+            {
+                GameObject activeVfx = Instantiate(activeVfxPrefab, transform);
+                activeVfx.transform.localPosition = Vector3.zero;
+            }
         }
 
         [ClientRpc]
@@ -123,6 +145,9 @@ namespace Category5
             {
                 Destroy(_debugSphere);
             }
+
+            if (expireVfxPrefab != null)
+                Instantiate(expireVfxPrefab, position, Quaternion.identity);
         }
 
 

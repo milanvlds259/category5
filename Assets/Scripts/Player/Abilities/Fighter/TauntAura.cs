@@ -12,15 +12,32 @@ namespace Category5
     {
         [SerializeField] private float detectionRadius = 8f;
         [SerializeField] private float detectionInterval = 0.2f;
-        
+
+        [Header("vfx")]
+        [Tooltip("looping aura effect parented to the owner")]
+        [SerializeField] private GameObject auraVfxPrefab;
+
+        // events for vfx/sfx hooks
+        public static event System.Action<Vector3> OnTauntAuraStarted;
+        public static event System.Action<Vector3> OnTauntAuraEnded;
+
         private PlayerController playerOwner;
         private float detectionTimer;
         private List<EnemyBase> affectedEnemies = new List<EnemyBase>();
-        
+        private GameObject _activeVfx;
+
         public void Initialize(PlayerController owner)
         {
             playerOwner = owner;
             detectionTimer = 0f;
+
+            OnTauntAuraStarted?.Invoke(playerOwner.transform.position);
+
+            if (auraVfxPrefab != null)
+            {
+                _activeVfx = Instantiate(auraVfxPrefab, playerOwner.transform);
+                _activeVfx.transform.localPosition = Vector3.zero;
+            }
         }
         
         private void Update()
@@ -88,8 +105,14 @@ namespace Category5
                     tauntable?.ClearTauntTarget();
                 }
             }
-            
+
             affectedEnemies.Clear();
+
+            if (playerOwner != null)
+                OnTauntAuraEnded?.Invoke(playerOwner.transform.position);
+
+            if (_activeVfx != null)
+                Destroy(_activeVfx);
         }
         
         // optional: visualize detection radius in editor

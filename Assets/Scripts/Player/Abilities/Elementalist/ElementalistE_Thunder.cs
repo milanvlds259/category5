@@ -13,16 +13,28 @@ namespace Category5
         [SerializeField] private float stunDelay = 0.12f;
         [SerializeField] private LayerMask enemyLayers = 1 << 6;
 
+        [Header("vfx")]
+        [Tooltip("spawned once when the thunder aoe executes")]
+        [SerializeField] private GameObject castVfxPrefab;
+
         // exposes the aoe radius for the aim indicator ring
         public float ArcRadius => arcRadius;
 
         // events for vfx/sfx hooks (position, radius)
         public static event System.Action<Vector3, float> OnThunderArcExecute;
 
+        // static instance for spawning prefabs from invoke helpers
+        private static ElementalistE_Thunder Instance { get; set; }
+        private void OnEnable() => Instance = this;
+        private void OnDisable() { if (Instance == this) Instance = null; }
+
         // public method to invoke event from PlayerAbilityManager rpcs
         public static void InvokeThunderArcExecute(Vector3 position, float radius)
         {
             OnThunderArcExecute?.Invoke(position, radius);
+
+            if (Instance != null && Instance.castVfxPrefab != null)
+                Instantiate(Instance.castVfxPrefab, position, Quaternion.identity);
         }
 
         // plays a cast animation and fires on the CastImpact animation event

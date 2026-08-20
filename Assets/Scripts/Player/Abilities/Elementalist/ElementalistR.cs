@@ -20,6 +20,10 @@ namespace Category5
         [SerializeField] private float spawnHeightOffset = 1.5f;
         [SerializeField] private float spawnForwardOffset = 0.5f;
 
+        [Header("vfx")]
+        [Tooltip("spawned once when the black hole projectile is launched")]
+        [SerializeField] private GameObject castVfxPrefab;
+
         // events for vfx/sfx hooks
         public static event System.Action<Vector3> OnBlackHoleCast;
 
@@ -40,6 +44,9 @@ namespace Category5
             OnBlackHoleCast?.Invoke(spawnPos);
             SpawnVfx(spawnPos);
             PlayAudio(spawnPos);
+
+            if (castVfxPrefab != null)
+                Instantiate(castVfxPrefab, spawnPos, Quaternion.identity);
 
             // request server to spawn the black hole projectile
             abilityManager.SpawnBlackHoleProjectileServerRpc(

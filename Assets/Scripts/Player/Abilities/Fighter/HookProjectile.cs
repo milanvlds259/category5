@@ -17,7 +17,16 @@ namespace Category5.Player.Abilities
         
         [Header("layers to ignore")]
         [SerializeField] private LayerMask ignoreLayers; // set in prefab to ignore Player and Projectile layers
-        
+
+        [Header("vfx")]
+        [Tooltip("spawned once when the hook hits a boss")]
+        [SerializeField] private GameObject bossHitVfxPrefab;
+        [Tooltip("spawned once when the hook hits an enemy")]
+        [SerializeField] private GameObject enemyHitVfxPrefab;
+
+        // events for vfx/sfx hooks
+        public static event System.Action<Vector3, bool> OnHookHitTarget; // position, isBoss
+
         // runtime state
         private ulong _ownerNetworkObjectId;
         private float _speed;
@@ -114,18 +123,22 @@ namespace Category5.Player.Abilities
             {
                 // Debug.Log($"HookProjectile: Hit boss {boss.gameObject.name}!");
                 _hasHit = true;
-                NotifyOwnerHit(other.ClosestPoint(transform.position), boss.NetworkObjectId, true);
+                Vector3 hitPos = other.ClosestPoint(transform.position);
+                NotifyHookHitClientRpc(hitPos, true);
+                NotifyOwnerHit(hitPos, boss.NetworkObjectId, true);
                 DespawnHook();
                 return;
             }
-            
+
             // check for enemy
             var enemy = other.GetComponentInParent<EnemyBase>();
             if (enemy != null)
             {
                 // Debug.Log($"HookProjectile: Hit enemy {enemy.gameObject.name}!");
                 _hasHit = true;
-                NotifyOwnerHit(other.ClosestPoint(transform.position), enemy.NetworkObjectId, false);
+                Vector3 hitPos = other.ClosestPoint(transform.position);
+                NotifyHookHitClientRpc(hitPos, false);
+                NotifyOwnerHit(hitPos, enemy.NetworkObjectId, false);
                 DespawnHook();
                 return;
             }
@@ -174,6 +187,16 @@ namespace Category5.Player.Abilities
         {
             Gizmos.color = Color.yellow;
             Gizmos.DrawRay(transform.position, transform.forward * 2f);
+        }
+
+        [ClientRpc]
+        private void NotifyHookHitClientRpc(Vector3 position, bool isBoss)
+        {
+            OnHookHitTarget?.Invoke(position, isBoss);
+
+            GameObject prefab = isBoss ? bossHitVfxPrefab : enemyHitVfxPrefab;
+            if (prefab != null)
+                Instantiate(prefab, position, Quaternion.identity);
         }
     }
 }

@@ -19,6 +19,10 @@ namespace Category5
         [Header("prefab")]
         [SerializeField] private GameObject iceProjectilePrefab;
 
+        [Header("vfx")]
+        [Tooltip("spawned once when the ice lance is launched")]
+        [SerializeField] private GameObject castVfxPrefab;
+
         // events for vfx/sfx hooks
         public static event System.Action<Vector3, Vector3> OnIceLanceLaunched;
 

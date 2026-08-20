@@ -26,13 +26,36 @@ namespace Category5
         [Header("shared")]
         [SerializeField] private LayerMask enemyLayers = 1 << 6;
 
+        [Header("vfx")]
+        [Tooltip("spawned once when the grounded slam connects")]
+        [SerializeField] private GameObject groundedSlamVfxPrefab;
+        [Tooltip("spawned once when the airborne slam connects")]
+        [SerializeField] private GameObject airborneSlamVfxPrefab;
+
         // events for vfx/sfx
         public static event System.Action<Vector3> OnSlamGrounded;
         public static event System.Action<Vector3> OnSlamAirborne;
 
         // called from PlayerAbilityManager clientrpcs
-        public static void InvokeSlamGrounded(Vector3 position) => OnSlamGrounded?.Invoke(position);
-        public static void InvokeSlamAirborne(Vector3 position) => OnSlamAirborne?.Invoke(position);
+        public static void InvokeSlamGrounded(Vector3 position)
+        {
+            OnSlamGrounded?.Invoke(position);
+            if (Instance != null && Instance.groundedSlamVfxPrefab != null)
+                Instantiate(Instance.groundedSlamVfxPrefab, position, Quaternion.identity);
+        }
+
+        public static void InvokeSlamAirborne(Vector3 position)
+        {
+            OnSlamAirborne?.Invoke(position);
+            if (Instance != null && Instance.airborneSlamVfxPrefab != null)
+                Instantiate(Instance.airborneSlamVfxPrefab, position, Quaternion.identity);
+        }
+
+        // static instance reference so invoke helpers can spawn prefabs on the local client
+        private static FighterQ Instance { get; set; }
+
+        private void OnEnable() => Instance = this;
+        private void OnDisable() { if (Instance == this) Instance = null; }
 
         public override bool CanUse()
         {

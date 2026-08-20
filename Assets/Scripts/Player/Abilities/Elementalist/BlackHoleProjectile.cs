@@ -16,6 +16,13 @@ namespace Category5
         [Header("detonation")]
         [SerializeField] private LayerMask detonationLayers = ~0;
 
+        [Header("vfx")]
+        [Tooltip("spawned once when the black hole projectile detonates (sends the zone into its spawn phase)")]
+        [SerializeField] private GameObject detonationVfxPrefab;
+
+        // events for vfx/sfx hooks
+        public static event System.Action<Vector3> OnBlackHoleDetonated;
+
         private ulong _ownerClientId;
         private PlayerStats _ownerStats;
         private GameObject _blackHoleZonePrefab;
@@ -116,6 +123,8 @@ namespace Category5
                 return;
             }
 
+            NotifyBlackHoleDetonatedClientRpc(position);
+
             GameObject obj = Instantiate(_blackHoleZonePrefab, position, Quaternion.identity);
             NetworkObject netObj = obj.GetComponent<NetworkObject>();
             BlackHoleZone zone = obj.GetComponent<BlackHoleZone>();
@@ -133,6 +142,15 @@ namespace Category5
 
             netObj.Spawn();
             DespawnProjectile();
+        }
+
+        [ClientRpc]
+        private void NotifyBlackHoleDetonatedClientRpc(Vector3 position)
+        {
+            OnBlackHoleDetonated?.Invoke(position);
+
+            if (detonationVfxPrefab != null)
+                Instantiate(detonationVfxPrefab, position, Quaternion.identity);
         }
 
         private void DespawnProjectile()

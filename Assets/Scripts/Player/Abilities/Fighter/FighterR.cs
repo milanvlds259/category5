@@ -23,6 +23,12 @@ namespace Category5
         [SerializeField] private float bigMoveBoxForwardOffset = 2f;
         [SerializeField] private LayerMask enemyLayers = 1 << 6;
 
+        [Header("vfx")]
+        [Tooltip("spawned once when the tempest engine ult is activated")]
+        [SerializeField] private GameObject tempestActivateVfxPrefab;
+        [Tooltip("spawned once when the big move final hit connects")]
+        [SerializeField] private GameObject tempestBigMoveVfxPrefab;
+
         // vfx/sfx events (use OnTempestActivate as event name to avoid clash with the instance callback method)
         public static event System.Action<Vector3> OnTempestActivate;
         public static event System.Action<Vector3, bool> OnTempestDeactivated; // bool = big move was used
@@ -30,8 +36,19 @@ namespace Category5
         // fires every frame while ult is active: (remainingSeconds, totalDuration)
         public static event System.Action<float, float> OnTempestTimerTick;
 
+        // static instance for spawning prefabs from invoke helpers
+        private static FighterR Instance { get; set; }
+        private void OnEnable() => Instance = this;
+        private void OnDisable() { if (Instance == this) Instance = null; }
+
         // public invoke helpers called from PlayerAbilityManager clientrpcs
-        public static void OnTempestBigMoveInvoke(Vector3 pos, Vector3 fwd) => OnTempestBigMove?.Invoke(pos, fwd);
+        public static void OnTempestBigMoveInvoke(Vector3 pos, Vector3 fwd)
+        {
+            OnTempestBigMove?.Invoke(pos, fwd);
+            if (Instance != null && Instance.tempestBigMoveVfxPrefab != null)
+                Instantiate(Instance.tempestBigMoveVfxPrefab, pos, Quaternion.identity);
+        }
+
         public static void OnTempestDeactivatedInvoke(Vector3 pos, bool usedBigMove) => OnTempestDeactivated?.Invoke(pos, usedBigMove);
 
         // only second press sets cooldown via server rpc; first press (activation) never starts cooldown here
@@ -99,6 +116,9 @@ namespace Category5
             playerStats.ApplyTemporaryMultiplier("speed", speedBoostMultiplier, ultDuration);
 
             OnTempestActivate?.Invoke(playerController.transform.position);
+
+            if (tempestActivateVfxPrefab != null)
+                Instantiate(tempestActivateVfxPrefab, playerController.transform.position, Quaternion.identity);
 
             if (HitFeedbackManager.Instance != null)
                 HitFeedbackManager.Instance.TriggerHeavyHit(playerController.transform.position);

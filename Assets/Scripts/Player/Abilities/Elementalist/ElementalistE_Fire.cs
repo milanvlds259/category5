@@ -24,6 +24,10 @@ namespace Category5
         [Header("prefab")]
         [SerializeField] private GameObject fireballPrefab;
 
+        [Header("vfx")]
+        [Tooltip("spawned once when the fireball is launched")]
+        [SerializeField] private GameObject castVfxPrefab;
+
         // events for vfx/sfx hooks
         public static event System.Action<Vector3, Vector3> OnFireballLaunched;
 
