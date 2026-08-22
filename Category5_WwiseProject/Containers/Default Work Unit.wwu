@@ -45,10 +45,14 @@
 										</MusicTransition>
 										<MusicTransition Name="Transition" ID="{6FA24F15-CDD1-4B44-82B8-A53584ACDD3F}">
 											<PropertyList>
+												<Property Name="EnableDestinationFadeIn" Type="bool" Value="True"/>
 												<Property Name="SourceContextType" Type="int16" Value="1"/>
 											</PropertyList>
-											<ReferenceList/>
-											<TransitionInfo/>
+											<TransitionInfo>
+												<DestinationFadeIn>
+													<MusicFade Name="Destination Fade-in" ID="{33CAF243-308B-457B-B9ED-9540ACEC1743}"/>
+												</DestinationFadeIn>
+											</TransitionInfo>
 										</MusicTransition>
 									</ChildrenList>
 									<TransitionInfo/>
@@ -341,7 +345,7 @@
 							<ChildrenList>
 								<MusicSegment Name="Cat5_Combat_Sketch4" ID="{67C79532-57D6-403F-8DB9-C078BE76CA7F}" ShortID="634875909">
 									<PropertyList>
-										<Property Name="EndPosition" Type="Real64" Value="29283.2653061224"/>
+										<Property Name="EndPosition" Type="Real64" Value="29664.557833043"/>
 									</PropertyList>
 									<ReferenceList>
 										<Reference Name="Conversion">
