@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using Unity.Netcode;
 using Unity.Collections;
 using UnityEngine.InputSystem;
@@ -150,6 +151,7 @@ namespace Category5.Player
         private float _lastDodgeTime = -10f;
         private Vector3 _dodgeDirection;
         private Transform _cameraTransform;
+        private bool _sceneLoadSubscribed = false;
         
         // Sprint State
         private bool _isSprinting;
@@ -307,6 +309,12 @@ namespace Category5.Player
             CurrentMana.OnValueChanged += OnManaValueChanged;
             IsDead.OnValueChanged += OnDeadStateChanged;
             PlayerName.OnValueChanged += OnPlayerNameChangedCallback;
+
+            if (!_sceneLoadSubscribed && NetworkManager.Singleton != null && NetworkManager.Singleton.SceneManager != null)
+            {
+                NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += OnSceneLoadCompleted;
+                _sceneLoadSubscribed = true;
+            }
             
             // subscribe to stat changes to update max health
             if (_playerStats != null)
@@ -394,10 +402,37 @@ namespace Category5.Player
             CurrentHealth.OnValueChanged -= OnHealthChanged;
             IsDead.OnValueChanged -= OnDeadStateChanged;
             PlayerName.OnValueChanged -= OnPlayerNameChangedCallback;
+
+            if (_sceneLoadSubscribed && NetworkManager.Singleton != null && NetworkManager.Singleton.SceneManager != null)
+            {
+                NetworkManager.Singleton.SceneManager.OnLoadEventCompleted -= OnSceneLoadCompleted;
+                _sceneLoadSubscribed = false;
+            }
             
             if (_playerStats != null)
             {
                 _playerStats.OnStatsChanged -= OnStatsChanged;
+            }
+        }
+
+        private void OnSceneLoadCompleted(string sceneName, LoadSceneMode loadSceneMode, System.Collections.Generic.List<ulong> clientsCompleted, System.Collections.Generic.List<ulong> clientsTimedOut)
+        {
+            if (_isOffline) return;
+
+            if (IsOwner)
+            {
+                var camera = FindFirstObjectByType<Category5.ThirdPersonCamera>();
+                if (camera != null)
+                {
+                    camera.SetTarget(transform);
+                    _cameraTransform = camera.transform;
+                }
+            }
+
+            if (IsServer && IsDead.Value)
+            {
+                CurrentHealth.Value = MaxHealth;
+                IsDead.Value = false;
             }
         }
         

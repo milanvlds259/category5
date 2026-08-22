@@ -324,7 +324,7 @@ namespace Category5.Enemies
                     continue;
                 }
                 
-                networkObject.Spawn();
+                networkObject.Spawn(true);
                 
                 // register with this spawner
                 EnemyBase enemy = enemyObject.GetComponent<EnemyBase>();

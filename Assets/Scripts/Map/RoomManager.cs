@@ -198,7 +198,7 @@ namespace Category5.Map
             NetworkObject roomNetObj = instance.GetComponent<NetworkObject>();
             if (roomNetObj != null && !roomNetObj.IsSpawned)
             {
-                roomNetObj.Spawn();
+                roomNetObj.Spawn(true);
             }
             else if (roomNetObj == null)
             {
