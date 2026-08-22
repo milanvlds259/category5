@@ -206,6 +206,37 @@ namespace Category5.Player.WindRiding
             Debug.Log($"[WindRide] EndCloudRiding with exit velocity: {exitVelocity.magnitude}");
         }
 
+        // temporary overrides for cloud-riding (e.g. assassin jammer star)
+        // returns the previous values so the caller can restore them when done
+        public CloudOverrideSnapshot ApplyCloudOverride(float? steeringResponsiveness = null, float? playerRotationSpeed = null)
+        {
+            var snapshot = new CloudOverrideSnapshot
+            {
+                steeringResponsiveness = settings.steeringResponsiveness,
+                playerRotationSpeed = settings.playerRotationSpeed
+            };
+
+            if (steeringResponsiveness.HasValue) settings.steeringResponsiveness = steeringResponsiveness.Value;
+            if (playerRotationSpeed.HasValue) settings.playerRotationSpeed = playerRotationSpeed.Value;
+
+            return snapshot;
+        }
+
+        // restores the values captured by ApplyCloudOverride
+        public void RestoreCloudOverride(CloudOverrideSnapshot snapshot)
+        {
+            if (snapshot == null) return;
+            settings.steeringResponsiveness = snapshot.steeringResponsiveness;
+            settings.playerRotationSpeed = snapshot.playerRotationSpeed;
+        }
+
+        // lightweight struct for snapshotting + restoring wind ride settings
+        public class CloudOverrideSnapshot
+        {
+            public float steeringResponsiveness;
+            public float playerRotationSpeed;
+        }
+
         private void Update()
         {
             // handle draft launch for grounded players BEFORE the IsWindRiding gate

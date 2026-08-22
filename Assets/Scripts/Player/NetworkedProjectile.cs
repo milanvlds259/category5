@@ -33,6 +33,15 @@ namespace Category5.Player
         
         // track if we've already hit something to prevent double damage
         private bool _hasHit = false;
+
+        // when true, OnTriggerEnter skips damage and despawn so a sibling component can handle it
+        public bool ExternalDamageHandling { get; set; } = false;
+
+        // public accessors so sibling components (e.g. BoomerangBehaviour) can read owner info
+        public ulong OwnerClientId => _ownerClientId;
+        public PlayerStats OwnerStats => _ownerInventory;
+        public float DamageCoefficient => _damageCoefficient;
+        public float Speed => speed;
         
         // cached components
         private Rigidbody _rigidbody;
@@ -123,11 +132,26 @@ namespace Category5.Player
             _ignoreEnvironment = ignoreEnvironment;
         }
         
+        // public helper so external components (e.g. BoomerangBehaviour) can show damage numbers to the owner
+        public void NotifyExternalDamage(int damage, Vector3 position)
+        {
+            ShowDamageNumberClientRpc(damage, position, new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = new ulong[] { _ownerClientId }
+                }
+            });
+        }
+
         private void OnTriggerEnter(Collider other)
         {
             // only server handles collision
             if (!IsServer) return;
             if (_hasHit && !_isPiercing) return;
+
+            // let a sibling component handle damage instead
+            if (ExternalDamageHandling) return;
             
             // Debug.Log($"Projectile collision with: {other.gameObject.name} on layer {LayerMask.LayerToName(other.gameObject.layer)}");
             
@@ -287,6 +311,12 @@ namespace Category5.Player
             {
                 NetworkObject.Despawn(true);
             }
+        }
+
+        // public helper so sibling components (e.g. BoomerangBehaviour) can force-despawn the projectile
+        public void Despawn()
+        {
+            DespawnProjectile();
         }
         
         [ClientRpc]

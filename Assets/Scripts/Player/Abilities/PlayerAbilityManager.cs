@@ -986,11 +986,113 @@ namespace Category5
                 ignoreEnvironment: true,
                 impactVfxOverride: impactVfxOverride
             );
-            
+
             // spawn on network
             netObj.Spawn();
-            
+
             // Debug.Log($"Critshot fired for client {OwnerClientId}! Piercing arrow with {damageMultiplier}x damage!");
+        }
+
+        // =====================================
+        // assassin jammer star
+        // =====================================
+        // per-player server-side session state keyed by OwnerClientId
+        // tracks unique enemy ids hit during the current jammer star cast and whether the refund was already granted
+        private static readonly Dictionary<ulong, JammerStarSession> _jammerStarSessions = new Dictionary<ulong, JammerStarSession>();
+
+        private class JammerStarSession
+        {
+            public HashSet<int> HitSet = new HashSet<int>();
+            public bool RefundGranted;
+        }
+
+        // owner-side per-frame detection calls this for each new unique enemy
+        // server applies damage and tracks unique-hit count
+        [Rpc(SendTo.Server)]
+        public void RequestAssassinJammerStarHitServerRpc(NetworkObjectReference enemyRef)
+        {
+            if (!IsServer) return;
+            if (!enemyRef.TryGet(out NetworkObject enemyObj)) return;
+
+            // get or create the per-player session state
+            if (!_jammerStarSessions.TryGetValue(OwnerClientId, out var session))
+            {
+                session = new JammerStarSession();
+                _jammerStarSessions[OwnerClientId] = session;
+            }
+
+            // never refund twice for the same jammer star cast
+            if (session.RefundGranted)
+            {
+                return;
+            }
+
+            int instanceId = enemyObj.GetInstanceID();
+            if (!session.HitSet.Add(instanceId))
+            {
+                return;
+            }
+
+            // apply damage with weak point routing
+            EnemyBase enemy = enemyObj.GetComponent<EnemyBase>();
+            BossBase boss = enemyObj.GetComponent<BossBase>();
+            if (enemy == null && boss == null) return;
+
+            int damage = playerStats != null
+                ? playerStats.CalculateDamage(jammerStarDamageCoefficient).damage
+                : Mathf.RoundToInt(jammerStarDamageCoefficient * 100f);
+
+            // weak point routing first
+            Collider hitCollider = enemyObj.GetComponentInChildren<Collider>();
+            bool intercepted = hitCollider != null && Category5.WeakPoints.WeakPointHelper.TryRouteMeleeDamage(
+                hitCollider, damage, OwnerClientId, transform.position);
+
+            if (!intercepted)
+            {
+                if (enemy != null && !enemy.IsDead)
+                {
+                    enemy.LastDamagerClientId = OwnerClientId;
+                    enemy.TakeDamage(damage);
+                }
+                else if (boss != null)
+                {
+                    boss.LastDamagerClientId = OwnerClientId;
+                    boss.TakeDamage(damage);
+                }
+            }
+
+            // check threshold and grant refund once
+            if (session.HitSet.Count >= jammerStarHitThreshold)
+            {
+                session.RefundGranted = true;
+                GrantJammerStarRefundClientRpc(new ClientRpcParams
+                {
+                    Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+                });
+            }
+        }
+
+        // tells the owner client to refund q charges
+        [ClientRpc]
+        private void GrantJammerStarRefundClientRpc(ClientRpcParams clientRpcParams = default)
+        {
+            if (!IsOwner) return;
+            if (ability3 is AssassinR assassinR)
+            {
+                assassinR.OnJammerStarRefundGranted();
+            }
+        }
+
+        // serialized coefficient used by the jammer star tick damage
+        [SerializeField] private float jammerStarDamageCoefficient = 1.0f;
+        [SerializeField] private int jammerStarHitThreshold = 3;
+
+        // called by the client when jammer star ends so the server can free the session dict
+        [Rpc(SendTo.Server)]
+        public void EndAssassinJammerStarServerRpc()
+        {
+            if (!IsServer) return;
+            _jammerStarSessions.Remove(OwnerClientId);
         }
 
         [Rpc(SendTo.Server)]
@@ -1510,6 +1612,8 @@ namespace Category5
                     int id = enemy.GetInstanceID();
                     if (!hitTargets.Add(id)) continue;
 
+                    // set kill attribution before damage so weak point breaks attribute to the assassin
+                    enemy.LastDamagerClientId = OwnerClientId;
                     enemy.TakeDamage(adjustedDamage);
                     ShowAssassinQDamageNumberClientRpc(adjustedDamage, enemy.transform.position, new ClientRpcParams
                     {
@@ -1525,6 +1629,7 @@ namespace Category5
                     int id = boss.GetInstanceID();
                     if (!hitTargets.Add(id)) continue;
 
+                    boss.LastDamagerClientId = OwnerClientId;
                     boss.TakeDamage(adjustedDamage);
                     ShowAssassinQDamageNumberClientRpc(adjustedDamage, boss.transform.position, new ClientRpcParams
                     {
@@ -1580,7 +1685,7 @@ namespace Category5
         [Rpc(SendTo.Server)]
         public void TriggerAssassinEWhirlwindStartServerRpc(Vector3 startPosition, Vector3 direction, float hitRadius)
         {
-            // server triggers the start of the whirlwind dash for all clients
+            // server triggers the start of the blade dance dash for all clients
             if (!IsServer) return;
 
             if (direction == Vector3.zero)
@@ -1597,7 +1702,7 @@ namespace Category5
         [ClientRpc]
         private void TriggerAssassinEWhirlwindStartClientRpc(Vector3 startPosition, Vector3 direction, float hitRadius)
         {
-            AssassinE.InvokeWhirlwindStarted(startPosition, direction, hitRadius);
+            AssassinE.InvokeBladeDanceStarted(startPosition, direction, hitRadius);
         }
 
         [Rpc(SendTo.Server)]
@@ -1635,6 +1740,8 @@ namespace Category5
                     int id = enemy.GetInstanceID();
                     if (!hitTargets.Add(id)) continue;
 
+                    // set kill attribution before damage so weak point breaks attribute to the assassin
+                    enemy.LastDamagerClientId = OwnerClientId;
                     enemy.TakeDamage(adjustedDamage);
                     ShowAssassinEDamageNumberClientRpc(adjustedDamage, enemy.transform.position, new ClientRpcParams
                     {
@@ -1650,6 +1757,7 @@ namespace Category5
                     int id = boss.GetInstanceID();
                     if (!hitTargets.Add(id)) continue;
 
+                    boss.LastDamagerClientId = OwnerClientId;
                     boss.TakeDamage(adjustedDamage);
                     ShowAssassinEDamageNumberClientRpc(adjustedDamage, boss.transform.position, new ClientRpcParams
                     {
@@ -1665,7 +1773,7 @@ namespace Category5
         [ClientRpc]
         private void TriggerAssassinEWhirlwindClientRpc(Vector3 position, int hitCount)
         {
-            AssassinE.InvokeWhirlwindHit(position, hitCount);
+            AssassinE.InvokeBladeDanceHit(position, hitCount);
 
             if (IsOwner && hitCount > 0 && HitFeedbackManager.Instance != null)
             {
@@ -1682,134 +1790,8 @@ namespace Category5
             }
         }
 
-        [Rpc(SendTo.Server)]
-        public void ExecuteAssassinRConvergenceServerRpc(Vector3 startPosition, Vector3 direction, float dashDistance,
-            float damageCoefficient, float hitRadius, int enemyLayerMask)
-        {
-            if (!IsServer) return;
-
-            int adjustedDamage = playerStats != null ? playerStats.CalculateDamage(damageCoefficient).damage : Mathf.RoundToInt(damageCoefficient * 100f);
-
-            if (direction == Vector3.zero)
-            {
-                direction = transform.forward;
-            }
-
-            direction.y = 0f;
-            direction.Normalize();
-
-            Vector3 hitPosition = startPosition + direction * dashDistance;
-            Collider[] dashColliders = enemyLayerMask == 0
-                ? Physics.OverlapCapsule(startPosition, hitPosition, hitRadius)
-                : Physics.OverlapCapsule(startPosition, hitPosition, hitRadius, enemyLayerMask);
-
-            Collider[] explosionColliders = enemyLayerMask == 0
-                ? Physics.OverlapSphere(hitPosition, hitRadius)
-                : Physics.OverlapSphere(hitPosition, hitRadius, enemyLayerMask);
-
-            var hitTargets = new HashSet<int>();
-            int hits = 0;
-
-            foreach (Collider collider in dashColliders)
-            {
-                // check for weak points first
-                if (TryDealDamageWithWeakPoint(collider, adjustedDamage, startPosition, hitTargets)) continue;
-
-                EnemyBase enemy = collider.GetComponentInParent<EnemyBase>();
-                if (enemy != null && !enemy.IsDead)
-                {
-                    int id = enemy.GetInstanceID();
-                    if (!hitTargets.Add(id)) continue;
-
-                    enemy.TakeDamage(adjustedDamage);
-                    ShowAssassinRDamageNumberClientRpc(adjustedDamage, enemy.transform.position, new ClientRpcParams
-                    {
-                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
-                    });
-                    hits++;
-                    continue;
-                }
-
-                BossBase boss = collider.GetComponentInParent<BossBase>();
-                if (boss != null)
-                {
-                    int id = boss.GetInstanceID();
-                    if (!hitTargets.Add(id)) continue;
-
-                    boss.TakeDamage(adjustedDamage);
-                    ShowAssassinRDamageNumberClientRpc(adjustedDamage, boss.transform.position, new ClientRpcParams
-                    {
-                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
-                    });
-                    hits++;
-                }
-            }
-
-            foreach (Collider collider in explosionColliders)
-            {
-                // check for weak points first
-                if (TryDealDamageWithWeakPoint(collider, adjustedDamage, hitPosition, hitTargets)) continue;
-
-                EnemyBase enemy = collider.GetComponentInParent<EnemyBase>();
-                if (enemy != null && !enemy.IsDead)
-                {
-                    int id = enemy.GetInstanceID();
-                    if (!hitTargets.Add(id)) continue;
-
-                    enemy.TakeDamage(adjustedDamage);
-                    ShowAssassinRDamageNumberClientRpc(adjustedDamage, enemy.transform.position, new ClientRpcParams
-                    {
-                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
-                    });
-                    hits++;
-                    continue;
-                }
-
-                BossBase boss = collider.GetComponentInParent<BossBase>();
-                if (boss != null)
-                {
-                    int id = boss.GetInstanceID();
-                    if (!hitTargets.Add(id)) continue;
-
-                    boss.TakeDamage(adjustedDamage);
-                    ShowAssassinRDamageNumberClientRpc(adjustedDamage, boss.transform.position, new ClientRpcParams
-                    {
-                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
-                    });
-                    hits++;
-                }
-            }
-
-            TriggerAssassinRExplosionClientRpc(hitPosition, hits, hits >= 3);
-        }
-
-        [ClientRpc]
-        private void TriggerAssassinRExplosionClientRpc(Vector3 position, int hitCount, bool resetCharges)
-        {
-            AssassinR.InvokeConvergenceExplosion(position, hitCount, resetCharges);
-
-            if (IsOwner)
-            {
-                if (resetCharges && ability1 is AssassinQ assassinQ)
-                {
-                    assassinQ.ResetAllCharges();
-                }
-
-                if (hitCount > 0 && HitFeedbackManager.Instance != null)
-                {
-                    HitFeedbackManager.Instance.TriggerHeavyHit(position);
-                }
-            }
-        }
-
-        [ClientRpc]
-        private void ShowAssassinRDamageNumberClientRpc(int damage, Vector3 position, ClientRpcParams clientRpcParams = default)
-        {
-            if (Category5.UI.UIManager.Instance != null)
-            {
-                Category5.UI.UIManager.Instance.ShowDamageNumber(damage, position);
-            }
-        }
+        // note: ExecuteAssassinRConvergenceServerRpc and friends were removed when R was reworked into Jammer Star
+        // the new jammer star path is RequestAssassinJammerStarHitServerRpc + GrantJammerStarRefundClientRpc
 
         [Rpc(SendTo.Server)]
         public void SpawnEnchanterHealBeaconServerRpc(Vector3 spawnPosition, Vector3 targetPosition,

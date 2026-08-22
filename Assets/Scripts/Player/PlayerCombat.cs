@@ -8,6 +8,7 @@ using Category5.Core;
 using Category5.Items;
 using Category5.Audio;
 using Category5.WeakPoints;
+using AssassinQ = Category5.AssassinQ;
 
 namespace Category5.Player
 {
@@ -41,7 +42,7 @@ namespace Category5.Player
         [Header("Ranged Combat Settings")]
         [Tooltip("projectile data defining arrow properties")]
         [SerializeField] private ProjectileData arrowData;
-        
+
         [Tooltip("transform where projectiles spawn from (aka avatar joint in the hand or bow tip)")]
         [SerializeField] private Transform projectileSpawnPoint;
         
@@ -769,6 +770,15 @@ if (Category5.Core.GameFlowManager.Instance != null &&
             // calculate multipliers based on charge (modified by quickbow)
             float damageMultiplier = Mathf.Lerp(1f, arrowData.MaxDamageMultiplier, chargePercent);
             float speedMultiplier = Mathf.Lerp(1f, arrowData.MaxSpeedMultiplier, chargePercent);
+
+            // assassin q buff: consume locally and fold into damage multiplier
+            // gated by is AssassinQ so it only fires for assassins
+            var abilityManager = GetComponent<PlayerAbilityManager>();
+            if (abilityManager != null && abilityManager.GetAbility1() is AssassinQ assassinQ && assassinQ.HasDamageBuff)
+            {
+                damageMultiplier *= assassinQ.BasicAttackBuffMultiplier;
+                assassinQ.ConsumeDamageBuff();
+            }
             
             // get spawn position
             Vector3 spawnPos = projectileSpawnPoint != null 
