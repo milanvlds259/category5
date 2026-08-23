@@ -29,7 +29,17 @@ namespace Category5.Core
         private AsyncOperation _currentAsyncOp;
         private Coroutine _progressCoroutine;
         private bool _subscribedToNGOLoad;
-        
+
+        // wwise variables
+        [SerializeField] private AK.Wwise.State CombatState;
+        [SerializeField] private AK.Wwise.State ExploreState;
+        [SerializeField] private AK.Wwise.State LobbyState;
+        [SerializeField] private AK.Wwise.State WinState;
+        [SerializeField] private AK.Wwise.State LoseState;
+        [SerializeField] private AK.Wwise.State MenuState;
+
+        [SerializeField] private AK.Wwise.Event MusicPlayEvent;
+
         private void Awake()
         {
             if (Instance == null)
@@ -46,6 +56,7 @@ namespace Category5.Core
         private void Start()
         {
             SubscribeToNetworkEvents();
+            MusicPlayEvent.Post(gameObject);
         }
 
         private void OnEnable()
@@ -115,12 +126,16 @@ namespace Category5.Core
         public void LoadHomebase()
         {
             LoadScene(homebaseSceneName);
+
+            //Change audio state
+            LobbyState.SetValue();
         }
 
         // loads the game scene, uses network scene management if available
 public void LoadGameScene()
         {
             LoadScene(gameSceneName);
+            ExploreState.SetValue();
         }
         
         // loads the main menu scene and disconnects from network
@@ -139,6 +154,8 @@ public void LoadGameScene()
 
             // use async load so we can track progress
             StartCoroutine(LoadSceneLocalAsync(mainMenuSceneName));
+
+            MenuState.SetValue();
         }
         
         // loads a scene by name, uses network scene manager if host

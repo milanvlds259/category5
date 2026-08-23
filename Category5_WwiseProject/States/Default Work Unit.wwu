@@ -11,6 +11,8 @@
 						<State Name="Combat" ID="{2385623C-0EC5-4EB3-815D-A245E746B557}"/>
 						<State Name="Win" ID="{3F3909B5-8854-4372-AFA7-479BDBA2720E}"/>
 						<State Name="Lose" ID="{1A2E5C6D-B6BA-435E-9CCB-BBB6B54EAA0E}"/>
+						<State Name="Lobby" ID="{CCA0D1E8-71BF-4BE8-AFED-E139543ABACE}"/>
+						<State Name="Van" ID="{8064D73A-37FA-48B7-AA4E-A396E27AFE4A}"/>
 					</ChildrenList>
 				</StateGroup>
 			</ChildrenList>
