@@ -64,6 +64,17 @@
 						</Action>
 					</ChildrenList>
 				</Event>
+				<Event Name="Play_GenericHit_SFX" ID="{18F8F1E6-790B-4110-9F11-F77DB693FF53}">
+					<ChildrenList>
+						<Action Name="" ID="{982DD76C-6D6D-4835-99A7-DBB47074A720}" ShortID="869750871">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="GenericHit" ID="{236ACB6B-BD84-45F4-936D-0D411F2B502D}" WorkUnitID="{95EAF7C1-CD6D-40DE-8286-63580F246788}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
 			</ChildrenList>
 		</WorkUnit>
 	</Events>
