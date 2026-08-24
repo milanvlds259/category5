@@ -48,6 +48,8 @@ namespace Category5.Player
         
         // vfx prefabs (set by spawner)
         private GameObject _impactVfxPrefab;
+        private GameObject _trailVfxInstance;
+        private bool _isBasicAttackProjectile;
         
         private void Awake()
         {
@@ -72,6 +74,13 @@ namespace Category5.Player
         
         public override void OnNetworkSpawn()
         {
+            if (!IsServer && _isBasicAttackProjectile)
+            {
+                ResolveBasicAttackVfx();
+            }
+
+            SpawnTrailVfx();
+
             if (IsServer)
             {
                 // start lifetime countdown on server
@@ -98,6 +107,7 @@ namespace Category5.Player
             _ownerClientId = ownerClientId;
             _ownerInventory = ownerStats;
             _impactVfxPrefab = data.ImpactVfxPrefab;
+            _isBasicAttackProjectile = false;
             _isPiercing = false;
             _ignoreEnemies = false;
             _ignoreEnvironment = false;
@@ -113,6 +123,7 @@ namespace Category5.Player
             _ownerClientId = ownerClientId;
             _ownerInventory = ownerStats;
             _impactVfxPrefab = data.ImpactVfxPrefab;
+            _isBasicAttackProjectile = true;
             _isPiercing = false;
             _ignoreEnemies = false;
             _ignoreEnvironment = false;
@@ -127,6 +138,7 @@ namespace Category5.Player
             _ownerClientId = ownerClientId;
             _ownerInventory = ownerStats;
             _impactVfxPrefab = impactVfxOverride != null ? impactVfxOverride : data.ImpactVfxPrefab;
+            _isBasicAttackProjectile = false;
             _isPiercing = true;
             _ignoreEnemies = ignoreEnemies;
             _ignoreEnvironment = ignoreEnvironment;
@@ -310,6 +322,53 @@ namespace Category5.Player
             if (NetworkObject != null && NetworkObject.IsSpawned)
             {
                 NetworkObject.Despawn(true);
+            }
+        }
+
+        private void ResolveBasicAttackVfx()
+        {
+            if (NetworkManager.Singleton == null || !NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(
+                    OwnerClientId, out NetworkObject ownerObject))
+            {
+                return;
+            }
+
+            PlayerClassManager classManager = ownerObject.GetComponent<PlayerClassManager>();
+            if (classManager == null || ClassRegistry.Instance == null) return;
+
+            PlayerClass classData = ClassRegistry.Instance.GetClass(classManager.GetSelectedClassId());
+            if (classData == null || classData.basicAttackProjectile == null) return;
+
+            ProjectileData projectileData = classData.basicAttackProjectile;
+            _impactVfxPrefab = projectileData.ImpactVfxPrefab;
+            _trailVfxInstance = null;
+        }
+
+        private void SpawnTrailVfx()
+        {
+            if (_trailVfxInstance != null) return;
+
+            GameObject trailPrefab = null;
+            if (_isBasicAttackProjectile)
+            {
+                ResolveBasicAttackVfx();
+                if (NetworkManager.Singleton != null && NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(
+                        OwnerClientId, out NetworkObject ownerObject))
+                {
+                    PlayerClassManager classManager = ownerObject.GetComponent<PlayerClassManager>();
+                    if (classManager != null && ClassRegistry.Instance != null)
+                    {
+                        PlayerClass classData = ClassRegistry.Instance.GetClass(classManager.GetSelectedClassId());
+                        trailPrefab = classData?.basicAttackProjectile?.TrailVfxPrefab;
+                    }
+                }
+            }
+
+            if (trailPrefab != null)
+            {
+                _trailVfxInstance = Instantiate(trailPrefab, transform);
+                _trailVfxInstance.transform.localPosition = Vector3.zero;
+                _trailVfxInstance.transform.localRotation = Quaternion.identity;
             }
         }
 

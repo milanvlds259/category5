@@ -433,7 +433,7 @@ Framework contribution guide: `docs/CONTRIBUTING.md`.
 - Project name: Category5
 - Unity version: Unity 6000.3.0f1
 - Active scene:
-  - Name: DebugMap
+  - Name: Homebase
   - Tags:
     - Untagged, Respawn, Finish, EditorOnly, MainCamera, Player, GameController, Path
   - Layers:

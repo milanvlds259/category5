@@ -52,6 +52,13 @@ namespace Category5.Player
         [Tooltip("enable predictive aiming for moving enemies")]
         [SerializeField] private bool enableTargetLeading = true;
 
+        [Header("Basic Attack VFX")]
+        private GameObject _meleeAttack1Vfx;
+        private GameObject _meleeAttack2Vfx;
+        private GameObject _meleeAttack3Vfx;
+        private GameObject _meleeImpactVfx;
+        private GameObject _rangedFireVfx;
+
         private InputSystem_Actions _inputActions;
         private int _comboCounter = 0;
         private float _lastAttackTime;
@@ -81,6 +88,7 @@ namespace Category5.Player
         // pending attack data for animation event timing
         private bool _hasPendingMeleeHit;
         private float _pendingMeleeCoefficient;
+        private int _pendingMeleeComboStep;
 
         private bool _hasPendingRangedRelease;
         private float _pendingRangedChargePercent;
@@ -143,6 +151,18 @@ namespace Category5.Player
             arrowData = data;
             // Debug.Log($"PlayerCombat: Arrow data set to {(data != null ? data.name : "null")}");
         }
+
+        public void SetBasicAttackVfx(PlayerClass classData)
+        {
+            _meleeAttack1Vfx = classData != null ? classData.meleeAttack1Vfx : null;
+            _meleeAttack2Vfx = classData != null ? classData.meleeAttack2Vfx : null;
+            _meleeAttack3Vfx = classData != null ? classData.meleeAttack3Vfx : null;
+            _meleeImpactVfx = classData != null ? classData.meleeImpactVfx : null;
+            _rangedFireVfx = classData != null ? classData.rangedFireVfx : null;
+        }
+
+        public static event Action<Vector3, Vector3, int, bool> OnBasicMeleeAttack;
+        public static event Action<Vector3, Vector3> OnBasicRangedAttack;
         
         // set melee coefficients from class data
         public void SetMeleeCoefficients(float light, float heavy)
@@ -494,6 +514,7 @@ if (Category5.Core.GameFlowManager.Instance != null &&
 
             _hasPendingMeleeHit = true;
             _pendingMeleeCoefficient = coefficient;
+            _pendingMeleeComboStep = comboStep;
 
             // safety timeout — only fires if animator events and state polling both fail (death interrupts, etc.)
             int generation = _meleeAttackGeneration;
@@ -547,7 +568,7 @@ if (Category5.Core.GameFlowManager.Instance != null &&
 
             if (_hasPendingMeleeHit)
             {
-                RequestMeleeAttackServerRpc(_pendingMeleeCoefficient, transform.position, transform.forward);
+                RequestMeleeAttackServerRpc(_pendingMeleeCoefficient, transform.position, transform.forward, _pendingMeleeComboStep);
                 _hasPendingMeleeHit = false;
                 _meleeChainWindowOpen = true;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -995,15 +1016,14 @@ if (Category5.Core.GameFlowManager.Instance != null &&
         [ClientRpc]
         private void PlayRangedAttackVfxClientRpc(Vector3 position, Vector3 direction)
         {
-            // TODO: play bow shot particle effect or sound here
-            if (!IsOwner)
-            {
-                // play sound/vfx for other players
-            }
+            OnBasicRangedAttack?.Invoke(position, direction);
+
+            if (_rangedFireVfx != null)
+                Instantiate(_rangedFireVfx, position, Quaternion.LookRotation(direction));
         }
 
         [ServerRpc]
-        private void RequestMeleeAttackServerRpc(float damageCoefficient, Vector3 position, Vector3 direction)
+        private void RequestMeleeAttackServerRpc(float damageCoefficient, Vector3 position, Vector3 direction, int comboStep)
         {
             // server performs the hit check to prevent cheating
             // for a simple prototype we use OverlapSphere in front of the player
@@ -1118,7 +1138,7 @@ if (Category5.Core.GameFlowManager.Instance != null &&
             }
 
             // optional: notify clients to play VFX/Sound
-            PlayAttackVfxClientRpc(position, direction);
+            PlayAttackVfxClientRpc(position, direction, comboStep, isHeavyHit);
         }
         
         // applies lifesteal healing to the player (server only)
@@ -1158,14 +1178,18 @@ if (Category5.Core.GameFlowManager.Instance != null &&
         }
 
         [ClientRpc]
-        private void PlayAttackVfxClientRpc(Vector3 position, Vector3 direction)
+        private void PlayAttackVfxClientRpc(Vector3 position, Vector3 direction, int comboStep, bool isHeavyHit)
         {
-            // TODO: play particle effect or sound here
-            // if we aree owner, we might have already played it immediately for responsiveness
-            if (!IsOwner)
-            {
-                // play sound/vfx for other players
-            }
+            OnBasicMeleeAttack?.Invoke(position, direction, comboStep, isHeavyHit);
+
+            GameObject attackVfx = comboStep >= 3
+                ? _meleeAttack3Vfx
+                : comboStep == 2
+                    ? _meleeAttack2Vfx
+                    : _meleeAttack1Vfx;
+
+            if (attackVfx != null)
+                Instantiate(attackVfx, position, Quaternion.LookRotation(direction));
         }
         
         // trigger hit feedback effects for the attacking player only
@@ -1192,6 +1216,9 @@ if (Category5.Core.GameFlowManager.Instance != null &&
             {
                 HitFeedbackManager.Instance.NotifyPlayerHitEnemy(position, damage, isHeavyHit);
             }
+
+            if (_meleeImpactVfx != null)
+                Instantiate(_meleeImpactVfx, position, Quaternion.identity);
         }
 
         private void OnDrawGizmosSelected()
