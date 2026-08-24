@@ -149,6 +149,7 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   speed: 25
   lifetime: 2
+  detonationVfxPrefab: {fileID: 0}
 --- !u!1 &1460827159874419459
 GameObject:
   m_ObjectHideFlags: 0
