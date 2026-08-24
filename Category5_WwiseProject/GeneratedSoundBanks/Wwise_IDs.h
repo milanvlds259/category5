@@ -15,6 +15,7 @@ namespace AK
     {
         static const AkUniqueID PLAY_CATEGORY5THEMETEST = 2029328970U;
         static const AkUniqueID PLAY_EXPLORATION = 2287072429U;
+        static const AkUniqueID PLAY_GENERICHIT_SFX = 609769460U;
         static const AkUniqueID PLAY_MUSIC_SWITCH = 1228139402U;
         static const AkUniqueID SET_STATE_EXPLORATION = 210209267U;
         static const AkUniqueID SET_STATE_TITLE = 2875859334U;
