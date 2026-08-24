@@ -5,12 +5,6 @@
 			<ChildrenList>
 				<Event Name="Play_Music_Switch" ID="{F44FE549-301C-4F65-8690-67F5F8176222}">
 					<ChildrenList>
-						<Action Name="" ID="{1A1FF24A-61B4-4C11-82F0-514878F57EDE}" ShortID="80332152">
-							<PropertyList>
-								<Property Name="ActionType" Type="int16" Value="3"/>
-							</PropertyList>
-							<ReferenceList/>
-						</Action>
 						<Action Name="" ID="{054A5DF0-7860-46D0-A4A2-971A49FA108B}" ShortID="432093090">
 							<ReferenceList>
 								<Reference Name="Target">
@@ -65,6 +59,17 @@
 							<ReferenceList>
 								<Reference Name="Target">
 									<ObjectRef Name="Exploration" ID="{5623211B-326D-4914-AE72-E888807D2670}" WorkUnitID="{95EAF7C1-CD6D-40DE-8286-63580F246788}"/>
+								</Reference>
+							</ReferenceList>
+						</Action>
+					</ChildrenList>
+				</Event>
+				<Event Name="Play_GenericHit_SFX" ID="{18F8F1E6-790B-4110-9F11-F77DB693FF53}">
+					<ChildrenList>
+						<Action Name="" ID="{982DD76C-6D6D-4835-99A7-DBB47074A720}" ShortID="869750871">
+							<ReferenceList>
+								<Reference Name="Target">
+									<ObjectRef Name="GenericHit" ID="{236ACB6B-BD84-45F4-936D-0D411F2B502D}" WorkUnitID="{95EAF7C1-CD6D-40DE-8286-63580F246788}"/>
 								</Reference>
 							</ReferenceList>
 						</Action>

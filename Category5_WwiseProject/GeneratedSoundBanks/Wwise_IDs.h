@@ -15,6 +15,7 @@ namespace AK
     {
         static const AkUniqueID PLAY_CATEGORY5THEMETEST = 2029328970U;
         static const AkUniqueID PLAY_EXPLORATION = 2287072429U;
+        static const AkUniqueID PLAY_GENERICHIT_SFX = 609769460U;
         static const AkUniqueID PLAY_MUSIC_SWITCH = 1228139402U;
         static const AkUniqueID SET_STATE_EXPLORATION = 210209267U;
         static const AkUniqueID SET_STATE_TITLE = 2875859334U;
@@ -30,9 +31,11 @@ namespace AK
             {
                 static const AkUniqueID COMBAT = 2764240573U;
                 static const AkUniqueID EXPLORATION = 2582085496U;
+                static const AkUniqueID LOBBY = 290285391U;
                 static const AkUniqueID LOSE = 221232726U;
                 static const AkUniqueID MENU = 2607556080U;
                 static const AkUniqueID NONE = 748895195U;
+                static const AkUniqueID VAN = 644359792U;
                 static const AkUniqueID WIN = 979765101U;
             } // namespace STATE
         } // namespace MUSIC_STATE_GROUP

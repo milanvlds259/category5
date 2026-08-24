@@ -56,6 +56,18 @@
         "GUID": "{1A2E5C6D-B6BA-435E-9CCB-BBB6B54EAA0E}"
        },
        {
+        "Id": "290285391",
+        "Name": "Lobby",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Lobby",
+        "GUID": "{CCA0D1E8-71BF-4BE8-AFED-E139543ABACE}"
+       },
+       {
+        "Id": "644359792",
+        "Name": "Van",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Van",
+        "GUID": "{8064D73A-37FA-48B7-AA4E-A396E27AFE4A}"
+       },
+       {
         "Id": "748895195",
         "Name": "None",
         "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\None",
@@ -99,6 +111,6 @@
     ]
    }
   ],
-  "FileHash": "{889C668B-E77B-2F4C-4CB6-A25D78405C20}"
+  "FileHash": "{F530E34D-0C41-C236-7790-748659ED4731}"
  }
 }

@@ -10,7 +10,7 @@
     "Type": "User",
     "GUID": "{D897B1D5-1C05-44B0-A897-09BD6B10CCF1}",
     "Language": "SFX",
-    "Hash": "{65B882AB-6289-1AD3-8A13-AE857DB40630}",
+    "Hash": "{22E207EF-4060-E4DB-E6D6-A49D1226ADBC}",
     "ObjectPath": "\\SoundBanks\\Default Work Unit\\TestSoundbank",
     "ShortName": "TestSoundbank",
     "Path": "TestSoundbank.bnk",
@@ -22,6 +22,14 @@
       "Location": "Memory",
       "ShortName": "Cat5_Victory_Sketch4.wav",
       "CachePath": "B2/{B2667159-22C1-DE03-7292-05B5D0DCD609}.wem"
+     },
+     {
+      "Id": "199697525",
+      "Language": "SFX",
+      "Streaming": "false",
+      "Location": "Memory",
+      "ShortName": "RollingThunderLessAnnoyingDrums.wav",
+      "CachePath": "CC/{CC8CE15F-3AD0-4605-7EFA-07B3E46D1262}.wem"
      },
      {
       "Id": "217981217",
@@ -46,6 +54,22 @@
       "Location": "Memory",
       "ShortName": "Cat5_Exploration_Sketch4.wav",
       "CachePath": "75/{75DA63F0-876C-022B-043D-48E87FCA39B1}.wem"
+     },
+     {
+      "Id": "813714711",
+      "Language": "SFX",
+      "Streaming": "false",
+      "Location": "Memory",
+      "ShortName": "Desecrated Storm Site.wav",
+      "CachePath": "82/{822E4709-27EE-9435-CD7C-9A83431FB88F}.wem"
+     },
+     {
+      "Id": "975534449",
+      "Language": "SFX",
+      "Streaming": "false",
+      "Location": "Memory",
+      "ShortName": "Category5AlternateDirection.wav",
+      "CachePath": "77/{770FD89B-5F9C-A00D-BCB5-00CEB64923B0}.wem"
      },
      {
       "Id": "1073268418",
@@ -131,6 +155,35 @@
           "MediaRefs": [
            {
             "Id": "217981217"
+           },
+           {
+            "Id": "975534449"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "SwitchValue": {
+         "GroupType": "Switch",
+         "GroupId": "1715037033",
+         "Id": "0",
+         "GUID": "{AFA3064C-8252-4282-876E-09881767E3CA}"
+        },
+        "Children": [
+         {
+          "SwitchValue": {
+           "GroupType": "State",
+           "GroupId": "2434766612",
+           "Id": "290285391",
+           "GUID": "{CCA0D1E8-71BF-4BE8-AFED-E139543ABACE}"
+          },
+          "MediaRefs": [
+           {
+            "Id": "199697525"
+           },
+           {
+            "Id": "975534449"
            }
           ]
          }
@@ -171,12 +224,12 @@
           "SwitchValue": {
            "GroupType": "State",
            "GroupId": "2434766612",
-           "Id": "221232726",
-           "GUID": "{1A2E5C6D-B6BA-435E-9CCB-BBB6B54EAA0E}"
+           "Id": "644359792",
+           "GUID": "{8064D73A-37FA-48B7-AA4E-A396E27AFE4A}"
           },
           "MediaRefs": [
            {
-            "Id": "601115031"
+            "Id": "813714711"
            }
           ]
          }
@@ -204,6 +257,29 @@
           ]
          }
         ]
+       },
+       {
+        "SwitchValue": {
+         "GroupType": "Switch",
+         "GroupId": "1715037033",
+         "Id": "0",
+         "GUID": "{AFA3064C-8252-4282-876E-09881767E3CA}"
+        },
+        "Children": [
+         {
+          "SwitchValue": {
+           "GroupType": "State",
+           "GroupId": "2434766612",
+           "Id": "221232726",
+           "GUID": "{1A2E5C6D-B6BA-435E-9CCB-BBB6B54EAA0E}"
+          },
+          "MediaRefs": [
+           {
+            "Id": "601115031"
+           }
+          ]
+         }
+        ]
        }
       ]
      }
@@ -220,6 +296,18 @@
         "Name": "Lose",
         "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Lose",
         "GUID": "{1A2E5C6D-B6BA-435E-9CCB-BBB6B54EAA0E}"
+       },
+       {
+        "Id": "290285391",
+        "Name": "Lobby",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Lobby",
+        "GUID": "{CCA0D1E8-71BF-4BE8-AFED-E139543ABACE}"
+       },
+       {
+        "Id": "644359792",
+        "Name": "Van",
+        "ObjectPath": "\\States\\Default Work Unit\\Music_State_Group\\Van",
+        "GUID": "{8064D73A-37FA-48B7-AA4E-A396E27AFE4A}"
        },
        {
         "Id": "748895195",
@@ -265,6 +353,6 @@
     ]
    }
   ],
-  "FileHash": "{C02E4BDA-C455-FFD5-E072-F756CE2190F4}"
+  "FileHash": "{D523DD10-581A-97D1-4735-270CE1BEE5A2}"
  }
 }

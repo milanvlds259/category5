@@ -11,6 +11,8 @@ State Group	ID	Name			Wwise Object Path	Notes
 
 State	ID	Name	State Group			Notes
 	221232726	Lose	Music_State_Group			
+	290285391	Lobby	Music_State_Group			
+	644359792	Van	Music_State_Group			
 	748895195	None	Music_State_Group			
 	979765101	Win	Music_State_Group			
 	2582085496	Exploration	Music_State_Group			
@@ -18,9 +20,12 @@ State	ID	Name	State Group			Notes
 	2764240573	Combat	Music_State_Group			
 
 In Memory Audio	ID	Name	Audio source file		Wwise Object Path	Notes	Data Size
-	124794779	Cat5_Victory_Sketch4	.cache\B2\{B2667159-22C1-DE03-7292-05B5D0DCD609}.wem		\Containers\Default Work Unit\Music Switch\Win\Cat5_Victory_Sketch4\Cat5_Victory_Sketch4		5515872
-	217981217	Category5ThemeTest	.cache\BC\{BCD99E04-E96B-4D2E-5224-FA43990CB4B6}.wem		\Containers\Default Work Unit\Music Switch\Menu\Category5ThemeTest\Category5ThemeTest		6773856
-	601115031	Cat5_Lose_Sketch4	.cache\7C\{7C3BEEE1-3E69-6F17-E05B-8F1A4C536422}.wem		\Containers\Default Work Unit\Music Switch\Lose\Cat5_Lose_Sketch4\Cat5_Lose_Sketch4		5838432
-	628073416	Cat5_Exploration_Sketch4	.cache\75\{75DA63F0-876C-022B-043D-48E87FCA39B1}.wem		\Containers\Default Work Unit\Music Switch\Exploration\Cat5_Exploration_Sketch4\Cat5_Exploration_Sketch4		5101152
-	1073268418	Cat5_Combat_Sketch4	.cache\A4\{A4A320E1-9F75-B6E7-4D29-C78411B125DA}.wem		\Containers\Default Work Unit\Music Switch\Combat\Cat5_Combat_Sketch4\Cat5_Combat_Sketch4		5165664
+	124794779	Cat5_Victory_Sketch4	.cache\B2\{B2667159-22C1-DE03-7292-05B5D0DCD609}.wem		\Containers\Default Work Unit\Music\Music Switch\Win\Cat5_Victory_Sketch4\Cat5_Victory_Sketch4		5515872
+	199697525	RollingThunderLessAnnoyingDrums	.cache\CC\{CC8CE15F-3AD0-4605-7EFA-07B3E46D1262}.wem		\Containers\Default Work Unit\Music\Music Switch\Lobby\RollingThunderLessAnnoyingDrums\RollingThunderLessAnnoyingDrums		11760096
+	217981217	Category5ThemeTest	.cache\BC\{BCD99E04-E96B-4D2E-5224-FA43990CB4B6}.wem		\Containers\Default Work Unit\Music\Music Switch\Menu\Category5ThemeTest\Category5ThemeTest		6773856
+	601115031	Cat5_Lose_Sketch4	.cache\7C\{7C3BEEE1-3E69-6F17-E05B-8F1A4C536422}.wem		\Containers\Default Work Unit\Music\Music Switch\Lose\Cat5_Lose_Sketch4\Cat5_Lose_Sketch4		5838432
+	628073416	Cat5_Exploration_Sketch4	.cache\75\{75DA63F0-876C-022B-043D-48E87FCA39B1}.wem		\Containers\Default Work Unit\Music\Music Switch\Exploration\Cat5_Exploration_Sketch4\Cat5_Exploration_Sketch4		5101152
+	813714711	Desecrated Storm Site	.cache\82\{822E4709-27EE-9435-CD7C-9A83431FB88F}.wem		\Containers\Default Work Unit\Music\Music Switch\Van\Desecrated Storm Site\Desecrated Storm Site		5773192
+	975534449	Category5AlternateDirection	.cache\77\{770FD89B-5F9C-A00D-BCB5-00CEB64923B0}.wem		\Containers\Default Work Unit\Music\Music Switch\Menu\Category5AlternateDirection\Category5AlternateDirection		8467296
+	1073268418	Cat5_Combat_Sketch4	.cache\A4\{A4A320E1-9F75-B6E7-4D29-C78411B125DA}.wem		\Containers\Default Work Unit\Music\Music Switch\Combat\Cat5_Combat_Sketch4\Cat5_Combat_Sketch4		5165664
 
