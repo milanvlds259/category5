@@ -152,7 +152,8 @@ MonoBehaviour:
   zoneDuration: 6
   tickInterval: 0.5
   slowMultiplier: 0.6
-  damage: 20
+  spawnVfxPrefab: {fileID: 8310522571234398936, guid: 3d805cc3caa2a634fba6dee58ba8b306, type: 3}
+  expireVfxPrefab: {fileID: 0}
 --- !u!1 &998565941105048357
 GameObject:
   m_ObjectHideFlags: 0
