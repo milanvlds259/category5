@@ -24,6 +24,21 @@ namespace Category5
         [SerializeField] private Sprite iceIcon;
         [SerializeField] private Sprite thunderIcon;
 
+        [Header("element switch buff")]
+        [Tooltip("how long the damage buff lasts after cycling element")]
+        [SerializeField] private float eBuffDuration = 4f;
+
+        [Tooltip("additive damage multiplier applied to E after cycling element")]
+        [SerializeField] private float eBuffDamageMultiplier = 0.25f;
+
+        [Header("vfx")]
+        [Tooltip("vfx spawned when cycling to fire")]
+        [SerializeField] private GameObject fireCycleVfxPrefab;
+        [Tooltip("vfx spawned when cycling to ice")]
+        [SerializeField] private GameObject iceCycleVfxPrefab;
+        [Tooltip("vfx spawned when cycling to thunder")]
+        [SerializeField] private GameObject thunderCycleVfxPrefab;
+
         // public accessor for other scripts (dispatcher reads this)
         public ElementMode CurrentElement => currentElement;
 
@@ -31,6 +46,9 @@ namespace Category5
 
         // event fired when element changes (for ui/vfx)
         public static event Action<ElementMode> OnElementChanged;
+
+        // event fired when the element switch buff starts (for ui/vfx - buff indicator)
+        public static event Action<ElementMode, float> OnElementBuffStarted; // element, duration
 
         public Sprite GetIconForElement(ElementMode mode)
         {
@@ -58,6 +76,24 @@ namespace Category5
 
             // notify listeners (ui, vfx)
             OnElementChanged?.Invoke(currentElement);
+
+            // spawn element-specific cycle vfx
+            GameObject cycleVfx = currentElement switch
+            {
+                ElementMode.Fire => fireCycleVfxPrefab,
+                ElementMode.Ice => iceCycleVfxPrefab,
+                ElementMode.Thunder => thunderCycleVfxPrefab,
+                _ => null
+            };
+            if (cycleVfx != null)
+                Instantiate(cycleVfx, playerController.transform.position, Quaternion.identity);
+
+            // apply temporary damage buff (encourages switching elements rather than spamming fireball)
+            if (playerStats != null && eBuffDamageMultiplier > 0f && eBuffDuration > 0f)
+            {
+                playerStats.ApplyTemporaryMultiplier("damage", eBuffDamageMultiplier, eBuffDuration);
+                OnElementBuffStarted?.Invoke(currentElement, eBuffDuration);
+            }
 
             // play audio/vfx feedback
             SpawnVfx(playerController.transform.position);

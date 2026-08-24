@@ -219,11 +219,11 @@ namespace Category5.UI
             //RYLAN CODE
             MenuState.SetValue();
             //Destroy any voices from the previous scene (anti-doubling measure)
-            AkUnitySoundEngine.ExecuteActionOnEvent("Play_Music_Switch", AkActionOnEventType.AkActionOnEventType_Stop, AkUnitySoundEngine.AK_INVALID_GAME_OBJECT);
+            //AkUnitySoundEngine.ExecuteActionOnEvent("Play_Music_Switch", AkActionOnEventType.AkActionOnEventType_Stop, AkUnitySoundEngine.AK_INVALID_GAME_OBJECT);
 
 
             //Play title screen music
-            playEvent.Post(gameObject);
+            //playEvent.Post(gameObject);
         }
 
         // ensures PlayerNameManager singleton exists

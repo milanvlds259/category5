@@ -30,6 +30,22 @@ namespace Category5.Player
         
         [Tooltip("projectile data for ranged basic attack (only used if combatClass is Ranged)")]
         public ProjectileData basicAttackProjectile;
+
+        [Header("Basic Attack VFX")]
+        [Tooltip("VFX for melee combo attack 1")]
+        public GameObject meleeAttack1Vfx;
+
+        [Tooltip("VFX for melee combo attack 2")]
+        public GameObject meleeAttack2Vfx;
+
+        [Tooltip("VFX for melee combo attack 3")]
+        public GameObject meleeAttack3Vfx;
+
+        [Tooltip("VFX spawned when a melee attack hits a target")]
+        public GameObject meleeImpactVfx;
+
+        [Tooltip("VFX spawned when a ranged basic attack fires")]
+        public GameObject rangedFireVfx;
         
         [Header("Base Stats")]
         [Tooltip("base attack damage that abilities and basic attacks scale from")]

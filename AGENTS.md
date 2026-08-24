@@ -433,13 +433,13 @@ Framework contribution guide: `docs/CONTRIBUTING.md`.
 - Project name: Category5
 - Unity version: Unity 6000.3.0f1
 - Active scene:
-  - Name: SampleScene
+  - Name: Homebase
   - Tags:
     - Untagged, Respawn, Finish, EditorOnly, MainCamera, Player, GameController, Path
   - Layers:
     - Default, TransparentFX, Ignore Raycast, Player, Water, UI, Enemy, Projectile, CloudSurface, PlayerInTunnel
 - Active game object:
-  - Name: MapSelectionUI
-  - Tag: Untagged
+  - Name: Main Camera
+  - Tag: MainCamera
   - Layer: Default
 <!-- UNITY CODE ASSIST INSTRUCTIONS END -->

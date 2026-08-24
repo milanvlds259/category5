@@ -21,6 +21,12 @@ namespace Category5
         [SerializeField] private float hitRadius = 1f;
         [SerializeField] private LayerMask enemyLayers;
 
+        [Header("vfx")]
+        [Tooltip("spawned once when the dash starts")]
+        [SerializeField] private GameObject dashStartVfxPrefab;
+        [Tooltip("spawned once when the dash ends")]
+        [SerializeField] private GameObject dashEndVfxPrefab;
+
         private bool _isCharging;
         private float _chargeStartTime;
         private Coroutine _dashRoutine;
@@ -110,6 +116,8 @@ namespace Category5
             SetEnemyCollisionIgnored(true);
 
             OnDashStarted?.Invoke(transform.position, direction, distance);
+            if (dashStartVfxPrefab != null)
+                Instantiate(dashStartVfxPrefab, transform.position, Quaternion.identity);
 
             float elapsed = 0f;
             float speed = distance / Mathf.Max(0.01f, dashDuration);
@@ -135,6 +143,8 @@ namespace Category5
             SetEnemyCollisionIgnored(false);
 
             OnDashEnded?.Invoke(transform.position);
+            if (dashEndVfxPrefab != null)
+                Instantiate(dashEndVfxPrefab, transform.position, Quaternion.identity);
         }
 
         // temporarily ignore collisions with enemies during the dash

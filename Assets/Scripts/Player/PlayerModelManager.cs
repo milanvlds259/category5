@@ -26,6 +26,7 @@ namespace Category5.Player
         private PlayerClassManager _classManager;
         private PlayerController _playerController;
         private PlayerCombat _playerCombat;
+        private PlayerAbilityManager _playerAbilityManager;
         private Animator _animator;
         private OwnerPlayerNetworkAnimator _ownerNetworkAnimator;
         private NetworkAnimator _networkAnimator;
@@ -48,6 +49,7 @@ namespace Category5.Player
             _classManager = GetComponent<PlayerClassManager>();
             _playerController = GetComponent<PlayerController>();
             _playerCombat = GetComponent<PlayerCombat>();
+            _playerAbilityManager = GetComponent<PlayerAbilityManager>();
             _characterController = GetComponent<CharacterController>();
             _ownerNetworkAnimator = GetComponent<OwnerPlayerNetworkAnimator>();
             _networkAnimator = _ownerNetworkAnimator != null ? _ownerNetworkAnimator : GetComponent<NetworkAnimator>();
@@ -219,7 +221,7 @@ namespace Category5.Player
             {
                 relay = _animator.gameObject.AddComponent<PlayerAnimationEventRelay>();
             }
-            relay.Configure(_playerCombat);
+            relay.Configure(_playerCombat, _playerAbilityManager);
 
             if (_animator.avatar == null)
             {

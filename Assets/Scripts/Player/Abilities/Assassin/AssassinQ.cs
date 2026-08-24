@@ -5,8 +5,9 @@ using Category5.Player;
 
 namespace Category5
 {
-    // dash slash - quick dash in any direction with a slashing attack. has 2 charges with individual cooldowns 
-    // each successful hit grants +20% damage buff to your next ability for 4s (does not stack but refreshes) 
+    // dash slash - quick dash in any direction with a slashing attack. has 2 charges with individual cooldowns
+    // the dash now includes a vertical component so pitching the camera up lets you dash into the air
+    // each successful hit grants +20% damage buff to your next basic attack for 4s (does not stack but refreshes)
     // rewards chaining mobility with burst windows.
     public class AssassinQ : AbilityBase
     {
@@ -16,8 +17,16 @@ namespace Category5
         [SerializeField] private float hitRadius = 1f;
         [SerializeField] private LayerMask enemyLayers;
 
+        [Header("Vertical Dash")]
+        [SerializeField] private float verticalSpeedDecay = 0.5f;
+
         [Header("Buff Settings")]
         [SerializeField] private float buffDuration = 4f;
+        [Tooltip("multiplier applied to the next basic attack while the damage buff is active")]
+        [SerializeField] private float basicAttackBuffMultiplier = 1.2f;
+
+        // public so the boomerang spawn rpc can read the multiplier before consuming the buff
+        public float BasicAttackBuffMultiplier => basicAttackBuffMultiplier;
 
         private float _charge1Timer;
         private float _charge2Timer;
@@ -54,13 +63,16 @@ namespace Category5
             if (!CanUse()) return;
 
             // determine dash direction based on player input or facing direction
+            // y component is preserved so the player can dash upward by pitching the camera up
             Vector3 direction = playerController != null ? playerController.GetMovementInputDirection() : Vector3.zero;
-            direction.y = 0f;
             if (direction == Vector3.zero)
             {
                 direction = transform.forward;
             }
             direction.Normalize();
+
+            // soften the vertical component so upward dashes feel snappy not floaty
+            direction.y *= verticalSpeedDecay;
 
             transform.rotation = Quaternion.LookRotation(direction);
 
@@ -132,6 +144,44 @@ namespace Category5
         {
             _charge1Timer = 0f;
             _charge2Timer = 0f;
+            NotifyChargesChanged();
+
+            if (abilityManager != null && IsOwner)
+            {
+                abilityManager.ResetAbilityCooldown(AbilitySlot.Ability1);
+            }
+        }
+
+        // refunds exactly one charge preferring the one with more cooldown remaining
+        // no-op if both charges are already available
+        public void RefundOneCharge()
+        {
+            bool charge1OnCooldown = _charge1Timer > 0f;
+            bool charge2OnCooldown = _charge2Timer > 0f;
+
+            if (!charge1OnCooldown && !charge2OnCooldown)
+            {
+                return;
+            }
+
+            // refund the one with more cooldown remaining since thats the one the player is "missing" most
+            if (!charge1OnCooldown)
+            {
+                _charge1Timer = 0f;
+            }
+            else if (!charge2OnCooldown)
+            {
+                _charge2Timer = 0f;
+            }
+            else if (_charge1Timer >= _charge2Timer)
+            {
+                _charge1Timer = 0f;
+            }
+            else
+            {
+                _charge2Timer = 0f;
+            }
+
             NotifyChargesChanged();
 
             if (abilityManager != null && IsOwner)

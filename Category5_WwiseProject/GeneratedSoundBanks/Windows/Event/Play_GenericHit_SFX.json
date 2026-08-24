@@ -1,0 +1,48 @@
+{
+ "SoundBanksInfo": {
+  "Platform": "Windows",
+  "BasePlatform": "Windows",
+  "SchemaVersion": "16",
+  "SoundBankVersion": "172",
+  "SoundBanks": [
+   {
+    "Id": "609769460",
+    "Type": "Event",
+    "GUID": "{18F8F1E6-790B-4110-9F11-F77DB693FF53}",
+    "Language": "SFX",
+    "Hash": "{D1AFD715-2D3B-9381-3059-EEEE38B77D09}",
+    "ObjectPath": "Play_GenericHit_SFX",
+    "ShortName": "Play_GenericHit_SFX",
+    "Path": "Event/Play_GenericHit_SFX.bnk",
+    "Media": [
+     {
+      "Id": "875705112",
+      "Language": "SFX",
+      "Streaming": "false",
+      "Location": "Loose",
+      "ShortName": "Hit.wav",
+      "Path": "Media/875705112.wem",
+      "CachePath": "CF/{CF7A39A5-9766-24A9-6E89-FD5A76644799}.wem"
+     }
+    ],
+    "Events": [
+     {
+      "Id": "609769460",
+      "Name": "Play_GenericHit_SFX",
+      "ObjectPath": "\\Events\\Default Work Unit\\Play_GenericHit_SFX",
+      "GUID": "{18F8F1E6-790B-4110-9F11-F77DB693FF53}",
+      "DurationType": "OneShot",
+      "DurationMin": "0.35156462",
+      "DurationMax": "0.35156462",
+      "MediaRefs": [
+       {
+        "Id": "875705112"
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "FileHash": "{196C6F72-49CE-B95C-5D66-01A5FE2BADA4}"
+ }
+}

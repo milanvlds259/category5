@@ -17,11 +17,17 @@ namespace Category5
         private bool _isInitialized = false;
         public bool IsInitialized => _isInitialized;
 
-        public AbilityData Data => abilityData;
+        public virtual AbilityData Data => abilityData;
 
         public virtual bool ConsumeCostOnExecute => true;
         public virtual bool StartCooldownOnExecute => true;
         public virtual bool UsesManagerCooldownGate => true;
+
+        // whether this ability plays a cast animation and defers Execute() to the CastImpact animation event
+        public virtual bool HasCastAnimation => false;
+
+        // whether this ability can be held to aim before firing (tap fires immediately, hold shows aim indicator)
+        public virtual bool CanHoldToAim => false;
 
         // delegate to ability manager for network checks
         protected bool IsServer => abilityManager != null && abilityManager.IsServer;
@@ -62,6 +68,28 @@ namespace Category5
 
         // optional input release handler for charge-style abilities
         public virtual void OnReleased() { }
+
+        // returns the model's projectile spawn point (same joint basic attacks use), or null if unavailable
+        protected Transform GetProjectileSpawnPoint()
+        {
+            if (playerController == null) return null;
+            var modelManager = playerController.GetComponent<PlayerModelManager>();
+            return modelManager != null ? modelManager.ProjectileSpawnPoint : null;
+        }
+
+        // default aim direction: screen-center raycast (same logic as PlayerCombat.GetAimDirection)
+        // abilities can override for custom aim (e.g. flat forward for Ice, capped range for R)
+        public virtual Vector3 GetAimDirection(Vector3 spawnPos)
+        {
+            if (Camera.main == null) return playerController != null ? playerController.transform.forward : Vector3.forward;
+
+            Ray aimRay = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+            if (Physics.Raycast(aimRay, out RaycastHit hit, 100f))
+            {
+                return (hit.point - spawnPos).normalized;
+            }
+            return (aimRay.GetPoint(100f) - spawnPos).normalized;
+        }
 
         // calculate damage using coefficient-based scaling off class attack damage
         protected DamageResult CalculateDamage()

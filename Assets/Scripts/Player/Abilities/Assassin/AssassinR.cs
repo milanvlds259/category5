@@ -1,29 +1,47 @@
 using UnityEngine;
+using Unity.Netcode;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using Category5.Player;
+using Category5.Player.WindRiding;
+using Category5.Enemies;
+using Category5.Boss;
 
 namespace Category5
 {
-    // convergence dash - dash to a target location and create a burst explosion around the landing spot. 
-    // if the explosion hits 3+ enemies both Q charges reset immediately.
+    // jammer star - enter a cloud-surfing state for a few seconds
+    // damages enemies on contact and refunds both q charges when 3 unique enemies are hit
+    // the steering is cranked up so the assassin can pivot faster than normal cloud riding
+    // exits early when the player dodges or after the duration timer runs out
     public class AssassinR : AbilityBase
     {
-        [Header("Dash Settings")]
-        [SerializeField] private float dashDistance = 10f;
-        [SerializeField] private float dashDuration = 0.18f;
-        [SerializeField] private float hitRadius = 4f;
+        [Header("Jammer Star")]
+        [SerializeField] private float jammerStarDuration = 5f;
+        [SerializeField] private float jammerStarHitRadius = 2.5f;
+        [SerializeField] private int jammerStarHitThreshold = 3;
+
+        [Header("Steering Overrides")]
+        [Tooltip("cloud mode steering responsiveness while jammer star is active (higher = easier to turn)")]
+        [SerializeField] private float steeringResponsivenessOverride = 50f;
+        [Tooltip("cloud mode rotation speed while jammer star is active")]
+        [SerializeField] private float rotationSpeedOverride = 14f;
+
+        [Header("Damage")]
+        [Tooltip("layers to check for enemies while jammer star is active")]
         [SerializeField] private LayerMask enemyLayers;
-        [SerializeField] private float buffDamageMultiplier = 1.2f;
 
         private AssassinQ _assassinQ;
-        private Coroutine _convergenceRoutine;
-        private int _playerLayer;
-        private bool _enemyCollisionIgnored;
+        private Coroutine _jammerStarRoutine;
+        private bool _isJammerStarActive;
+        private WindRiderController _windRider;
+        private WindRiderController.CloudOverrideSnapshot _steeringSnapshot;
+        private readonly HashSet<int> _uniqueEnemiesHit = new HashSet<int>();
 
-        public static event Action<Vector3, Vector3, float> OnConvergenceStarted;
-        public static event Action<Vector3, int, bool> OnConvergenceExplosion;
-        public static event Action<Vector3> OnConvergenceEnded;
+        public static event Action<Vector3> OnJammerStarStarted;
+        public static event Action<Vector3> OnJammerStarHit;
+        public static event Action<Vector3> OnJammerStarEnded;
+        public static event Action OnJammerStarRefund;
 
         public override void Initialize(PlayerController player, PlayerStats stats, PlayerAbilityManager manager)
         {
@@ -34,7 +52,7 @@ namespace Category5
         public override bool CanUse()
         {
             if (!base.CanUse()) return false;
-            return _convergenceRoutine == null;
+            return !_isJammerStarActive && _jammerStarRoutine == null;
         }
 
         public override void Execute()
@@ -43,6 +61,7 @@ namespace Category5
 
             FindDashAbility();
 
+            // face the aim direction so the surfer starts pointed where the player is aiming
             Vector3 direction = playerController != null ? playerController.GetAimDirection() : transform.forward;
             direction.y = 0f;
             if (direction == Vector3.zero)
@@ -50,32 +69,18 @@ namespace Category5
                 direction = transform.forward;
             }
             direction.Normalize();
-
             transform.rotation = Quaternion.LookRotation(direction);
 
-            // calculate damage coefficient with potential buff
-            float coefficient = abilityData.damageCoefficient;
-            if (_assassinQ != null && _assassinQ.ConsumeDamageBuff())
+            // kick off cloud riding and apply the easier-to-turn steering overrides
+            _windRider = playerController != null ? playerController.GetComponent<WindRiderController>() : null;
+            if (_windRider != null)
             {
-                coefficient *= buffDamageMultiplier;
+                _windRider.StartCloudRiding();
+                _steeringSnapshot = _windRider.ApplyCloudOverride(steeringResponsivenessOverride, rotationSpeedOverride);
             }
 
-            Vector3 startPosition = transform.position;
-            abilityManager.ExecuteAssassinRConvergenceServerRpc(
-                startPosition,
-                direction,
-                dashDistance,
-                coefficient,
-                hitRadius,
-                enemyLayers.value
-            );
-
-            if (_convergenceRoutine != null)
-            {
-                StopCoroutine(_convergenceRoutine);
-            }
-
-            _convergenceRoutine = StartCoroutine(ConvergenceRoutine(direction));
+            _jammerStarRoutine = StartCoroutine(JammerStarRoutine());
+            OnJammerStarStarted?.Invoke(transform.position);
         }
 
         private void FindDashAbility()
@@ -85,68 +90,128 @@ namespace Category5
             _assassinQ = abilityManager.GetComponentInChildren<AssassinQ>();
         }
 
-        private IEnumerator ConvergenceRoutine(Vector3 direction)
+        // duration + dodge-to-exit handler
+        // per-frame enemy detection runs here on the owner so the server rpc gets fresh enemy ids
+        private IEnumerator JammerStarRoutine()
         {
-            _playerLayer = gameObject.layer;
-            SetEnemyCollisionIgnored(true);
-            OnConvergenceStarted?.Invoke(transform.position, direction, dashDistance);
+            _isJammerStarActive = true;
+            _uniqueEnemiesHit.Clear();
 
-            float elapsed = 0f;
-            float speed = dashDistance / Mathf.Max(0.01f, dashDuration);
-            CharacterController controller = playerController != null ? playerController.GetComponent<CharacterController>() : null;
+            float startTime = Time.time;
+            float detectionAccumulator = 0f;
+            const float detectionInterval = 0.1f;
 
-            while (elapsed < dashDuration)
+            while (_isJammerStarActive)
             {
-                float step = speed * Time.deltaTime;
-                if (controller != null)
+                // dodge exits the state early
+                if (playerController != null && playerController.IsDodging)
                 {
-                    controller.Move(direction * step);
-                }
-                else
-                {
-                    transform.position += direction * step;
+                    EndJammerStar();
+                    yield break;
                 }
 
-                elapsed += Time.deltaTime;
+                // duration timeout
+                if (Time.time >= startTime + jammerStarDuration)
+                {
+                    EndJammerStar();
+                    yield break;
+                }
+
+                // detect new enemies on the owner and report each unique one to the server
+                detectionAccumulator += Time.deltaTime;
+                if (detectionAccumulator >= detectionInterval)
+                {
+                    detectionAccumulator = 0f;
+                    DetectAndReportEnemies();
+                }
+
                 yield return null;
             }
-
-            SetEnemyCollisionIgnored(false);
-            _convergenceRoutine = null;
-            OnConvergenceEnded?.Invoke(transform.position);
         }
 
-        private void SetEnemyCollisionIgnored(bool ignore)
+        // owner-side per-frame enemy detection
+        // collects any new unique enemy/boss ids and fires one server rpc per id
+        private void DetectAndReportEnemies()
         {
-            if (enemyLayers.value == 0) return;
+            if (!IsOwner) return;
 
-            if (!ignore && !_enemyCollisionIgnored) return;
+            Collider[] colliders = enemyLayers.value == 0
+                ? Physics.OverlapSphere(transform.position, jammerStarHitRadius)
+                : Physics.OverlapSphere(transform.position, jammerStarHitRadius, enemyLayers.value);
 
-            for (int layer = 0; layer < 32; layer++)
+            for (int i = 0; i < colliders.Length; i++)
             {
-                if ((enemyLayers.value & (1 << layer)) != 0)
+                Collider collider = colliders[i];
+                if (collider == null) continue;
+
+                NetworkObject netObj = collider.GetComponentInParent<NetworkObject>();
+                if (netObj == null) continue;
+
+                int id = netObj.GetInstanceID();
+                if (_uniqueEnemiesHit.Contains(id)) continue;
+
+                // only count enemies or bosses (avoid double-counting via colliders on child objects)
+                bool isDamageable = collider.GetComponentInParent<EnemyBase>() != null
+                    || collider.GetComponentInParent<BossBase>() != null;
+                if (!isDamageable) continue;
+
+                _uniqueEnemiesHit.Add(id);
+                OnJammerStarHit?.Invoke(collider.transform.position);
+                abilityManager.RequestAssassinJammerStarHitServerRpc(new NetworkObjectReference(netObj));
+            }
+        }
+
+        // cleanup helper - called from duration timeout, dodge exit, or OnDisable
+        private void EndJammerStar()
+        {
+            _isJammerStarActive = false;
+            _jammerStarRoutine = null;
+
+            if (_windRider != null)
+            {
+                _windRider.EndCloudRiding();
+                if (_steeringSnapshot != null)
                 {
-                    Physics.IgnoreLayerCollision(_playerLayer, layer, ignore);
+                    _windRider.RestoreCloudOverride(_steeringSnapshot);
+                    _steeringSnapshot = null;
                 }
             }
 
-            _enemyCollisionIgnored = ignore;
+            // free the server-side session dict for this player
+            if (abilityManager != null && IsOwner)
+            {
+                abilityManager.EndAssassinJammerStarServerRpc();
+            }
+
+            OnJammerStarEnded?.Invoke(transform.position);
+        }
+
+        // server callback from RequestAssassinJammerStarHitServerRpc
+        // called on the owner when the server confirms the threshold was hit
+        public void OnJammerStarRefundGranted()
+        {
+            if (_assassinQ != null)
+            {
+                _assassinQ.ResetAllCharges();
+            }
+            OnJammerStarRefund?.Invoke();
         }
 
         private void OnDisable()
         {
-            if (_convergenceRoutine != null)
+            if (_jammerStarRoutine != null)
             {
-                StopCoroutine(_convergenceRoutine);
-                _convergenceRoutine = null;
+                StopCoroutine(_jammerStarRoutine);
+                _jammerStarRoutine = null;
             }
 
-            SetEnemyCollisionIgnored(false);
+            _isJammerStarActive = false;
+            EndJammerStar();
         }
 
-        public static void InvokeConvergenceExplosion(Vector3 position, int hitCount, bool resetCharges)
+        public static void InvokeJammerStarHit(Vector3 position)
         {
-            OnConvergenceExplosion?.Invoke(position, hitCount, resetCharges);
+            OnJammerStarHit?.Invoke(position);
         }
     }
 }

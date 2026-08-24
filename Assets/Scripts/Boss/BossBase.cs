@@ -59,6 +59,9 @@ namespace Category5.Boss
 
         // damage reduction applied by items like Storm Suppressor (weaker on bosses by design)
         public float DamageOutputMultiplier { get; set; } = 1f;
+
+        // tracks the most recent attacker for kill attribution and weak point break routing
+        public ulong LastDamagerClientId { get; set; }
         
         [Header("rotation")]
         [SerializeField] protected float rotationSpeed = 5f;

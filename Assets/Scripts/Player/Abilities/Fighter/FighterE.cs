@@ -18,23 +18,37 @@ namespace Category5
         [Header("grapple settings")]
         [SerializeField] private float grapplePullForce = 15f;
         [SerializeField] private float playerPullSpeed = 15f; // speed when pulling player toward boss
-        
+
+        [Header("vfx")]
+        [Tooltip("spawned once when the hook hits a target")]
+        [SerializeField] private GameObject hookHitVfxPrefab;
+
         private bool isGrappling;
         private Transform grappleTarget; // the boss being grappled to
         private CharacterController playerCharacterController;
-        
+
         // public properties for external access
         public bool IsGrappling => isGrappling;
         public Transform GrappleTarget => grappleTarget;
-        
+
         // events for vfx/sfx
         public static event System.Action<Vector3> OnHookFire;
         public static event System.Action<Vector3> OnHookHit;
         public static event System.Action<Vector3, Vector3> OnPlayerPulled; // start pos, end pos
 
+        // static instance for spawning prefabs from invoke helpers
+        private static FighterE Instance { get; set; }
+        private void OnEnable() => Instance = this;
+        private void OnDisable() { if (Instance == this) Instance = null; }
+
         // public invoke helpers called from PlayerAbilityManager clientrpcs
         public static void OnHookFireInvoke(Vector3 pos) => OnHookFire?.Invoke(pos);
-        public static void OnHookHitInvoke(Vector3 pos) => OnHookHit?.Invoke(pos);
+        public static void OnHookHitInvoke(Vector3 pos)
+        {
+            OnHookHit?.Invoke(pos);
+            if (Instance != null && Instance.hookHitVfxPrefab != null)
+                Instantiate(Instance.hookHitVfxPrefab, pos, Quaternion.identity);
+        }
 
         public override void Initialize(PlayerController player, PlayerStats stats, PlayerAbilityManager manager)
         {

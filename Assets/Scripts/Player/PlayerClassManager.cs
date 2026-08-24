@@ -189,6 +189,7 @@ namespace Category5.Player
             {
                 playerCombat.SetMeleeCoefficients(classData.lightAttackCoefficient, classData.heavyAttackCoefficient);
                 playerCombat.SetComboResetTime(classData.meleeComboResetTime);
+                playerCombat.SetBasicAttackVfx(classData);
             }
 
             // all instances need the correct combat class and coefficients for stat-dependent gameplay,

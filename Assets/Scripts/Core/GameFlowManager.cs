@@ -271,7 +271,7 @@ namespace Category5.Core
                 var networkObj = bossInstance.GetComponent<NetworkObject>();
                 if (networkObj != null)
                 {
-                    networkObj.Spawn();
+                    networkObj.Spawn(true);
                     _currentBoss = bossInstance.GetComponent<BossBase>();
                     _currentBoss?.ResetBoss(bossHp, spawnPos, spawnRot);
                 }

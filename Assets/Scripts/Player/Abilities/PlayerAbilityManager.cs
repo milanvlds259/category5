@@ -50,14 +50,45 @@ namespace Category5
         [SerializeField] private float enchanterChargeDecaySeconds = 15f;
         public NetworkVariable<int> enchanterCharges = new NetworkVariable<int>(0);
 
+        [Header("Cast Animation")]
+        [Tooltip("how long to wait for the CastImpact animation event before resetting the cast state")]
+        [SerializeField] private float castTimeoutDuration = 3f;
+
         private PlayerController playerController;
         private PlayerStats playerStats;
         private PlayerCombat playerCombat;
         private InputSystem_Actions inputActions;
         private UltimateLockManager _ultimateLockManager;
+        private OwnerPlayerNetworkAnimator _ownerNetworkAnimator;
 
         // prevents multiple abilities from executing simultaneously
         public bool IsExecutingAbility { get; private set; }
+
+        // true while a cast-animated ability is playing its cast animation, waiting for the CastImpact event
+        public bool IsCasting { get; private set; }
+
+        // true while the player is holding an ability to aim before firing
+        public bool IsAimingAbility { get; private set; }
+
+        // cast animation state
+        private AbilityBase _pendingCastAbility;
+        private int _castGeneration;
+        private static readonly int _animCastTriggerHash = Animator.StringToHash("Cast");
+        private bool _hasAnimCastTrigger;
+        private RuntimeAnimatorController _cachedCastController;
+
+        // hold-to-aim state
+        private AbilityBase _aimingAbility;
+        private AbilitySlot _aimingSlot;
+        private Vector3 _aimingSpawnPos;
+        private Vector3 _aimingDirection;
+
+        // events for hold-to-aim ui (mirror PlayerCombat charge events)
+        // source: which PlayerAbilityManager is aiming (for filtering)
+        public static event Action<PlayerAbilityManager, AbilitySlot> OnAbilityAimStarted; // source, slot
+        public static event Action<PlayerAbilityManager, AbilitySlot, Vector3, Vector3> OnAbilityAimProgress; // source, slot, spawnPos, direction
+        public static event Action<PlayerAbilityManager, AbilitySlot, Vector3, Vector3> OnAbilityAimReleased; // source, slot, spawnPos, direction
+        public static event Action<PlayerAbilityManager, AbilitySlot> OnAbilityAimCanceled; // source, slot
 
         // events for ui updates - includes reference to source PlayerAbilityManager so UI can filter
         public static event Action<PlayerAbilityManager, AbilitySlot, float, float> OnCooldownChanged; // source, slot, current, max
@@ -73,6 +104,7 @@ namespace Category5
             playerCombat = GetComponent<PlayerCombat>();
             inputActions = new InputSystem_Actions();
             _ultimateLockManager = GetComponent<UltimateLockManager>();
+            _ownerNetworkAnimator = GetComponent<OwnerPlayerNetworkAnimator>();
         }
 
         public override void OnNetworkSpawn()
@@ -208,9 +240,10 @@ namespace Category5
             else
             {
                 inputActions.Player.Ability2.performed += OnAbility2Pressed;
+                inputActions.Player.Ability2.canceled += OnAbility2Released;
                 // Debug.Log("PlayerAbilityManager: Subscribed to Ability2 (E)");
             }
-            
+
             if (inputActions.Player.Ability3 == null)
             {
                 Debug.LogError("PlayerAbilityManager: Ability3 action not found!");
@@ -218,6 +251,7 @@ namespace Category5
             else
             {
                 inputActions.Player.Ability3.performed += OnAbility3Pressed;
+                inputActions.Player.Ability3.canceled += OnAbility3Released;
                 // Debug.Log("PlayerAbilityManager: Subscribed to Ability3 (R)");
             }
         }
@@ -237,8 +271,12 @@ namespace Category5
                 inputActions.Player.Ability1.canceled -= OnAbility1Released;
             if (inputActions.Player.Ability2 != null)
                 inputActions.Player.Ability2.performed -= OnAbility2Pressed;
+            if (inputActions.Player.Ability2 != null)
+                inputActions.Player.Ability2.canceled -= OnAbility2Released;
             if (inputActions.Player.Ability3 != null)
                 inputActions.Player.Ability3.performed -= OnAbility3Pressed;
+            if (inputActions.Player.Ability3 != null)
+                inputActions.Player.Ability3.canceled -= OnAbility3Released;
                 
             inputActions.Disable();
         }
@@ -270,17 +308,65 @@ namespace Category5
         private void OnAbility2Pressed(InputAction.CallbackContext ctx)
         {
             // Debug.Log("Ability2 (E) pressed!");
+            // hold-to-aim abilities route through TryStartAbilityAim instead of TryUseAbility
+            if (IsAimingAbility || IsCasting || IsExecutingAbility) return;
+            var ability = GetAbility(AbilitySlot.Ability2);
+            if (ability != null && ability.CanHoldToAim && TryStartAbilityAim(ability, AbilitySlot.Ability2))
+            {
+                return;
+            }
             TryUseAbility(AbilitySlot.Ability2);
         }
-        
+
+        private void OnAbility2Released(InputAction.CallbackContext ctx)
+        {
+            if (!IsOwner) return;
+            if (IsAimingAbility && _aimingSlot == AbilitySlot.Ability2)
+            {
+                ReleaseAbilityAim();
+            }
+        }
+
         private void OnAbility3Pressed(InputAction.CallbackContext ctx)
         {
             // Debug.Log("Ability3 (R) pressed!");
+            if (IsAimingAbility || IsCasting || IsExecutingAbility) return;
+            var ability = GetAbility(AbilitySlot.Ability3);
+            if (ability != null && ability.CanHoldToAim && TryStartAbilityAim(ability, AbilitySlot.Ability3))
+            {
+                return;
+            }
             TryUseAbility(AbilitySlot.Ability3);
+        }
+
+        private void OnAbility3Released(InputAction.CallbackContext ctx)
+        {
+            if (!IsOwner) return;
+            if (IsAimingAbility && _aimingSlot == AbilitySlot.Ability3)
+            {
+                ReleaseAbilityAim();
+            }
         }
 
         private void Update()
         {
+            // owner-side: cancel an in-progress cast or aim, and update the aim position each frame
+            // must run for both host and client owners (host is server + owner at the same time)
+            if (IsOwner)
+            {
+                if (playerController != null &&
+                    (playerController.IsDodging || playerController.IsDead.Value || playerController.IsWindRiding))
+                {
+                    if (IsCasting) CancelCast();
+                    if (IsAimingAbility) CancelAbilityAim();
+                }
+                if (IsAimingAbility)
+                {
+                    UpdateAbilityAim();
+                }
+            }
+
+            // cooldown + charge ticking is server-only
             if (!IsServer) return;
 
             // tick down cooldowns on server
@@ -372,6 +458,16 @@ namespace Category5
                 Debug.Log("[DebugAbility] Blocked: Already executing ability");
                 return;
             }
+            if (IsCasting)
+            {
+                Debug.Log("[DebugAbility] Blocked: Already casting");
+                return;
+            }
+            if (IsAimingAbility)
+            {
+                Debug.Log("[DebugAbility] Blocked: Currently aiming an ability");
+                return;
+            }
 
             // skill tree ultimate lock: block R ability if not unlocked
             if (slot == AbilitySlot.Ability3 && _ultimateLockManager != null && !_ultimateLockManager.IsUnlocked)
@@ -411,8 +507,43 @@ namespace Category5
             {
                 playerController.CancelSprint();
             }
-            
-            // execute locally on the owner (client has the abilities instantiated)
+
+            // cast-animated abilities play a cast animation and defer Execute() to the CastImpact animation event
+            if (ability.HasCastAnimation)
+            {
+                StartCast(ability, slot);
+            }
+            else
+            {
+                ExecuteAbilityNow(ability, slot);
+            }
+        }
+
+        // starts a cast-animated ability: plays the cast animation and defers Execute() to the CastImpact event
+        private void StartCast(AbilityBase ability, AbilitySlot slot)
+        {
+            IsCasting = true;
+            _pendingCastAbility = ability;
+            _castGeneration++;
+
+            if (!PlayCastAnimation())
+            {
+                // cast animation unavailable - fall back to immediate execution
+                IsCasting = false;
+                _pendingCastAbility = null;
+                ExecuteAbilityNow(ability, slot);
+                return;
+            }
+
+            // safety fallback if the cast animation event never fires
+            StartCoroutine(CastTimeout(castTimeoutDuration, _castGeneration));
+
+            ConsumeAbilityCostAndCooldown(ability, slot);
+        }
+
+        // executes a non-cast ability immediately (original behavior)
+        private void ExecuteAbilityNow(AbilityBase ability, AbilitySlot slot)
+        {
             IsExecutingAbility = true;
             try
             {
@@ -426,7 +557,13 @@ namespace Category5
             {
                 IsExecutingAbility = false;
             }
-            
+
+            ConsumeAbilityCostAndCooldown(ability, slot);
+        }
+
+        // consumes mana + starts cooldown for an ability (shared by cast and instant paths)
+        private void ConsumeAbilityCostAndCooldown(AbilityBase ability, AbilitySlot slot)
+        {
             // consume mana if ability has a cost
             if (ability.ConsumeCostOnExecute)
             {
@@ -435,12 +572,181 @@ namespace Category5
                 else if (ability.Data.manaCost > 0)
                     playerController.RequestConsumeManaServerRpc(ability.Data.manaCost);
             }
-            
+
             // send request to server to set cooldown on NetworkVariable
             if (ability.StartCooldownOnExecute)
             {
                 RequestSetAbilityCooldownServerRpc(slot, ability.Data.cooldownDuration);
             }
+        }
+
+        // plays the cast animation on the model animator (synced to remotes via OwnerPlayerNetworkAnimator)
+        private bool PlayCastAnimation()
+        {
+            var modelManager = GetComponent<PlayerModelManager>();
+            var anim = modelManager != null ? modelManager.ModelAnimator : null;
+            if (anim == null)
+            {
+                Debug.LogError("PlayerAbilityManager: No model animator available on PlayerModelManager. Cannot play cast animation.");
+                return false;
+            }
+
+            EnsureCastParamCache(anim);
+
+            if (!_hasAnimCastTrigger)
+            {
+                Debug.LogError("PlayerAbilityManager: Animator parameter 'Cast' (Trigger) is missing on the active runtime animator controller. Add it to the controller for cast animations to play.");
+                return false;
+            }
+
+            if (_ownerNetworkAnimator != null)
+            {
+                _ownerNetworkAnimator.SetTrigger(_animCastTriggerHash);
+            }
+            else
+            {
+                anim.SetTrigger(_animCastTriggerHash);
+            }
+
+            return true;
+        }
+
+        // caches whether the active controller has the Cast trigger parameter
+        private void EnsureCastParamCache(Animator anim)
+        {
+            var controller = anim.runtimeAnimatorController;
+            if (_cachedCastController == controller) return;
+
+            _cachedCastController = controller;
+            _hasAnimCastTrigger = false;
+            if (controller == null) return;
+
+            var parameters = anim.parameters;
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                if (parameters[i].nameHash == _animCastTriggerHash)
+                {
+                    _hasAnimCastTrigger = true;
+                    break;
+                }
+            }
+        }
+
+        // called from the CastImpact animation event relay on the model animator
+        public void OnCastImpactAnimationEvent()
+        {
+            if (!IsOwner) return;
+
+            if (!IsCasting || _pendingCastAbility == null) return;
+
+            AbilityBase ability = _pendingCastAbility;
+            _pendingCastAbility = null;
+            IsCasting = false;
+
+            IsExecutingAbility = true;
+            try
+            {
+                ability.Execute();
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"Exception while executing cast ability: {ex}");
+            }
+            finally
+            {
+                IsExecutingAbility = false;
+            }
+        }
+
+        // cancels an in-progress cast (dodge/death/wind riding or timeout)
+        public void CancelCast()
+        {
+            if (!IsCasting) return;
+            IsCasting = false;
+            _pendingCastAbility = null;
+            _castGeneration++;
+        }
+
+        // fallback reset if the cast animation event never fires
+        private IEnumerator CastTimeout(float maxDuration, int generation)
+        {
+            yield return new WaitForSeconds(maxDuration);
+            if (_castGeneration == generation && IsCasting)
+            {
+                Debug.LogWarning("PlayerAbilityManager: cast timed out without CastImpact animation event - resetting cast state");
+                CancelCast();
+            }
+        }
+
+        // starts hold-to-aim: shows the aim indicator and waits for release before firing
+        private bool TryStartAbilityAim(AbilityBase ability, AbilitySlot slot)
+        {
+            if (!IsOwner) return false;
+            if (playerController == null) return false;
+
+            // cancel sprint so the player can stand still to aim
+            playerController.CancelSprint();
+
+            IsAimingAbility = true;
+            _aimingAbility = ability;
+            _aimingSlot = slot;
+
+            // compute initial spawn + direction so the first frame already has correct aim
+            _aimingSpawnPos = GetAbilityAimSpawnPos(ability);
+            _aimingDirection = ability.GetAimDirection(_aimingSpawnPos);
+
+            OnAbilityAimStarted?.Invoke(this, slot);
+            return true;
+        }
+
+        // recomputes the aim direction each frame while holding (camera can move)
+        private void UpdateAbilityAim()
+        {
+            if (_aimingAbility == null) return;
+            _aimingSpawnPos = GetAbilityAimSpawnPos(_aimingAbility);
+            _aimingDirection = _aimingAbility.GetAimDirection(_aimingSpawnPos);
+            OnAbilityAimProgress?.Invoke(this, _aimingSlot, _aimingSpawnPos, _aimingDirection);
+        }
+
+        // called on button release: fires the ability (which will play its cast animation)
+        private void ReleaseAbilityAim()
+        {
+            if (!IsAimingAbility) return;
+
+            AbilityBase ability = _aimingAbility;
+            AbilitySlot slot = _aimingSlot;
+            Vector3 spawnPos = _aimingSpawnPos;
+            Vector3 direction = _aimingDirection;
+
+            IsAimingAbility = false;
+            _aimingAbility = null;
+            _aimingSlot = AbilitySlot.Ability1; // reset to default value
+
+            OnAbilityAimReleased?.Invoke(this, slot, spawnPos, direction);
+
+            // commit the cast - mana + cooldown consumed at cast start (existing behavior)
+            TryUseAbility(slot);
+        }
+
+        // cancels an in-progress aim (dodge/death/wind riding or losing focus)
+        public void CancelAbilityAim()
+        {
+            if (!IsAimingAbility) return;
+            AbilitySlot slot = _aimingSlot;
+            IsAimingAbility = false;
+            _aimingAbility = null;
+            _aimingSlot = AbilitySlot.Ability1;
+            OnAbilityAimCanceled?.Invoke(this, slot);
+        }
+
+        // returns the world position the ability considers its "spawn point" for aim calculations
+        // uses the model's projectile spawn point if available, falling back to player chest
+        private Vector3 GetAbilityAimSpawnPos(AbilityBase ability)
+        {
+            if (ability == null || playerController == null) return transform.position;
+            var modelManager = GetComponent<PlayerModelManager>();
+            var spawnPoint = modelManager != null ? modelManager.ProjectileSpawnPoint : null;
+            return spawnPoint != null ? spawnPoint.position : playerController.transform.position + Vector3.up * 1.5f;
         }
 
         [Rpc(SendTo.Server)]
@@ -680,11 +986,113 @@ namespace Category5
                 ignoreEnvironment: true,
                 impactVfxOverride: impactVfxOverride
             );
-            
+
             // spawn on network
             netObj.Spawn();
-            
+
             // Debug.Log($"Critshot fired for client {OwnerClientId}! Piercing arrow with {damageMultiplier}x damage!");
+        }
+
+        // =====================================
+        // assassin jammer star
+        // =====================================
+        // per-player server-side session state keyed by OwnerClientId
+        // tracks unique enemy ids hit during the current jammer star cast and whether the refund was already granted
+        private static readonly Dictionary<ulong, JammerStarSession> _jammerStarSessions = new Dictionary<ulong, JammerStarSession>();
+
+        private class JammerStarSession
+        {
+            public HashSet<int> HitSet = new HashSet<int>();
+            public bool RefundGranted;
+        }
+
+        // owner-side per-frame detection calls this for each new unique enemy
+        // server applies damage and tracks unique-hit count
+        [Rpc(SendTo.Server)]
+        public void RequestAssassinJammerStarHitServerRpc(NetworkObjectReference enemyRef)
+        {
+            if (!IsServer) return;
+            if (!enemyRef.TryGet(out NetworkObject enemyObj)) return;
+
+            // get or create the per-player session state
+            if (!_jammerStarSessions.TryGetValue(OwnerClientId, out var session))
+            {
+                session = new JammerStarSession();
+                _jammerStarSessions[OwnerClientId] = session;
+            }
+
+            // never refund twice for the same jammer star cast
+            if (session.RefundGranted)
+            {
+                return;
+            }
+
+            int instanceId = enemyObj.GetInstanceID();
+            if (!session.HitSet.Add(instanceId))
+            {
+                return;
+            }
+
+            // apply damage with weak point routing
+            EnemyBase enemy = enemyObj.GetComponent<EnemyBase>();
+            BossBase boss = enemyObj.GetComponent<BossBase>();
+            if (enemy == null && boss == null) return;
+
+            int damage = playerStats != null
+                ? playerStats.CalculateDamage(jammerStarDamageCoefficient).damage
+                : Mathf.RoundToInt(jammerStarDamageCoefficient * 100f);
+
+            // weak point routing first
+            Collider hitCollider = enemyObj.GetComponentInChildren<Collider>();
+            bool intercepted = hitCollider != null && Category5.WeakPoints.WeakPointHelper.TryRouteMeleeDamage(
+                hitCollider, damage, OwnerClientId, transform.position);
+
+            if (!intercepted)
+            {
+                if (enemy != null && !enemy.IsDead)
+                {
+                    enemy.LastDamagerClientId = OwnerClientId;
+                    enemy.TakeDamage(damage);
+                }
+                else if (boss != null)
+                {
+                    boss.LastDamagerClientId = OwnerClientId;
+                    boss.TakeDamage(damage);
+                }
+            }
+
+            // check threshold and grant refund once
+            if (session.HitSet.Count >= jammerStarHitThreshold)
+            {
+                session.RefundGranted = true;
+                GrantJammerStarRefundClientRpc(new ClientRpcParams
+                {
+                    Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
+                });
+            }
+        }
+
+        // tells the owner client to refund q charges
+        [ClientRpc]
+        private void GrantJammerStarRefundClientRpc(ClientRpcParams clientRpcParams = default)
+        {
+            if (!IsOwner) return;
+            if (ability3 is AssassinR assassinR)
+            {
+                assassinR.OnJammerStarRefundGranted();
+            }
+        }
+
+        // serialized coefficient used by the jammer star tick damage
+        [SerializeField] private float jammerStarDamageCoefficient = 1.0f;
+        [SerializeField] private int jammerStarHitThreshold = 3;
+
+        // called by the client when jammer star ends so the server can free the session dict
+        [Rpc(SendTo.Server)]
+        public void EndAssassinJammerStarServerRpc()
+        {
+            if (!IsServer) return;
+            _jammerStarSessions.Remove(OwnerClientId);
         }
 
         [Rpc(SendTo.Server)]
@@ -1204,6 +1612,8 @@ namespace Category5
                     int id = enemy.GetInstanceID();
                     if (!hitTargets.Add(id)) continue;
 
+                    // set kill attribution before damage so weak point breaks attribute to the assassin
+                    enemy.LastDamagerClientId = OwnerClientId;
                     enemy.TakeDamage(adjustedDamage);
                     ShowAssassinQDamageNumberClientRpc(adjustedDamage, enemy.transform.position, new ClientRpcParams
                     {
@@ -1219,6 +1629,7 @@ namespace Category5
                     int id = boss.GetInstanceID();
                     if (!hitTargets.Add(id)) continue;
 
+                    boss.LastDamagerClientId = OwnerClientId;
                     boss.TakeDamage(adjustedDamage);
                     ShowAssassinQDamageNumberClientRpc(adjustedDamage, boss.transform.position, new ClientRpcParams
                     {
@@ -1274,7 +1685,7 @@ namespace Category5
         [Rpc(SendTo.Server)]
         public void TriggerAssassinEWhirlwindStartServerRpc(Vector3 startPosition, Vector3 direction, float hitRadius)
         {
-            // server triggers the start of the whirlwind dash for all clients
+            // server triggers the start of the blade dance dash for all clients
             if (!IsServer) return;
 
             if (direction == Vector3.zero)
@@ -1291,7 +1702,7 @@ namespace Category5
         [ClientRpc]
         private void TriggerAssassinEWhirlwindStartClientRpc(Vector3 startPosition, Vector3 direction, float hitRadius)
         {
-            AssassinE.InvokeWhirlwindStarted(startPosition, direction, hitRadius);
+            AssassinE.InvokeBladeDanceStarted(startPosition, direction, hitRadius);
         }
 
         [Rpc(SendTo.Server)]
@@ -1329,6 +1740,8 @@ namespace Category5
                     int id = enemy.GetInstanceID();
                     if (!hitTargets.Add(id)) continue;
 
+                    // set kill attribution before damage so weak point breaks attribute to the assassin
+                    enemy.LastDamagerClientId = OwnerClientId;
                     enemy.TakeDamage(adjustedDamage);
                     ShowAssassinEDamageNumberClientRpc(adjustedDamage, enemy.transform.position, new ClientRpcParams
                     {
@@ -1344,6 +1757,7 @@ namespace Category5
                     int id = boss.GetInstanceID();
                     if (!hitTargets.Add(id)) continue;
 
+                    boss.LastDamagerClientId = OwnerClientId;
                     boss.TakeDamage(adjustedDamage);
                     ShowAssassinEDamageNumberClientRpc(adjustedDamage, boss.transform.position, new ClientRpcParams
                     {
@@ -1359,7 +1773,7 @@ namespace Category5
         [ClientRpc]
         private void TriggerAssassinEWhirlwindClientRpc(Vector3 position, int hitCount)
         {
-            AssassinE.InvokeWhirlwindHit(position, hitCount);
+            AssassinE.InvokeBladeDanceHit(position, hitCount);
 
             if (IsOwner && hitCount > 0 && HitFeedbackManager.Instance != null)
             {
@@ -1376,134 +1790,8 @@ namespace Category5
             }
         }
 
-        [Rpc(SendTo.Server)]
-        public void ExecuteAssassinRConvergenceServerRpc(Vector3 startPosition, Vector3 direction, float dashDistance,
-            float damageCoefficient, float hitRadius, int enemyLayerMask)
-        {
-            if (!IsServer) return;
-
-            int adjustedDamage = playerStats != null ? playerStats.CalculateDamage(damageCoefficient).damage : Mathf.RoundToInt(damageCoefficient * 100f);
-
-            if (direction == Vector3.zero)
-            {
-                direction = transform.forward;
-            }
-
-            direction.y = 0f;
-            direction.Normalize();
-
-            Vector3 hitPosition = startPosition + direction * dashDistance;
-            Collider[] dashColliders = enemyLayerMask == 0
-                ? Physics.OverlapCapsule(startPosition, hitPosition, hitRadius)
-                : Physics.OverlapCapsule(startPosition, hitPosition, hitRadius, enemyLayerMask);
-
-            Collider[] explosionColliders = enemyLayerMask == 0
-                ? Physics.OverlapSphere(hitPosition, hitRadius)
-                : Physics.OverlapSphere(hitPosition, hitRadius, enemyLayerMask);
-
-            var hitTargets = new HashSet<int>();
-            int hits = 0;
-
-            foreach (Collider collider in dashColliders)
-            {
-                // check for weak points first
-                if (TryDealDamageWithWeakPoint(collider, adjustedDamage, startPosition, hitTargets)) continue;
-
-                EnemyBase enemy = collider.GetComponentInParent<EnemyBase>();
-                if (enemy != null && !enemy.IsDead)
-                {
-                    int id = enemy.GetInstanceID();
-                    if (!hitTargets.Add(id)) continue;
-
-                    enemy.TakeDamage(adjustedDamage);
-                    ShowAssassinRDamageNumberClientRpc(adjustedDamage, enemy.transform.position, new ClientRpcParams
-                    {
-                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
-                    });
-                    hits++;
-                    continue;
-                }
-
-                BossBase boss = collider.GetComponentInParent<BossBase>();
-                if (boss != null)
-                {
-                    int id = boss.GetInstanceID();
-                    if (!hitTargets.Add(id)) continue;
-
-                    boss.TakeDamage(adjustedDamage);
-                    ShowAssassinRDamageNumberClientRpc(adjustedDamage, boss.transform.position, new ClientRpcParams
-                    {
-                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
-                    });
-                    hits++;
-                }
-            }
-
-            foreach (Collider collider in explosionColliders)
-            {
-                // check for weak points first
-                if (TryDealDamageWithWeakPoint(collider, adjustedDamage, hitPosition, hitTargets)) continue;
-
-                EnemyBase enemy = collider.GetComponentInParent<EnemyBase>();
-                if (enemy != null && !enemy.IsDead)
-                {
-                    int id = enemy.GetInstanceID();
-                    if (!hitTargets.Add(id)) continue;
-
-                    enemy.TakeDamage(adjustedDamage);
-                    ShowAssassinRDamageNumberClientRpc(adjustedDamage, enemy.transform.position, new ClientRpcParams
-                    {
-                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
-                    });
-                    hits++;
-                    continue;
-                }
-
-                BossBase boss = collider.GetComponentInParent<BossBase>();
-                if (boss != null)
-                {
-                    int id = boss.GetInstanceID();
-                    if (!hitTargets.Add(id)) continue;
-
-                    boss.TakeDamage(adjustedDamage);
-                    ShowAssassinRDamageNumberClientRpc(adjustedDamage, boss.transform.position, new ClientRpcParams
-                    {
-                        Send = new ClientRpcSendParams { TargetClientIds = new ulong[] { OwnerClientId } }
-                    });
-                    hits++;
-                }
-            }
-
-            TriggerAssassinRExplosionClientRpc(hitPosition, hits, hits >= 3);
-        }
-
-        [ClientRpc]
-        private void TriggerAssassinRExplosionClientRpc(Vector3 position, int hitCount, bool resetCharges)
-        {
-            AssassinR.InvokeConvergenceExplosion(position, hitCount, resetCharges);
-
-            if (IsOwner)
-            {
-                if (resetCharges && ability1 is AssassinQ assassinQ)
-                {
-                    assassinQ.ResetAllCharges();
-                }
-
-                if (hitCount > 0 && HitFeedbackManager.Instance != null)
-                {
-                    HitFeedbackManager.Instance.TriggerHeavyHit(position);
-                }
-            }
-        }
-
-        [ClientRpc]
-        private void ShowAssassinRDamageNumberClientRpc(int damage, Vector3 position, ClientRpcParams clientRpcParams = default)
-        {
-            if (Category5.UI.UIManager.Instance != null)
-            {
-                Category5.UI.UIManager.Instance.ShowDamageNumber(damage, position);
-            }
-        }
+        // note: ExecuteAssassinRConvergenceServerRpc and friends were removed when R was reworked into Jammer Star
+        // the new jammer star path is RequestAssassinJammerStarHitServerRpc + GrantJammerStarRefundClientRpc
 
         [Rpc(SendTo.Server)]
         public void SpawnEnchanterHealBeaconServerRpc(Vector3 spawnPosition, Vector3 targetPosition,
@@ -1669,33 +1957,27 @@ namespace Category5
         }
 
         [Rpc(SendTo.Server)]
-        public void ExecuteThunderArcServerRpc(Vector3 position, Vector3 forward, float damageCoefficient,
-            float arcAngle, float arcRange, float knockbackForce, float stunDuration, float stunDelay, int enemyLayerMask)
+        public void ExecuteThunderArcServerRpc(Vector3 position, float damageCoefficient,
+            float arcRadius, float knockbackForce, float stunDuration, float stunDelay, int enemyLayerMask)
         {
             if (!IsServer) return;
 
             int adjustedDamage = playerStats != null ? playerStats.CalculateDamage(damageCoefficient).damage : Mathf.RoundToInt(damageCoefficient * 100f);
 
-            // Debug.Log($"[ElementalistE_Thunder Server] executing arc at {position}, damage={adjustedDamage}, range={arcRange}, angle={arcAngle}");
+            // Debug.Log($"[ElementalistE_Thunder Server] executing 360 aoe at {position}, damage={adjustedDamage}, radius={arcRadius}");
 
-            // trigger vfx for all clients
-            TriggerThunderArcVfxClientRpc(position, forward, arcRange, arcAngle);
+            // trigger vfx for all clients (no forward needed since it's a circle)
+            TriggerThunderArcVfxClientRpc(position, arcRadius);
 
-            Collider[] hitColliders = Physics.OverlapSphere(position, arcRange, enemyLayerMask);
+            Collider[] hitColliders = Physics.OverlapSphere(position, arcRadius, enemyLayerMask);
             int enemiesHit = 0;
-            float halfAngle = arcAngle * 0.5f;
 
             foreach (Collider collider in hitColliders)
             {
-                // check if target is within the cone angle
-                Vector3 dirToTarget = (collider.transform.position - position).normalized;
-                dirToTarget.y = 0; // ignore vertical difference
-                Vector3 flatForward = forward;
-                flatForward.y = 0;
-                flatForward.Normalize();
-
-                float angle = Vector3.Angle(flatForward, dirToTarget);
-                if (angle > halfAngle) continue;
+                // radial direction from player to enemy (for knockback)
+                Vector3 dirToTarget = collider.transform.position - position;
+                dirToTarget.y = 0f;
+                Vector3 knockbackDir = dirToTarget.sqrMagnitude > 0.001f ? dirToTarget.normalized : Vector3.forward;
 
                 // try enemy
                 if (collider.TryGetComponent<EnemyBase>(out var enemy) && !enemy.IsDead)
@@ -1706,8 +1988,8 @@ namespace Category5
                         enemy.TakeDamage(adjustedDamage);
                     }
 
-                    // knockback away from player
-                    Vector3 knockback = dirToTarget * knockbackForce;
+                    // knockback radially away from player
+                    Vector3 knockback = knockbackDir * knockbackForce;
                     CharacterController enemyCC = enemy.GetComponent<CharacterController>();
                     if (enemyCC != null)
                     {
@@ -1771,9 +2053,9 @@ namespace Category5
         }
 
         [Rpc(SendTo.Everyone)]
-        private void TriggerThunderArcVfxClientRpc(Vector3 position, Vector3 forward, float range, float angle)
+        private void TriggerThunderArcVfxClientRpc(Vector3 position, float radius)
         {
-            ElementalistE_Thunder.InvokeThunderArcExecute(position, forward, range, angle);
+            ElementalistE_Thunder.InvokeThunderArcExecute(position, radius);
         }
 
         [ClientRpc]

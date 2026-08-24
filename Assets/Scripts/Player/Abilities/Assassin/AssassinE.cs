@@ -2,10 +2,12 @@ using UnityEngine;
 using System;
 using System.Collections;
 using Category5.Player;
+using Category5.WeakPoints;
 
 namespace Category5
 {
-    // whirlwind dash - spin-dash in a circle hitting all enemies around you
+    // blade dance - spin-dash in a circle hitting all enemies around you
+    // breaking a weak point while blade dance is active refunds one q charge
     public class AssassinE : AbilityBase
     {
         [Header("Dash Settings")]
@@ -13,7 +15,6 @@ namespace Category5
         [SerializeField] private float dashDuration = 0.2f;
         [SerializeField] private float hitRadius = 3f;
         [SerializeField] private LayerMask enemyLayers;
-        [SerializeField] private float buffDamageMultiplier = 1.2f;
 
         [Header("Vfx Settings")]
         [SerializeField] private bool spawnRadiusVfx = true;
@@ -23,14 +24,16 @@ namespace Category5
         [SerializeField] private bool forceLocalParticleSimulation = true;
 
         private AssassinQ _assassinQ;
-        private Coroutine _whirlwindRoutine;
+        private Coroutine _bladeDanceRoutine;
         private int _playerLayer;
         private bool _enemyCollisionIgnored;
-        private GameObject _whirlwindVfxInstance;
+        private GameObject _bladeDanceVfxInstance;
+        private bool _isBladeDanceActive;
 
-        public static event Action<Vector3, Vector3, float> OnWhirlwindStarted;
-        public static event Action<Vector3, int> OnWhirlwindHit;
-        public static event Action<Vector3> OnWhirlwindEnded;
+        public static event Action<Vector3, Vector3, float> OnBladeDanceStarted;
+        public static event Action<Vector3, int> OnBladeDanceHit;
+        public static event Action<Vector3> OnBladeDanceEnded;
+        public static event Action<Vector3> OnBladeDanceWeakPointBroken;
 
         public override void Initialize(PlayerController player, PlayerStats stats, PlayerAbilityManager manager)
         {
@@ -41,7 +44,7 @@ namespace Category5
         public override bool CanUse()
         {
             if (!base.CanUse()) return false;
-            return _whirlwindRoutine == null;
+            return _bladeDanceRoutine == null;
         }
 
         public override void Execute()
@@ -61,14 +64,11 @@ namespace Category5
 
             transform.rotation = Quaternion.LookRotation(direction);
 
-            // calculate damage coefficient with potential buff
+            // calculate damage coefficient
+            // note: q damage buff used to apply here but now applies only to basic attacks
             float coefficient = abilityData.damageCoefficient;
-            if (_assassinQ != null && _assassinQ.ConsumeDamageBuff())
-            {
-                coefficient *= buffDamageMultiplier;
-            }
 
-            // execute the whirlwind dash on the server
+            // execute the blade dance dash on the server
             Vector3 startPosition = transform.position;
             abilityManager.TriggerAssassinEWhirlwindStartServerRpc(startPosition, direction, hitRadius);
             abilityManager.ExecuteAssassinEWhirlwindServerRpc(
@@ -80,16 +80,16 @@ namespace Category5
                 enemyLayers.value
             );
 
-            if (_whirlwindRoutine != null)
+            if (_bladeDanceRoutine != null)
             {
-                StopCoroutine(_whirlwindRoutine);
+                StopCoroutine(_bladeDanceRoutine);
             }
 
-            SpawnWhirlwindRadiusVfx();
-            _whirlwindRoutine = StartCoroutine(WhirlwindRoutine(direction));
+            SpawnBladeDanceRadiusVfx();
+            _bladeDanceRoutine = StartCoroutine(BladeDanceRoutine(direction));
         }
 
-        // helper to find the AssassinQ ability for damage buff checks
+        // helper to find the AssassinQ ability for charge refund
         private void FindDashAbility()
         {
             if (abilityManager == null) return;
@@ -97,11 +97,12 @@ namespace Category5
             _assassinQ = abilityManager.GetComponentInChildren<AssassinQ>();
         }
 
-        // coroutine to handle the whirlwind dash movement and effects
-        private IEnumerator WhirlwindRoutine(Vector3 direction)
+        // coroutine to handle the blade dance dash movement and effects
+        private IEnumerator BladeDanceRoutine(Vector3 direction)
         {
             _playerLayer = gameObject.layer;
             SetEnemyCollisionIgnored(true);
+            _isBladeDanceActive = true;
 
             float elapsed = 0f;
             float speed = dashDistance / Mathf.Max(0.01f, dashDuration);
@@ -113,9 +114,9 @@ namespace Category5
                 float step = speed * Time.deltaTime;
                 transform.Rotate(Vector3.up, 1080f * Time.deltaTime);
 
-                if (_whirlwindVfxInstance != null)
+                if (_bladeDanceVfxInstance != null)
                 {
-                    _whirlwindVfxInstance.transform.position = transform.position + Vector3.up * vfxHeightOffset;
+                    _bladeDanceVfxInstance.transform.position = transform.position + Vector3.up * vfxHeightOffset;
                 }
 
                 if (controller != null)
@@ -132,28 +133,29 @@ namespace Category5
             }
 
             SetEnemyCollisionIgnored(false);
-            _whirlwindRoutine = null;
-            OnWhirlwindEnded?.Invoke(transform.position);
+            _bladeDanceRoutine = null;
+            _isBladeDanceActive = false;
+            OnBladeDanceEnded?.Invoke(transform.position);
         }
 
-        private void SpawnWhirlwindRadiusVfx()
+        private void SpawnBladeDanceRadiusVfx()
         {
             if (!spawnRadiusVfx) return;
             if (abilityData == null || abilityData.vfxPrefab == null) return;
 
-            if (_whirlwindVfxInstance != null)
+            if (_bladeDanceVfxInstance != null)
             {
-                Destroy(_whirlwindVfxInstance);
+                Destroy(_bladeDanceVfxInstance);
             }
 
             Vector3 spawnPosition = transform.position + Vector3.up * vfxHeightOffset;
-            _whirlwindVfxInstance = Instantiate(abilityData.vfxPrefab, spawnPosition, Quaternion.identity);
-            _whirlwindVfxInstance.transform.SetParent(transform, true);
+            _bladeDanceVfxInstance = Instantiate(abilityData.vfxPrefab, spawnPosition, Quaternion.identity);
+            _bladeDanceVfxInstance.transform.SetParent(transform, true);
 
             float diameter = hitRadius * 2f * vfxDiameterMultiplier;
-            _whirlwindVfxInstance.transform.localScale = new Vector3(diameter, diameter, diameter);
+            _bladeDanceVfxInstance.transform.localScale = new Vector3(diameter, diameter, diameter);
 
-            ParticleSystem[] particleSystems = _whirlwindVfxInstance.GetComponentsInChildren<ParticleSystem>(true);
+            ParticleSystem[] particleSystems = _bladeDanceVfxInstance.GetComponentsInChildren<ParticleSystem>(true);
             foreach (ParticleSystem particleSystem in particleSystems)
             {
                 if (forceLocalParticleSimulation)
@@ -167,7 +169,7 @@ namespace Category5
                 particleSystem.Play(true);
             }
 
-            Destroy(_whirlwindVfxInstance, dashDuration + vfxCleanupDelay);
+            Destroy(_bladeDanceVfxInstance, dashDuration + vfxCleanupDelay);
         }
 
         private void SetEnemyCollisionIgnored(bool ignore)
@@ -187,31 +189,51 @@ namespace Category5
             _enemyCollisionIgnored = ignore;
         }
 
+        private void OnEnable()
+        {
+            WeakPoint.OnWeakPointBroken += HandleWeakPointBroken;
+        }
+
         private void OnDisable()
         {
-            if (_whirlwindRoutine != null)
+            WeakPoint.OnWeakPointBroken -= HandleWeakPointBroken;
+
+            if (_bladeDanceRoutine != null)
             {
-                StopCoroutine(_whirlwindRoutine);
-                _whirlwindRoutine = null;
+                StopCoroutine(_bladeDanceRoutine);
+                _bladeDanceRoutine = null;
             }
 
-            if (_whirlwindVfxInstance != null)
+            _isBladeDanceActive = false;
+
+            if (_bladeDanceVfxInstance != null)
             {
-                Destroy(_whirlwindVfxInstance);
-                _whirlwindVfxInstance = null;
+                Destroy(_bladeDanceVfxInstance);
+                _bladeDanceVfxInstance = null;
             }
 
             SetEnemyCollisionIgnored(false);
         }
 
-        public static void InvokeWhirlwindStarted(Vector3 position, Vector3 direction, float radius)
+        // weak point break handler - refunds one q charge if blade dance is currently active and we broke it
+        private void HandleWeakPointBroken(WeakPoint weakPoint, ulong attackerClientId, Vector3 position)
         {
-            OnWhirlwindStarted?.Invoke(position, direction, radius);
+            if (!_isBladeDanceActive) return;
+            if (attackerClientId != OwnerClientId) return;
+            if (_assassinQ == null) return;
+
+            _assassinQ.RefundOneCharge();
+            OnBladeDanceWeakPointBroken?.Invoke(position);
         }
 
-        public static void InvokeWhirlwindHit(Vector3 position, int hitCount)
+        public static void InvokeBladeDanceStarted(Vector3 position, Vector3 direction, float radius)
         {
-            OnWhirlwindHit?.Invoke(position, hitCount);
+            OnBladeDanceStarted?.Invoke(position, direction, radius);
+        }
+
+        public static void InvokeBladeDanceHit(Vector3 position, int hitCount)
+        {
+            OnBladeDanceHit?.Invoke(position, hitCount);
         }
     }
 }

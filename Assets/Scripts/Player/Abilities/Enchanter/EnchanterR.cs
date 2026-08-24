@@ -15,6 +15,10 @@ namespace Category5
         [SerializeField] private Color debugColor = new Color(1f, 1f, 0f, 0.2f);
         [SerializeField] private float debugDuration = 1.5f;
 
+        [Header("vfx")]
+        [Tooltip("spawned once when the lightning bolt strikes")]
+        [SerializeField] private GameObject lightningStrikeVfxPrefab;
+
         public static event Action<Vector3, float, int> OnLightningStrike;
 
         private Coroutine _debugRoutine;
@@ -31,7 +35,15 @@ namespace Category5
         public static void InvokeLightningStrike(Vector3 position, float radius, int alliesBuffed)
         {
             OnLightningStrike?.Invoke(position, radius, alliesBuffed);
+
+            if (Instance != null && Instance.lightningStrikeVfxPrefab != null)
+                Instantiate(Instance.lightningStrikeVfxPrefab, position, Quaternion.identity);
         }
+
+        // static instance for spawning prefabs from invoke helpers
+        private static EnchanterR Instance { get; set; }
+        private void OnEnable() => Instance = this;
+        private void OnDisable() { if (Instance == this) Instance = null; }
 
         public void ShowDebugSphere(Vector3 position, float radius)
         {

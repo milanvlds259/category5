@@ -21,6 +21,10 @@ namespace Category5
         [SerializeField] private float durationPerCharge = 1.5f;
         [SerializeField] private float healRadius = 6f;
 
+        [Header("vfx")]
+        [Tooltip("spawned once when the beacon is thrown")]
+        [SerializeField] private GameObject beaconThrowVfxPrefab;
+
         public static event Action<Vector3, Vector3> OnBeaconThrown;
 
         public override void Execute()
@@ -30,6 +34,13 @@ namespace Category5
             Vector3 forward = playerController != null ? playerController.transform.forward : transform.forward;
             Vector3 spawnPos = transform.position + (forward * forwardOffset) + (Vector3.up * upwardOffset);
             Vector3 targetPoint = GetAimTargetPoint(spawnPos);
+
+            OnBeaconThrown?.Invoke(spawnPos, targetPoint);
+            if (beaconThrowVfxPrefab != null)
+                Instantiate(beaconThrowVfxPrefab, spawnPos, Quaternion.identity);
+
+            SpawnVfx(spawnPos);
+            PlayAudio(spawnPos);
 
             abilityManager.SpawnEnchanterHealBeaconServerRpc(
                 spawnPos,

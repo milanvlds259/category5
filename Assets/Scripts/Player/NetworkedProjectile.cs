@@ -33,12 +33,23 @@ namespace Category5.Player
         
         // track if we've already hit something to prevent double damage
         private bool _hasHit = false;
+
+        // when true, OnTriggerEnter skips damage and despawn so a sibling component can handle it
+        public bool ExternalDamageHandling { get; set; } = false;
+
+        // public accessors so sibling components (e.g. BoomerangBehaviour) can read owner info
+        public ulong OwnerClientId => _ownerClientId;
+        public PlayerStats OwnerStats => _ownerInventory;
+        public float DamageCoefficient => _damageCoefficient;
+        public float Speed => speed;
         
         // cached components
         private Rigidbody _rigidbody;
         
         // vfx prefabs (set by spawner)
         private GameObject _impactVfxPrefab;
+        private GameObject _trailVfxInstance;
+        private bool _isBasicAttackProjectile;
         
         private void Awake()
         {
@@ -63,6 +74,13 @@ namespace Category5.Player
         
         public override void OnNetworkSpawn()
         {
+            if (!IsServer && _isBasicAttackProjectile)
+            {
+                ResolveBasicAttackVfx();
+            }
+
+            SpawnTrailVfx();
+
             if (IsServer)
             {
                 // start lifetime countdown on server
@@ -89,6 +107,7 @@ namespace Category5.Player
             _ownerClientId = ownerClientId;
             _ownerInventory = ownerStats;
             _impactVfxPrefab = data.ImpactVfxPrefab;
+            _isBasicAttackProjectile = false;
             _isPiercing = false;
             _ignoreEnemies = false;
             _ignoreEnvironment = false;
@@ -104,6 +123,7 @@ namespace Category5.Player
             _ownerClientId = ownerClientId;
             _ownerInventory = ownerStats;
             _impactVfxPrefab = data.ImpactVfxPrefab;
+            _isBasicAttackProjectile = true;
             _isPiercing = false;
             _ignoreEnemies = false;
             _ignoreEnvironment = false;
@@ -118,16 +138,32 @@ namespace Category5.Player
             _ownerClientId = ownerClientId;
             _ownerInventory = ownerStats;
             _impactVfxPrefab = impactVfxOverride != null ? impactVfxOverride : data.ImpactVfxPrefab;
+            _isBasicAttackProjectile = false;
             _isPiercing = true;
             _ignoreEnemies = ignoreEnemies;
             _ignoreEnvironment = ignoreEnvironment;
         }
         
+        // public helper so external components (e.g. BoomerangBehaviour) can show damage numbers to the owner
+        public void NotifyExternalDamage(int damage, Vector3 position)
+        {
+            ShowDamageNumberClientRpc(damage, position, new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = new ulong[] { _ownerClientId }
+                }
+            });
+        }
+
         private void OnTriggerEnter(Collider other)
         {
             // only server handles collision
             if (!IsServer) return;
             if (_hasHit && !_isPiercing) return;
+
+            // let a sibling component handle damage instead
+            if (ExternalDamageHandling) return;
             
             // Debug.Log($"Projectile collision with: {other.gameObject.name} on layer {LayerMask.LayerToName(other.gameObject.layer)}");
             
@@ -287,6 +323,59 @@ namespace Category5.Player
             {
                 NetworkObject.Despawn(true);
             }
+        }
+
+        private void ResolveBasicAttackVfx()
+        {
+            if (NetworkManager.Singleton == null || !NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(
+                    OwnerClientId, out NetworkObject ownerObject))
+            {
+                return;
+            }
+
+            PlayerClassManager classManager = ownerObject.GetComponent<PlayerClassManager>();
+            if (classManager == null || ClassRegistry.Instance == null) return;
+
+            PlayerClass classData = ClassRegistry.Instance.GetClass(classManager.GetSelectedClassId());
+            if (classData == null || classData.basicAttackProjectile == null) return;
+
+            ProjectileData projectileData = classData.basicAttackProjectile;
+            _impactVfxPrefab = projectileData.ImpactVfxPrefab;
+            _trailVfxInstance = null;
+        }
+
+        private void SpawnTrailVfx()
+        {
+            if (_trailVfxInstance != null) return;
+
+            GameObject trailPrefab = null;
+            if (_isBasicAttackProjectile)
+            {
+                ResolveBasicAttackVfx();
+                if (NetworkManager.Singleton != null && NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(
+                        OwnerClientId, out NetworkObject ownerObject))
+                {
+                    PlayerClassManager classManager = ownerObject.GetComponent<PlayerClassManager>();
+                    if (classManager != null && ClassRegistry.Instance != null)
+                    {
+                        PlayerClass classData = ClassRegistry.Instance.GetClass(classManager.GetSelectedClassId());
+                        trailPrefab = classData?.basicAttackProjectile?.TrailVfxPrefab;
+                    }
+                }
+            }
+
+            if (trailPrefab != null)
+            {
+                _trailVfxInstance = Instantiate(trailPrefab, transform);
+                _trailVfxInstance.transform.localPosition = Vector3.zero;
+                _trailVfxInstance.transform.localRotation = Quaternion.identity;
+            }
+        }
+
+        // public helper so sibling components (e.g. BoomerangBehaviour) can force-despawn the projectile
+        public void Despawn()
+        {
+            DespawnProjectile();
         }
         
         [ClientRpc]

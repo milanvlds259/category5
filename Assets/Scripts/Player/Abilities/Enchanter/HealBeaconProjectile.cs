@@ -12,6 +12,13 @@ namespace Category5
         [SerializeField] private float maxLifetime = 5f;
         [SerializeField] private LayerMask groundLayers;
 
+        [Header("vfx")]
+        [Tooltip("spawned once when the beacon lands and the zone is placed")]
+        [SerializeField] private GameObject landVfxPrefab;
+
+        // events for vfx/sfx hooks
+        public static event System.Action<Vector3> OnBeaconLanded;
+
         private ulong _ownerClientId;
         private GameObject _zonePrefab;
         private float _healPerTick;
@@ -139,7 +146,10 @@ namespace Category5
                 return;
             }
 
-            GameObject zoneObj = Instantiate(_zonePrefab, transform.position, Quaternion.identity);
+            Vector3 landPos = transform.position;
+            NotifyBeaconLandedClientRpc(landPos);
+
+            GameObject zoneObj = Instantiate(_zonePrefab, landPos, Quaternion.identity);
             NetworkObject zoneNet = zoneObj.GetComponent<NetworkObject>();
             HealBeaconZone zone = zoneObj.GetComponent<HealBeaconZone>();
 
@@ -155,6 +165,15 @@ namespace Category5
             zone.NotifySpawned();
 
             NetworkObject.Despawn(true);
+        }
+
+        [ClientRpc]
+        private void NotifyBeaconLandedClientRpc(Vector3 position)
+        {
+            OnBeaconLanded?.Invoke(position);
+
+            if (landVfxPrefab != null)
+                Instantiate(landVfxPrefab, position, Quaternion.identity);
         }
     }
 }
