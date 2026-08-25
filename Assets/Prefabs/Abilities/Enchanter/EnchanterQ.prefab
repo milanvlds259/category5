@@ -54,3 +54,6 @@ MonoBehaviour:
   enemyLayers:
     serializedVersion: 2
     m_Bits: 64
+  dashStartVfxPrefab: {fileID: 0}
+  dashEndVfxPrefab: {fileID: 0}
+  dashThruVfxPrefab: {fileID: 7775073106480451742, guid: b7f867cbfd6ad104a8ff257d93d2c7a1, type: 3}

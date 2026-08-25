@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using Category5.Player;
 using Category5.Core;
+using Unity.VisualScripting;
 
 namespace Category5
 {
@@ -26,6 +27,8 @@ namespace Category5
         [SerializeField] private GameObject dashStartVfxPrefab;
         [Tooltip("spawned once when the dash ends")]
         [SerializeField] private GameObject dashEndVfxPrefab;
+        [Tooltip("spawned once when the dash ends")]
+        [SerializeField] private GameObject dashThruVfxPrefab;
 
         private bool _isCharging;
         private float _chargeStartTime;
@@ -122,6 +125,13 @@ namespace Category5
             float elapsed = 0f;
             float speed = distance / Mathf.Max(0.01f, dashDuration);
             CharacterController controller = playerController != null ? playerController.GetComponent<CharacterController>() : null;
+
+            if (dashThruVfxPrefab != null) {
+                // create the dash vfx, parent it to the player so it moves with them
+                GameObject dashVFX = Instantiate(dashThruVfxPrefab, transform.position, Quaternion.LookRotation(direction));
+                dashVFX.transform.parent = controller.transform;
+                Destroy(dashVFX, 2); // Destroy the VFX after 2 secs
+            }
 
             // track enemies hit during the dash
             while (elapsed < dashDuration)
