@@ -17520,6 +17520,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: StormRoom
       objectReference: {fileID: 0}
+    - target: {fileID: 4792590773338768368, guid: 14b603a7e1c8da849a8a4cc9146329c8, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6287572502388795788, guid: 14b603a7e1c8da849a8a4cc9146329c8, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.32908
@@ -17629,6 +17633,63 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c8ab77bfb73948b4ea5270fe30f46d20, type: 3}
+--- !u!1001 &4780883678530682137
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 6648839361162621640, guid: b7f867cbfd6ad104a8ff257d93d2c7a1, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -89.7
+      objectReference: {fileID: 0}
+    - target: {fileID: 6648839361162621640, guid: b7f867cbfd6ad104a8ff257d93d2c7a1, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 2.53
+      objectReference: {fileID: 0}
+    - target: {fileID: 6648839361162621640, guid: b7f867cbfd6ad104a8ff257d93d2c7a1, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 21.9
+      objectReference: {fileID: 0}
+    - target: {fileID: 6648839361162621640, guid: b7f867cbfd6ad104a8ff257d93d2c7a1, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.8321831
+      objectReference: {fileID: 0}
+    - target: {fileID: 6648839361162621640, guid: b7f867cbfd6ad104a8ff257d93d2c7a1, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6648839361162621640, guid: b7f867cbfd6ad104a8ff257d93d2c7a1, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.554501
+      objectReference: {fileID: 0}
+    - target: {fileID: 6648839361162621640, guid: b7f867cbfd6ad104a8ff257d93d2c7a1, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6648839361162621640, guid: b7f867cbfd6ad104a8ff257d93d2c7a1, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6648839361162621640, guid: b7f867cbfd6ad104a8ff257d93d2c7a1, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 67.353
+      objectReference: {fileID: 0}
+    - target: {fileID: 6648839361162621640, guid: b7f867cbfd6ad104a8ff257d93d2c7a1, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7775073106480451742, guid: b7f867cbfd6ad104a8ff257d93d2c7a1, type: 3}
+      propertyPath: m_Name
+      value: JayLightningSpear
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: b7f867cbfd6ad104a8ff257d93d2c7a1, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -17656,3 +17717,4 @@ SceneRoots:
   - {fileID: 803299039}
   - {fileID: 1551638075732302261}
   - {fileID: 3802930598848768910}
+  - {fileID: 4780883678530682137}
