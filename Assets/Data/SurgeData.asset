@@ -1,0 +1,89 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7d3e5f1a9c24680b1d2e3f4a5c6d7e8, type: 3}
+  m_Name: SurgeData
+  m_EditorClassIdentifier: Category5.Player.Movement::SurgeData
+  initialChargeCost: 20
+  sustainedChargeCostPerSecond: 5
+  sustainedDrainDelay: 0.25
+  maximumChargeDuration: 2
+  slideLaunchSurgeReward: 5
+  slideDuration: 1
+  slideSparkDelay: 0.5
+  slideTractionMultiplier: 0.2
+  slideDirectionInfluence: 0.15
+  slideTurnSpeedMultiplier: 0.25
+  slideMinimumSpeed: 0.5
+  thrustMinimumDuration: 0.2
+  thrustMaximumDuration: 0.35
+  thrustMinimumSpeed: 36
+  thrustMaximumSpeed: 48
+  thrustGravityMultiplier: 0.15
+  thrustFallSpeedCap: 0
+  surgeJumpMinimumDuration: 0.25
+  surgeJumpMaximumDuration: 0.45
+  surgeJumpMinimumSpeed: 16
+  surgeJumpMaximumSpeed: 32
+  surgeJumpGravityMultiplier: 0.1
+  pullRange: 20
+  pullHorizontalSpeed: 18
+  pullMinimumVerticalSpeed: 2
+  pullVerticalSpeedPerHeight: 0.5
+  pullCooldown: 0.5
+  durationByCharge:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 2
+      outSlope: 2
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  speedByCharge:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 2
+      outSlope: 2
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4

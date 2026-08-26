@@ -201,6 +201,7 @@ namespace Category5.Player.WindRiding
             _ridingVelocity = Vector3.zero;
 
             _playerController.SetExternalVelocity(exitVelocity);
+            GetComponent<Category5.Player.Movement.SurgeController>()?.TryBeginSlide();
             gameObject.layer = LayerMask.NameToLayer("Player");
             WindRideEvents.InvokeRideEnded(_playerController, exitPos, exitVelocity);
             Debug.Log($"[WindRide] EndCloudRiding with exit velocity: {exitVelocity.magnitude}");

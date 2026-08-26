@@ -11,6 +11,7 @@ using Category5.Audio;
 using Category5.UI;
 using Category5.Player.WindRiding;
 using Category5.Player.Van;
+using Category5.Player.Movement;
 using Category5.Interactions;
 
 namespace Category5.Player
@@ -186,6 +187,8 @@ namespace Category5.Player
         // cached reference to wind rider controller
         private WindRiderController _windRider;
 
+        private SurgeController _surgeController;
+
         // cached reference to recall controller
         private RecallController _recallController;
 
@@ -230,7 +233,81 @@ namespace Category5.Player
         }
 
         public new bool IsLocalPlayer => IsOwner || _isOffline;
+        public bool IsOffline => _isOffline;
         public bool IsPlayerDead => _isOffline ? false : IsDead.Value;
+
+        public bool TrySpendSurge(float amount)
+        {
+            int roundedAmount = Mathf.CeilToInt(amount);
+            if (roundedAmount <= 0 || CurrentMana.Value < roundedAmount)
+            {
+                return false;
+            }
+
+            if (_isOffline || IsServer)
+            {
+                SpendSurgeInternal(roundedAmount);
+                return true;
+            }
+
+            if (IsOwner)
+            {
+                RequestSpendSurgeServerRpc(roundedAmount);
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool TryAddSurge(float amount)
+        {
+            int roundedAmount = Mathf.CeilToInt(amount);
+            if (roundedAmount <= 0)
+            {
+                return false;
+            }
+
+            if (_isOffline || IsServer)
+            {
+                CurrentMana.Value = Mathf.Min(MaxMana, CurrentMana.Value + roundedAmount);
+                return true;
+            }
+
+            if (IsOwner)
+            {
+                RequestAddSurgeServerRpc(roundedAmount);
+                return true;
+            }
+
+            return false;
+        }
+
+        [Rpc(SendTo.Server)]
+        private void RequestSpendSurgeServerRpc(int amount)
+        {
+            if (amount <= 0 || CurrentMana.Value < amount)
+            {
+                return;
+            }
+
+            SpendSurgeInternal(amount);
+        }
+
+        private void SpendSurgeInternal(int amount)
+        {
+            CurrentMana.Value = Mathf.Max(0, CurrentMana.Value - amount);
+        }
+
+        [Rpc(SendTo.Server)]
+        private void RequestAddSurgeServerRpc(int amount)
+        {
+            if (amount <= 0)
+            {
+                return;
+            }
+
+            CurrentMana.Value = Mathf.Min(MaxMana, CurrentMana.Value + amount);
+        }
 
         private void Awake()
 {
@@ -240,6 +317,7 @@ namespace Category5.Player
             _playerCombat = GetComponent<PlayerCombat>();
             _playerModelManager = GetComponent<PlayerModelManager>();
             _windRider = GetComponent<WindRiderController>();
+            _surgeController = GetComponent<SurgeController>();
             _recallController = GetComponent<RecallController>();
             
             // cache all renderers for death visibility toggle
@@ -369,6 +447,7 @@ namespace Category5.Player
                 {
                     _inputActions.Player.Disable();
                     _inputActions.Player.Jump.performed -= OnJump;
+                    _inputActions.Player.Jump.canceled -= OnJumpCanceled;
                     _inputActions.Player.Dodge.started -= OnDodge;
                     _inputActions.Player.Sprint.started -= HandleSprintStarted;
                     _inputActions.Player.Sprint.canceled -= OnSprintCanceled;
@@ -596,6 +675,7 @@ namespace Category5.Player
             {
                 _inputActions.Player.Enable();
                 _inputActions.Player.Jump.performed += OnJump;
+                _inputActions.Player.Jump.canceled += OnJumpCanceled;
                 _inputActions.Player.Dodge.started += OnDodge;
                 _inputActions.Player.Sprint.started += HandleSprintStarted;
                 _inputActions.Player.Sprint.canceled += OnSprintCanceled;
@@ -608,6 +688,7 @@ namespace Category5.Player
             if (_inputActions != null)
             {
                 _inputActions.Player.Jump.performed -= OnJump;
+                _inputActions.Player.Jump.canceled -= OnJumpCanceled;
                 _inputActions.Player.Dodge.started -= OnDodge;
                 _inputActions.Player.Sprint.started -= HandleSprintStarted;
                 _inputActions.Player.Sprint.canceled -= OnSprintCanceled;
@@ -778,7 +859,10 @@ if (IsWindRiding)
             }
             else
             {
-                HandleMovement();
+                if (_surgeController == null || !_surgeController.IsMotionOverrideActive)
+                {
+                    HandleMovement();
+                }
                 HandleGravity();
             }
             
@@ -848,7 +932,15 @@ Vector3 lookDirection = transform.forward;
             if ((isMoving || isAttacking) && lookDirection != Vector3.zero)
             {
                 Quaternion targetRotation = Quaternion.LookRotation(lookDirection);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+                float effectiveRotationSpeed = _surgeController != null && _surgeController.IsSliding
+                    ? rotationSpeed * _surgeController.SlideTurnSpeedMultiplier
+                    : rotationSpeed;
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, effectiveRotationSpeed * Time.deltaTime);
+            }
+
+            if (_surgeController != null && _surgeController.IsSliding)
+            {
+                move *= _surgeController.SlideDirectionInfluence;
             }
 
             if (move != Vector3.zero)
@@ -938,6 +1030,7 @@ Vector3 lookDirection = transform.forward;
             else if (!wasGrounded && _isGrounded)
             {
                 OnPlayerAirborneStateChanged?.Invoke(false); // landed
+                _surgeController?.ResetAirTime();
             }
 
             if ( (_isGrounded) && _velocity.y < 0)
@@ -962,6 +1055,12 @@ Vector3 lookDirection = transform.forward;
             // skip gravity if cloud surfing (WindRiderController handles vertical position)
             if (IsWindRiding) return;
 
+            if (_surgeController != null && _surgeController.IsMotionOverrideActive)
+            {
+                _controller.Move(_surgeController.GetMovementOverrideVelocity() * Time.deltaTime);
+                return;
+            }
+
             // apply gravity — scale downward pull by FallSpeedMultiplier when falling
             float gravityThisFrame = gravity;
             if (_velocity.y < 0f)
@@ -983,6 +1082,13 @@ Vector3 lookDirection = transform.forward;
             if (!IsServer) return;
             if (IsDead.Value) return;
             if (_playerStats == null) return;
+
+            // disable surge regen if player is charging
+            if (_surgeController != null && _surgeController.IsCharging)
+            {
+                _manaRegenAccumulator = 0f;
+                return;
+            }
             
             float manaPerSecond = Mathf.Max(0f, _playerStats.EffectiveManaRegenRate);
             if (manaPerSecond <= 0f)
@@ -1013,6 +1119,10 @@ Vector3 lookDirection = transform.forward;
             // don't accept input if dead or blocked
             if (IsDead.Value) return;
             if (Category5.UI.PauseMenu.GameIsPaused || IsInPowerUpSelection() || Category5.UI.BossIntroUI.IntroIsPlaying || Category5.UI.MapSelectionUI.IsOpen) return;
+
+            if (_surgeController != null && _surgeController.TryBeginSlideJump()) return;
+
+            if (!_isGrounded && !IsWindRiding && _surgeController != null && _surgeController.TryBeginCharge()) return;
             
             // Start gliding if airborne and high enough
             if (!_isGrounded && GetHeightAboveGround() > 5f && _windRider != null && !IsWindRiding)
@@ -1042,6 +1152,11 @@ Vector3 lookDirection = transform.forward;
             PlayerEvents.InvokeJump(transform.position);
         }
 
+        private void OnJumpCanceled(InputAction.CallbackContext context)
+        {
+            if (_surgeController != null && _isGrounded && _surgeController.TryBeginSurgeJump()) return;
+        }
+
         private void OnDodge(InputAction.CallbackContext context)
         {
             // don't accept input if dead or blocked
@@ -1052,6 +1167,8 @@ Vector3 lookDirection = transform.forward;
                 Category5.UI.MapSelectionUI.IsOpen ||
                 Category5.DebugTools.DebugMenuUI.IsMenuOpen) return;
             if (IsWindRiding) return;
+
+            if (!_isGrounded && _surgeController != null && _surgeController.TryBeginThrust()) return;
 
             // prevent dodge in Homebase hub
             if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "Homebase") return;

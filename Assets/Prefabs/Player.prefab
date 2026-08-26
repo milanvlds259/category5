@@ -855,6 +855,19 @@ MonoBehaviour:
     draftForwardBlendRate: 2
     draftEntryLockDuration: 0.7
   draftAccumulator: {fileID: 5150649689631028786}
+--- !u!114 &712181475799681150
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7487642310209406333}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f2c1a4b8d9e4371a5c6e7f8091b2c3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Category5.Player.Movement.SurgeController
+  surgeData: {fileID: 11400000, guid: c8e4f6a2b0d34791c2e3f4a5b6d7e8f9, type: 2}
 --- !u!114 &3848571735681686035
 MonoBehaviour:
   m_ObjectHideFlags: 0
